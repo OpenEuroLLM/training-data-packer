@@ -1,6 +1,6 @@
 import io
 import json
-from collections.abc import Generator
+from collections.abc import Generator, Iterator
 from os import PathLike
 from pathlib import Path
 from typing import Any
@@ -14,7 +14,10 @@ class JsonlZstReader:
         self._chunk_size = chunk_size
         self._encoding = encoding
 
-    def read(self) -> Generator[Any, Any, None]:
+    def read(self) -> Generator[Any, Any, Iterator[Any] | None]:
+        if not self._input_file_name.exists():
+            return iter([])
+
         dctx = zstd.ZstdDecompressor()
 
         with open(self._input_file_name, 'rb') as f:
@@ -22,6 +25,7 @@ class JsonlZstReader:
                 text_stream = io.TextIOWrapper(reader, encoding=self._encoding)
                 for line in text_stream:
                     yield json.loads(line)
+
 
 class JsonlZstWriter:
     def __init__(self, output_file_name: str | PathLike[str], encoding='utf-8', chunk_size: int=16384):

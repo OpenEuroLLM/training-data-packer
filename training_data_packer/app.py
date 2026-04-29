@@ -3,10 +3,13 @@ import os
 from pathlib import Path
 
 import yaml
+from loguru import logger
 
 from training_data_packer.align import AlignFieldNames
 from training_data_packer.decontaminate import Decontaminate
 from training_data_packer.filters import filter_to_be_deleted
+from training_data_packer.pii_masking import PiiMasker
+
 from .jsonl_zst import JsonlZstReader, JsonlZstWriter
 
 
@@ -15,7 +18,7 @@ def find_jsonl_zst_files(input_dir: Path) -> list[Path]:
 
 
 def read_metadata(file_path: Path) -> dict:
-    with open(file_path, 'r') as file:
+    with open(file_path) as file:
         metadata = yaml.safe_load(file)
         return metadata
 
@@ -27,9 +30,10 @@ def main(input_dir: Path, output_dir: Path) -> None:
     pii_dir = input_dir.joinpath("pii")
 
     files = find_jsonl_zst_files(source_dir)
-    print(f"Found {len(files)} files")
+    logger.info(f"Found {len(files)} files")
 
     for src_file in files:
+        logger.debug(f"Processing {src_file}")
         rel_file_path = str(src_file)[len(str(source_dir))+1:]
         contamination_file=os.path.join(contamination_dir, rel_file_path)
         pii_file=os.path.join(pii_dir, rel_file_path)
@@ -39,7 +43,8 @@ def main(input_dir: Path, output_dir: Path) -> None:
         src_reader = JsonlZstReader(src_file)
         align_iter = AlignFieldNames(src_reader.read(), metadata)
         decontaminated_iter = Decontaminate(align_iter, JsonlZstReader(contamination_file).read())
-        filtered = filter_to_be_deleted(decontaminated_iter)
+        pii_masked_iter = PiiMasker(decontaminated_iter, JsonlZstReader(pii_file).read())
+        filtered = filter_to_be_deleted(pii_masked_iter)
         JsonlZstWriter(out_file).write(filtered)
 
 

@@ -6,18 +6,19 @@ class Decontaminate:
         self._next_doc_to_remove = None
 
     def __iter__(self):
-        try:
-            self._next_doc_to_remove = next(self._decontamination_data)["id"]
-        except StopIteration as e:
-            self._next_doc_to_remove = None
         return self
 
     def __next__(self):
         try:
+            if self._next_doc_to_remove is None:
+                self._next_doc_to_remove = next(self._decontamination_data)["id"]
+        except StopIteration:
+            self._next_doc_to_remove = None
+        try:
             next_src_doc = next(self._src_data)
         except StopIteration as e:
             if self._next_doc_to_remove is not None:
-                raise ValueError()
+                raise ValueError() from e
             raise e
         if self._next_doc_to_remove is not None and self._next_doc_to_remove == next_src_doc["id"]:
             next_src_doc["delete"]=True
