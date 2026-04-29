@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import zstandard as zstd
+from loguru import logger
 
 
 class JsonlZstReader:
@@ -16,6 +17,7 @@ class JsonlZstReader:
 
     def read(self) -> Generator[Any, Any, Iterator[Any] | None]:
         if not self._input_file_name.exists():
+            logger.info(f"File not exist: {self._input_file_name}")
             return iter([])
 
         dctx = zstd.ZstdDecompressor()

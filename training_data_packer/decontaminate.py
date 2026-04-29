@@ -26,6 +26,4 @@ class Decontaminate:
                 self._next_doc_to_remove = next(self._decontamination_data)["id"]
             except StopIteration:
                 self._next_doc_to_remove = None
-        else:
-            next_src_doc["delete"]=False
         return next_src_doc

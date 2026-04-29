@@ -18,9 +18,9 @@ class DecontaminationTest(unittest.TestCase):
         self.assertEqual(
             decont_list,
             [
-                {'delete': False, 'id': '1234'},
+                {'id': '1234'},
                 {'delete': True, 'id': '1235'},
-                {'delete': False, 'id': '1236'}
+                {'id': '1236'}
             ])
 
     def test_there_are_contamination_records_left(self):
@@ -66,8 +66,8 @@ class DecontaminationTest(unittest.TestCase):
         self.assertEqual(
             decont_list,
             [
-                {'delete': False, 'id': '1234'},
-                {'delete': False, 'id': '1235'},
+                {'id': '1234'},
+                {'id': '1235'},
             ])
 
 
