@@ -40,10 +40,13 @@ def main(input_dir: Path, output_dir: Path) -> None:
         out_file=os.path.join(output_dir, rel_file_path)
         os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
+        contamination_iter = AlignFieldNames(JsonlZstReader(contamination_file).read(), metadata)
+        pii_iter = AlignFieldNames(JsonlZstReader(pii_file).read(), metadata)
+
         src_reader = JsonlZstReader(src_file)
         align_iter = AlignFieldNames(src_reader.read(), metadata)
-        decontaminated_iter = Decontaminate(align_iter, JsonlZstReader(contamination_file).read())
-        pii_masked_iter = PiiMasker(decontaminated_iter, JsonlZstReader(pii_file).read())
+        decontaminated_iter = Decontaminate(align_iter, contamination_iter)
+        pii_masked_iter = PiiMasker(decontaminated_iter, pii_iter)
         filtered = filter_to_be_deleted(pii_masked_iter)
         JsonlZstWriter(out_file).write(filtered)
 
