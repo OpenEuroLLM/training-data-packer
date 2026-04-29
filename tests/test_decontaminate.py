@@ -13,10 +13,10 @@ class DecontaminationTest(unittest.TestCase):
         decont_indata=[
             {"id": "1235"},
         ]
-        dit = Decontaminate(iter(src_indata), iter(decont_indata))
-        l=list(dit)
+        decont_iter = Decontaminate(iter(src_indata), iter(decont_indata))
+        decont_list=list(decont_iter)
         self.assertEqual(
-            l,
+            decont_list,
             [
                 {'delete': False, 'id': '1234'},
                 {'delete': True, 'id': '1235'},
@@ -45,10 +45,10 @@ class DecontaminationTest(unittest.TestCase):
             {"id": "1235"},
             {"id": "1236"},
         ]
-        dit = Decontaminate(iter(src_indata), iter(decont_indata))
-        l=list(dit)
+        decont_iter = Decontaminate(iter(src_indata), iter(decont_indata))
+        decont_list = list(decont_iter)
         self.assertEqual(
-            l,
+            decont_list,
             [
                 {'delete': True, 'id': '1234'},
                 {'delete': True, 'id': '1235'},
@@ -61,10 +61,10 @@ class DecontaminationTest(unittest.TestCase):
             {"id": "1235"},
         ]
         decont_indata=[]
-        dit = Decontaminate(iter(src_indata), iter(decont_indata))
-        l=list(dit)
+        decont_iter = Decontaminate(iter(src_indata), iter(decont_indata))
+        decont_list=list(decont_iter)
         self.assertEqual(
-            l,
+            decont_list,
             [
                 {'delete': False, 'id': '1234'},
                 {'delete': False, 'id': '1235'},

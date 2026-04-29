@@ -10,8 +10,8 @@ class TestAlignFieldNames(unittest.TestCase):
             {"id": "1235", "text": "Gazonk"},
         ]
         align_it = AlignFieldNames(iter(src_indata), {"id": "id", "text": "text"})
-        l = list(align_it)
-        self.assertEqual(l, src_indata)
+        align_list = list(align_it)
+        self.assertEqual(align_list, src_indata)
 
     def test_no_mapping_fields(self):
         src_indata = [
@@ -19,8 +19,8 @@ class TestAlignFieldNames(unittest.TestCase):
             {"id": "1235", "text": "Gazonk"},
         ]
         align_it = AlignFieldNames(iter(src_indata), {})
-        l = list(align_it)
-        self.assertEqual(l, src_indata)
+        align_list = list(align_it)
+        self.assertEqual(align_list, src_indata)
 
     def test_map_id(self):
         src_indata = [
@@ -32,8 +32,8 @@ class TestAlignFieldNames(unittest.TestCase):
             {"id": "1235", "text": "Gazonk"},
         ]
         align_it = AlignFieldNames(iter(src_indata), {"id": "warcid", "text": "text"})
-        l = list(align_it)
-        self.assertEqual(l, expected)
+        align_list = list(align_it)
+        self.assertEqual(align_list, expected)
 
     def test_map_text(self):
         src_indata = [
@@ -45,8 +45,8 @@ class TestAlignFieldNames(unittest.TestCase):
             {"id": "1235", "text": "Gazonk"},
         ]
         align_it = AlignFieldNames(iter(src_indata), {"id": "id", "text": "context"})
-        l = list(align_it)
-        self.assertEqual(l, expected)
+        align_list = list(align_it)
+        self.assertEqual(align_list, expected)
 
 
 if __name__ == '__main__':
