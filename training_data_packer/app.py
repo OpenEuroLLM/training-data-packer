@@ -1,5 +1,6 @@
 import argparse
 import os
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import yaml
@@ -46,7 +47,7 @@ def package_file(src_file: Path, metadata: dict, contamination_file: str, pii_fi
     JsonlZstWriter(tmp_out_file).write(filtered)
     os.rename(tmp_out_file, out_file)
 
-def main(input_dir: Path, output_dir: Path) -> None:
+def main(input_dir: Path, output_dir: Path, workers=1) -> None:
     metadata = read_metadata(input_dir.joinpath("metadata.yaml"))
     source_dir = input_dir.joinpath("source")
     contamination_dir = input_dir.joinpath("contamination")
@@ -55,15 +56,14 @@ def main(input_dir: Path, output_dir: Path) -> None:
     files = find_jsonl_zst_files(source_dir)
     logger.info(f"Found {len(files)} files")
 
-    for src_file in files:
-        logger.debug(f"Processing {src_file}")
-        rel_file_path = str(src_file)[len(str(source_dir))+1:]
-        contamination_file=os.path.join(contamination_dir, rel_file_path)
-        pii_file=os.path.join(pii_dir, rel_file_path)
-        out_file=output_dir.joinpath(rel_file_path)
-        
-        package_file(src_file, metadata, contamination_file, pii_file, out_file)
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        for src_file in files:
+            rel_file_path = str(src_file)[len(str(source_dir))+1:]
+            contamination_file=os.path.join(contamination_dir, rel_file_path)
+            pii_file=os.path.join(pii_dir, rel_file_path)
+            out_file=output_dir.joinpath(rel_file_path)
 
+            executor.submit(package_file, src_file, metadata, contamination_file, pii_file, out_file)
 
 
 if __name__ == "__main__":
@@ -73,5 +73,6 @@ if __name__ == "__main__":
     )
     parser.add_argument("--input_dir", help="Input directory containing source data")
     parser.add_argument("--output_dir", help="Output directory for packed training data")
+    parser.add_argument("--workers", help="Number of workers, default is 1", type=int, default=1)
     args = parser.parse_args()
-    main(Path(args.input_dir), Path(args.output_dir))
+    main(Path(args.input_dir), Path(args.output_dir), workers=args.workers)
