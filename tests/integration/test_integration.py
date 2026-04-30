@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from training_data_packer.app import main
+from training_data_packer.app import process
 from training_data_packer.jsonl_zst import JsonlZstReader
 
 
@@ -11,7 +11,7 @@ class IntegrationTests(unittest.TestCase):
         test_data = Path("tests/resources/integration/non_partitioned")
         with TemporaryDirectory() as tmpdir:
             out_dir = Path(tmpdir).joinpath("output")
-            main(test_data, out_dir)
+            process(test_data, out_dir)
 
             source_file = list(JsonlZstReader(test_data.joinpath("source/file_01.jsonl.zst")).read())
             result = list(JsonlZstReader(out_dir.joinpath("file_01.jsonl.zst")).read())

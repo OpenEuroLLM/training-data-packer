@@ -2,6 +2,7 @@ import argparse
 import os
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Any
 
 import yaml
 from loguru import logger
@@ -47,17 +48,33 @@ def package_file(src_file: Path, metadata: dict, contamination_file: str, pii_fi
     JsonlZstWriter(tmp_out_file).write(filtered)
     os.rename(tmp_out_file, out_file)
 
-def main(input_dir: Path, output_dir: Path, workers=1) -> None:
+
+def extract_files_for_task(files:list[Any], task_count:int, task_id:int):
+    size, rest = divmod(len(files), task_count)
+    grouped_files =  [files[i * size + min(i, rest): (i + 1) * size + min(i + 1, rest)] for i in range(task_count)]
+    return grouped_files[task_id-1]
+
+
+def process(input_dir: Path, output_dir: Path, workers=1, slurm=False) -> None:
     metadata = read_metadata(input_dir.joinpath("metadata.yaml"))
     source_dir = input_dir.joinpath("source")
     contamination_dir = input_dir.joinpath("contamination")
     pii_dir = input_dir.joinpath("pii")
 
-    files = find_jsonl_zst_files(source_dir)
-    logger.info(f"Found {len(files)} files")
+    all_files = find_jsonl_zst_files(source_dir)
+    logger.info(f"Found {len(all_files)} files")
+
+    if slurm:
+        task_count = os.environ["SLURM_ARRAY_TASK_COUNT"]
+        task_id = os.environ["SLURM_ARRAY_TASK_ID"]
+        task_files = extract_files_for_task(all_files, int(task_count), int(task_id))
+        logger.info(f"Slurm task id: {task_id} of {task_count}, processing {len(task_files)} files")
+    else:
+        logger.info("Not a SLURM task, processing all files")
+        task_files = all_files
 
     with ThreadPoolExecutor(max_workers=workers) as executor:
-        for src_file in files:
+        for src_file in task_files:
             rel_file_path = str(src_file)[len(str(source_dir))+1:]
             contamination_file=os.path.join(contamination_dir, rel_file_path)
             pii_file=os.path.join(pii_dir, rel_file_path)
@@ -66,13 +83,17 @@ def main(input_dir: Path, output_dir: Path, workers=1) -> None:
             executor.submit(package_file, src_file, metadata, contamination_file, pii_file, out_file)
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         prog="training-data-packer",
         description="Pack training data from input directory to output directory.",
     )
     parser.add_argument("--input_dir", help="Input directory containing source data")
     parser.add_argument("--output_dir", help="Output directory for packed training data")
-    parser.add_argument("--workers", help="Number of workers, default is 1", type=int, default=1)
+    parser.add_argument("-w", "--workers", help="Number of workers, default is 1", type=int, default=1)
+    parser.add_argument("-s", "--slurm", help="Only process files for my slurm partition", action="store_true")
     args = parser.parse_args()
-    main(Path(args.input_dir), Path(args.output_dir), workers=args.workers)
+    process(Path(args.input_dir), Path(args.output_dir), workers=args.workers, slurm=args.slurm)
+
+if __name__ == "__main__":
+    main()
