@@ -22,6 +22,29 @@ def read_metadata(file_path: Path) -> dict:
         metadata = yaml.safe_load(file)
         return metadata
 
+def package_file(src_file: Path, metadata: dict, contamination_file: str, pii_file: str, out_file: Path):
+    tmp_out_file = out_file.parent.joinpath("." + out_file.name)
+    if out_file.exists():
+        # File is already processed. Do not do it again
+        logger.info(f"Skipping {out_file}, already exists")
+        return
+    if tmp_out_file.exists():
+        logger.info(f"Remove old temporary file {tmp_out_file}")
+        os.remove(tmp_out_file)
+
+    os.makedirs(os.path.dirname(out_file), exist_ok=True)
+
+    contamination_iter = AlignFieldNames(JsonlZstReader(contamination_file).read(), metadata)
+    pii_iter = AlignFieldNames(JsonlZstReader(pii_file).read(), metadata)
+
+    src_reader = JsonlZstReader(src_file)
+    align_iter = AlignFieldNames(src_reader.read(), metadata)
+    decontaminated_iter = Decontaminate(align_iter, contamination_iter)
+    pii_masked_iter = PiiMasker(decontaminated_iter, pii_iter)
+    filtered = filter_to_be_deleted(pii_masked_iter)
+
+    JsonlZstWriter(tmp_out_file).write(filtered)
+    os.rename(tmp_out_file, out_file)
 
 def main(input_dir: Path, output_dir: Path) -> None:
     metadata = read_metadata(input_dir.joinpath("metadata.yaml"))
@@ -37,18 +60,9 @@ def main(input_dir: Path, output_dir: Path) -> None:
         rel_file_path = str(src_file)[len(str(source_dir))+1:]
         contamination_file=os.path.join(contamination_dir, rel_file_path)
         pii_file=os.path.join(pii_dir, rel_file_path)
-        out_file=os.path.join(output_dir, rel_file_path)
-        os.makedirs(os.path.dirname(out_file), exist_ok=True)
-
-        contamination_iter = AlignFieldNames(JsonlZstReader(contamination_file).read(), metadata)
-        pii_iter = AlignFieldNames(JsonlZstReader(pii_file).read(), metadata)
-
-        src_reader = JsonlZstReader(src_file)
-        align_iter = AlignFieldNames(src_reader.read(), metadata)
-        decontaminated_iter = Decontaminate(align_iter, contamination_iter)
-        pii_masked_iter = PiiMasker(decontaminated_iter, pii_iter)
-        filtered = filter_to_be_deleted(pii_masked_iter)
-        JsonlZstWriter(out_file).write(filtered)
+        out_file=output_dir.joinpath(rel_file_path)
+        
+        package_file(src_file, metadata, contamination_file, pii_file, out_file)
 
 
 
