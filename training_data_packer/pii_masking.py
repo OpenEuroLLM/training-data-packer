@@ -1,7 +1,7 @@
 import ipaddress
 import random
 import string
-from typing import Any, Tuple, Set
+from typing import Any
 
 from loguru import logger
 
@@ -26,7 +26,7 @@ def _has_overlapping_ranges(pii_records: list[dict[str, Any]]) -> bool:
     return False
 
 
-def _merge_overlapping_ranges(pii_records: list[dict[str, Any]]) -> Tuple[list[dict[str, Any]], Set[str]]:
+def _merge_overlapping_ranges(pii_records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], set[str]]:
     """
     Merge overlapping ranges of pii_records
     :param pii_records: Reverse on position on sorted list.
@@ -37,7 +37,7 @@ def _merge_overlapping_ranges(pii_records: list[dict[str, Any]]) -> Tuple[list[d
     result = []
     current = pii_records[0]
     merged_types = set()
-    for k, pii_record in enumerate(pii_records[1:]):
+    for pii_record in pii_records[1:]:
         if pii_record["end_pos"] > current["start_pos"]:
             current["value"] = pii_record["value"][:-(pii_record["end_pos"]-current["start_pos"])] + current["value"]
             current["start_pos"] = pii_record["start_pos"]

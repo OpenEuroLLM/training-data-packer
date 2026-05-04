@@ -1,7 +1,7 @@
-from typing import List, Any, Dict
+from typing import Any
 
 
-def _pop_hierarchy_key_value(key: List[Any], data: Dict) -> Any:
+def _pop_hierarchy_key_value(key: list[Any], data: dict) -> Any:
     value = data[key[0]]
     if key[1:]:
         value = _pop_hierarchy_key_value(key[1:], value)
@@ -11,7 +11,7 @@ def _pop_hierarchy_key_value(key: List[Any], data: Dict) -> Any:
 
 class AlignFieldNames:
 
-    def __init__(self, src_data, metadata: Dict, no_key_hierarchy = False):
+    def __init__(self, src_data, metadata: dict, no_key_hierarchy = False):
         self._src_data = src_data
         self._mapper = {}
         if "id" in metadata and metadata["id"]!="id":
