@@ -1,7 +1,7 @@
 import ipaddress
 import random
 import string
-from typing import Any
+from typing import Any, Tuple, Set
 
 from loguru import logger
 
@@ -21,20 +21,56 @@ def _has_overlapping_ranges(pii_records: list[dict[str, Any]]) -> bool:
     :return: True if any pii_records has overlapping ranges, False otherwise.
     """
     for k, pii_record in enumerate(pii_records[1:]):
-        if pii_record["end_pos"] >= pii_records[k]["start_pos"]:
+        if pii_record["end_pos"] > pii_records[k]["start_pos"]:
             return True
-    else:
-        return False
+    return False
+
+
+def _merge_overlapping_ranges(pii_records: list[dict[str, Any]]) -> Tuple[list[dict[str, Any]], Set[str]]:
+    """
+    Merge overlapping ranges of pii_records
+    :param pii_records: Reverse on position on sorted list.
+    :return: Pii records where overlaps are merged and set of types overlapping.
+    """
+    if len(pii_records) <= 1:
+        return pii_records, set()
+    result = []
+    current = pii_records[0]
+    merged_types = set()
+    for k, pii_record in enumerate(pii_records[1:]):
+        if pii_record["end_pos"] > current["start_pos"]:
+            current["value"] = pii_record["value"][:-(pii_record["end_pos"]-current["start_pos"])] + current["value"]
+            current["start_pos"] = pii_record["start_pos"]
+            if current["name"] != "MERGED":
+                merged_types.add(current["name"])
+            merged_types.add(pii_record["name"])
+            current["name"] = "MERGED"
+        else:
+            result.append(current)
+            current = pii_record
+    result.append(current)
+    return result, merged_types
+
+def _remove_duplicates_inplace(records: list[Any]) -> list[Any]:
+    write_index = 1
+
+    for i in range(1, len(records)):
+        if records[i] != records[i - 1]:
+            records[write_index] = records[i]
+            write_index += 1
+
+    del records[write_index:]
+    return records
 
 def _replace_segment(text: str, start_pos: int, end_pos: int, new_segment: str) -> str:
     length = len(text)
     if start_pos >= length:
         raise ValueError(f"Start position outside text range {start_pos}-{end_pos}")
-    if end_pos >= length:
+    if end_pos > length:
         raise ValueError(f"End position outside text range {start_pos}-{end_pos}")
     if start_pos > end_pos:
         raise ValueError(f"Start position after end position {start_pos}-{end_pos}")
-    return text[:start_pos] + new_segment + text[end_pos+1:]
+    return text[:start_pos] + new_segment + text[end_pos:]
 
 def _scramble_string(text: str) -> str:
     while True:
@@ -110,28 +146,34 @@ def _mask_ip_address(document: dict[str, Any], pii_record: dict[str, Any]) -> di
     document["text"] = _replace_segment(document["text"], pii_record["start_pos"], pii_record["end_pos"], scrambled_ip)
     return document
 
+
 def mask_document(document: dict[str, Any], pii_records: list[dict[str, Any]]) -> dict[str, Any]:
     if document is None or pii_records is None:
         logger.error("Either document or pii_records is None")
         raise ValueError("Unknown input to mask_document")
     pii_records_sorted = sorted(pii_records, key=lambda x: -x["start_pos"])
+    pii_records_sorted = _remove_duplicates_inplace(pii_records_sorted)
     if _has_overlapping_ranges(pii_records_sorted):
-        logger.warning(f"In document {document["id"]} there are overlapping PII, structure may be damaged.")
-    for pii_record in pii_records_sorted:
-        match pii_record["name"]:
-            case "BANK_ACCOUNT" | "CREDIT_CARD" | "DRIVER_LICENSE" | "GOV_ID" | "LICENSE_PLATE" | "PHONE_NUMBER":
-                document = _mask_with_scrambled_string(document, pii_record)
-            case "BITCOIN_ADDRESS":
-                document = _mask_bitcoin_address(document, pii_record)
-            case "EMAIL_ADDRESS":
-                document = _mask_email_address(document, pii_record)
-            case "IP_ADDRESS":
-                document = _mask_ip_address(document, pii_record)
-            case _:
-                logger.warning(
-                    f"Unknown pii record type {pii_record['name']} in document {document['id']}, masked as scrambled string")
-                document = _mask_with_scrambled_string(document, pii_record)
-                document["pii_unknown"] = True
+        pii_records_sorted, merged_types = _merge_overlapping_ranges(pii_records_sorted)
+        logger.info(f"Document {document["id"]} has overlapping PII. Merging overlapping ranges. Merged types {merged_types}")
+    try:
+        for pii_record in pii_records_sorted:
+            match pii_record["name"]:
+                case "BANK_ACCOUNT" | "CREDIT_CARD" | "DRIVER_LICENSE" | "GOV_ID" | "LICENSE_PLATE" | "PHONE_NUMBER" | "MERGED":
+                    document = _mask_with_scrambled_string(document, pii_record)
+                case "BITCOIN_ADDRESS":
+                    document = _mask_bitcoin_address(document, pii_record)
+                case "EMAIL_ADDRESS":
+                    document = _mask_email_address(document, pii_record)
+                case "IP_ADDRESS":
+                    document = _mask_ip_address(document, pii_record)
+                case _:
+                    logger.warning(
+                        f"Unknown pii record type {pii_record['name']} in document {document['id']}, masked as scrambled string")
+                    document = _mask_with_scrambled_string(document, pii_record)
+                    document["pii_unknown"] = True
+    except ValueError as e:
+        logger.warning(f"Document {document['id']} has pii issues {e}")
     document["pii_masks"] = len(pii_records_sorted)
     return document
 

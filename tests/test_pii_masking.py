@@ -19,28 +19,119 @@ class TestPiiUtilityFunctions(unittest.TestCase):
             {"start_pos": 12, "end_pos": 15}, {"start_pos": 4, "end_pos": 8}, {"start_pos": 1, "end_pos": 5}
         ], True],
         ["overlap_2", [
-            {"start_pos": 8, "end_pos": 15}, {"start_pos": 6, "end_pos": 8}, {"start_pos": 1, "end_pos": 5}
+            {"start_pos": 8, "end_pos": 15}, {"start_pos": 6, "end_pos": 8}, {"start_pos": 1, "end_pos": 7}
         ], True],
     ])
     def test_has_overlapping_ranges(self, name, pii_records, expected):
         self.assertEqual(pii_masking._has_overlapping_ranges(pii_records), expected)
 
     @parameterized.expand([
-        ["happy_path", 5, 8,"XXXXXXX", "Some XXXXXXX to replace"],
-        ["pii_at_start", 0, 1, "X", "Xme text to replace"],
-        ["pii_at_end", 18, 19, "X", "Some text to replaX"],
-        ["pii_at_single_position", 5, 5, "X", "Some Xext to replace"],
+        ["no_pii", [], [], set()],
+        [
+            "single_pii",
+            [{"start_pos": 1, "end_pos": 6, "value": "12345", "name": "A"}],
+            [{"start_pos": 1, "end_pos": 6, "value": "12345", "name": "A"}],
+            set()
+        ],
+        [
+            "no_overlap",
+            [
+                {"start_pos": 12, "end_pos": 16, "value": "2345", "name": "A"},
+                {"start_pos": 6, "end_pos": 9, "value": "678", "name": "A"},
+                {"start_pos": 1, "end_pos": 6, "value": "12345", "name": "A"}
+            ],
+            [
+                {"start_pos": 12, "end_pos": 16, "value": "2345", "name": "A"},
+                {"start_pos": 6, "end_pos": 9, "value": "678", "name": "A"},
+                {"start_pos": 1, "end_pos": 6, "value": "12345", "name": "A"}
+            ],
+            set()
+        ],
+        [
+            "overlap_1",
+            [
+                {"start_pos": 12, "end_pos": 16, "value": "2345", "name": "A"},
+                {"start_pos": 4, "end_pos": 9, "value": "45678", "name": "B"},
+                {"start_pos": 1, "end_pos": 6, "value": "12345", "name": "C"}
+            ],
+            [
+                {"start_pos": 12, "end_pos": 16, "value": "2345", "name": "A"},
+                {"start_pos": 1, "end_pos": 9, "value": "12345678", "name": "MERGED"},
+            ],
+            {"B", "C"}
+        ],
+        [
+            "overlap_2",
+            [
+                {"start_pos": 8, "end_pos": 16, "value": "89012345", "name": "A"},
+                {"start_pos": 6, "end_pos": 9, "value": "678", "name": "B"},
+                {"start_pos": 1, "end_pos": 6, "value": "12345", "name": "C"}
+            ],
+            [
+                {"start_pos": 6, "end_pos": 16, "value": "6789012345", "name": "MERGED"},
+                {"start_pos": 1, "end_pos": 6, "value": "12345", "name": "C"}
+            ],
+            {"A", "B"}
+        ],
+        [
+            "Real case",
+            [
+                {"WARC-Record-ID": "<urn:uuid:1d45dcd5-aeaa-4527-a97f-adda7d995954>", "name": "PHONE_NUMBER",
+                 "value": "337-463-4486", "start_pos": 2469, "end_pos": 2481},
+                {"WARC-Record-ID": "<urn:uuid:1d45dcd5-aeaa-4527-a97f-adda7d995954>", "name": "GOV_ID",
+                 "value": "634 337-463", "start_pos": 2465, "end_pos": 2476}
+            ],
+            [
+                {"WARC-Record-ID": "<urn:uuid:1d45dcd5-aeaa-4527-a97f-adda7d995954>", "name": "MERGED",
+                 "value": "634 337-463-4486", "start_pos": 2465, "end_pos": 2481}
+            ],
+            {"GOV_ID", "PHONE_NUMBER"}
+        ],
+    ])
+    def test_merge_overlapping_ranges(self, name, pii_records, expected, expected_merged):
+        result, merged_types = pii_masking._merge_overlapping_ranges(pii_records)
+        self.assertEqual(result, expected)
+        self.assertEqual(merged_types, expected_merged)
+
+    @parameterized.expand([
+        ["no_pii", [], []],
+        [
+            "single_pii",
+            [{"start_pos": 1, "end_pos": 6, "value": "12345"}],
+            [{"start_pos": 1, "end_pos": 6, "value": "12345"}]
+        ],
+        [
+            "duplicate",
+            [
+                {"start_pos": 6, "end_pos": 9, "value": "678"},
+                {"start_pos": 6, "end_pos": 9, "value": "678"},
+                {"start_pos": 1, "end_pos": 6, "value": "12345"}
+            ],
+            [
+                {"start_pos": 6, "end_pos": 9, "value": "678"},
+                {"start_pos": 1, "end_pos": 6, "value": "12345"}
+            ],
+        ],
+    ])
+    def test_remove_duplicates_inplace(self, name, pii_records, expected):
+        self.assertEqual(pii_masking._remove_duplicates_inplace(pii_records), expected)
+
+    @parameterized.expand([
+        ["happy_path", 5, 9, "XXXXXXX", "Some XXXXXXX to replace"],
+        ["pii_at_start", 0, 2, "X", "Xme text to replace"],
+        ["pii_at_end", 18, 20, "X", "Some text to replaX"],
+        ["pii_at_single_position", 5, 6, "X", "Some Xext to replace"],
     ])
     def test_replace_segment(self, name, start_pos, end_pos, replacement, expected):
         text = "Some text to replace"
-        result = pii_masking._replace_segment(text, start_pos,end_pos,replacement)
+        result = pii_masking._replace_segment(text, start_pos, end_pos, replacement)
         self.assertEqual(result, expected)
 
     @parameterized.expand([
         ["pii_start_after", 18, 100],
         ["pii_at_end_and_after", 3, 100],
         ["pii_start_at_same_as_length", 5, 5],
-        ["pii_end_at_same_as_length", 3, 5],
+        ["pii_end_at_same_as_length", 3, 6],
     ])
     def test_replace_after_text(self, name, start_pos, end_pos):
         with self.assertRaises(ValueError):
@@ -90,13 +181,12 @@ class TestPiiUtilityFunctions(unittest.TestCase):
             pii_masking._scramble_ip_address("300.300.300.300")
 
 
-
 class TestMaskRecords(unittest.TestCase):
     @parameterized.expand([
         [
             "happy_path",
             "This is my email pii@example.org.",
-            {"start_pos": 17, "end_pos": 31},
+            {"start_pos": 17, "end_pos": 32},
             "This is my email test@example.com.",
         ],
     ])
@@ -129,15 +219,15 @@ class TestMaskRecords(unittest.TestCase):
         self.assertNotEqual(
             result["text"][pii_record["start_pos"]:pii_record["end_pos"]],
             text[pii_record["start_pos"]:pii_record["end_pos"]])
-        suffix_text=text[pii_record["end_pos"]+1:]
+        suffix_text = text[pii_record["end_pos"] + 1:]
         self.assertEqual(result["text"][-len(suffix_text):], suffix_text)
 
     @parameterized.expand([
         [
             "happy_path",
             "This is my email +1 (505) 619 5504.",
-            {"start_pos":17, "end_pos":33, "value": "+1 (505) 619 5504"},
-         ],
+            {"start_pos": 17, "end_pos": 34, "value": "+1 (505) 619 5504"},
+        ],
     ])
     def test_mask_with_scrambled_string(self, name, text, pii_record):
         document = {"text": text}
@@ -146,31 +236,31 @@ class TestMaskRecords(unittest.TestCase):
         self.assertNotEqual(
             result["text"][pii_record["start_pos"]:pii_record["end_pos"]],
             text[pii_record["start_pos"]:pii_record["end_pos"]])
-        self.assertEqual(result["text"][pii_record["end_pos"]+1:], text[pii_record["end_pos"]+1:])
+        self.assertEqual(result["text"][pii_record["end_pos"] + 1:], text[pii_record["end_pos"] + 1:])
 
     @parameterized.expand([
         [
             "bitcoin_with_prefix_1",
             "This is my bitcoin 1BgXRx8YMGKU7fc8RfTPQ2uL2ivC9cMmGj give me the money",
-            {"start_pos":19, "end_pos":52, "value": "1BgXRx8YMGKU7fc8RfTPQ2uL2ivC9cMmGj", "id": "1"},
+            {"start_pos": 19, "end_pos": 53, "value": "1BgXRx8YMGKU7fc8RfTPQ2uL2ivC9cMmGj", "id": "1"},
             1
-         ],
+        ],
         [
             "bitcoin_with_prefix_3",
             "This is my bitcoin 3G3CxtfN4rg4ShVzVAUsM3AtGbnbs6v26S give me the money",
-            {"start_pos": 19, "end_pos": 52, "value": "3G3CxtfN4rg4ShVzVAUsM3AtGbnbs6v26S", "id": "2"},
+            {"start_pos": 19, "end_pos": 53, "value": "3G3CxtfN4rg4ShVzVAUsM3AtGbnbs6v26S", "id": "2"},
             1
         ],
         [
             "bitcoin_with_prefix_bc1",
             "This is my bitcoin bc1qsfc2g86agexaht5eh8yfp3xs9q65nhnz85dq8u give me the money",
-            {"start_pos": 19, "end_pos": 60, "value": "bc1qsfc2g86agexaht5eh8yfp3xs9q65nhnz85dq8u", "id": "3"},
+            {"start_pos": 19, "end_pos": 61, "value": "bc1qsfc2g86agexaht5eh8yfp3xs9q65nhnz85dq8u", "id": "3"},
             3
         ],
         [
             "bitcoin_that_is_invalid",
             "This is my bitcoin 7BgXRx8YMGKU7fc8RfTPQ2uL2ivC9cMmGj give me the money",
-            {"start_pos": 19, "end_pos": 52, "value": "7BgXRx8YMGKU7fc8RfTPQ2uL2ivC9cMmGj", "id": "4"},
+            {"start_pos": 19, "end_pos": 53, "value": "7BgXRx8YMGKU7fc8RfTPQ2uL2ivC9cMmGj", "id": "4"},
             0
         ],
     ])
@@ -178,12 +268,12 @@ class TestMaskRecords(unittest.TestCase):
         document = {"text": text}
         result = pii_masking._mask_bitcoin_address(document, pii_record)
         self.assertEqual(
-            result["text"][:pii_record["start_pos"]+prefix_length],
-            text[:pii_record["start_pos"]+prefix_length])
+            result["text"][:pii_record["start_pos"] + prefix_length],
+            text[:pii_record["start_pos"] + prefix_length])
         self.assertNotEqual(
-            result["text"][pii_record["start_pos"]+prefix_length:pii_record["end_pos"]],
-            text[pii_record["start_pos"]+prefix_length:pii_record["end_pos"]])
-        self.assertEqual(result["text"][pii_record["end_pos"]+1:], text[pii_record["end_pos"]+1:])
+            result["text"][pii_record["start_pos"] + prefix_length:pii_record["end_pos"]],
+            text[pii_record["start_pos"] + prefix_length:pii_record["end_pos"]])
+        self.assertEqual(result["text"][pii_record["end_pos"] + 1:], text[pii_record["end_pos"] + 1:])
 
     @parameterized.expand([
         [
@@ -192,11 +282,11 @@ class TestMaskRecords(unittest.TestCase):
             [],
             0,
             False
-         ],
+        ],
         [
             "mask_bank_account",
             "523 789This is a random text.",
-            [{"start_pos": 0, "end_pos": 6, "value": "523 789", "id": "2", "name": "BANK_ACCOUNT"},],
+            [{"start_pos": 0, "end_pos": 6, "value": "523 789", "id": "2", "name": "BANK_ACCOUNT"}, ],
             1,
             False
         ],
@@ -231,19 +321,19 @@ class TestMaskRecords(unittest.TestCase):
 class TestPIIMasker(unittest.TestCase):
 
     def test_happy_path(self):
-        src_indata=[
+        src_indata = [
             {"id": "1234", "text": "This is a random text."},
             {"id": "1235", "text": "5234 7894 This is a random text. foo@example.org"},
             {"id": "1236", "text": "This is a random text."},
         ]
-        pii_indata=[
+        pii_indata = [
             {"start_pos": 0, "end_pos": 8, "value": "5234 7894", "id": "1235", "name": "CREDIT_CARD"},
             {"start_pos": 33, "end_pos": 47, "value": "foo@example.org", "id": "1235", "name": "EMAIL_ADDRESS"},
         ]
-        src_indata_iter=iter(copy.deepcopy(src_indata))
-        pii_indata_iter=iter(pii_indata)
+        src_indata_iter = iter(copy.deepcopy(src_indata))
+        pii_indata_iter = iter(pii_indata)
         pii_it = PiiMasker(src_indata_iter, pii_indata_iter)
-        pii_list=list(pii_it)
+        pii_list = list(pii_it)
         self.assertEqual(pii_list[0], src_indata[0])
         self.assertNotEqual(pii_list[1], src_indata[1])
         self.assertEqual(pii_list[1]["pii_masks"], 2)
