@@ -16,7 +16,7 @@ from .jsonl_zst import JsonlZstReader, JsonlZstWriter
 
 
 def find_jsonl_zst_files(input_dir: Path) -> list[Path]:
-    return sorted(Path(input_dir).glob("[A-Za-z0-9]*.jsonl.zst"))
+    return sorted(Path(input_dir).glob("**/[A-Za-z0-9]*.jsonl.zst"))
 
 
 def read_metadata(file_path: Path) -> dict:
@@ -36,14 +36,15 @@ def package_file(src_file: Path, metadata: dict, contamination_file: str, pii_fi
 
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
-    contamination_iter = AlignFieldNames(JsonlZstReader(contamination_file).read(), metadata)
-    pii_iter = AlignFieldNames(JsonlZstReader(pii_file).read(), metadata)
+    contamination_iter = AlignFieldNames(JsonlZstReader(contamination_file).read(), metadata, no_key_hierarchy = True)
+    pii_iter = AlignFieldNames(JsonlZstReader(pii_file).read(), metadata, no_key_hierarchy = True)
 
     src_reader = JsonlZstReader(src_file)
     align_iter = AlignFieldNames(src_reader.read(), metadata)
     decontaminated_iter = Decontaminate(align_iter, contamination_iter)
     pii_masked_iter = PiiMasker(decontaminated_iter, pii_iter)
     filtered = filter_to_be_deleted(pii_masked_iter)
+    #sampled = sampler(filtered, metadata, src_file)
 
     JsonlZstWriter(tmp_out_file).write(filtered)
     os.rename(tmp_out_file, out_file)
@@ -73,14 +74,31 @@ def process(input_dir: Path, output_dir: Path, workers=1, slurm=False) -> None:
         logger.info("Not a SLURM task, processing all files")
         task_files = all_files
 
-    with ThreadPoolExecutor(max_workers=workers) as executor:
-        for src_file in task_files:
-            rel_file_path = str(src_file)[len(str(source_dir))+1:]
-            contamination_file=os.path.join(contamination_dir, rel_file_path)
-            pii_file=os.path.join(pii_dir, rel_file_path)
-            out_file=output_dir.joinpath(rel_file_path)
+    if workers > 1:
+        jobs = []
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            for src_file in task_files:
+                contamination_file, pii_file, out_file = _calculate_file_paths(src_file, source_dir, contamination_dir,
+                                                                              pii_dir, output_dir)
 
-            executor.submit(package_file, src_file, metadata, contamination_file, pii_file, out_file)
+                job = executor.submit(package_file, src_file, metadata, contamination_file, pii_file, out_file)
+                jobs.append(job)
+            executor.shutdown()
+    else:
+        for src_file in task_files:
+            logger.debug(f"Processing file {src_file}")
+            contamination_file, pii_file, out_file = _calculate_file_paths(src_file, source_dir, contamination_dir,
+                                                                          pii_dir, output_dir)
+            package_file(src_file, metadata, contamination_file, pii_file, out_file)
+
+
+def _calculate_file_paths(src_file, source_dir: Path, contamination_dir: Path, pii_dir: Path, output_dir: Path) -> tuple[
+    str, str, Path]:
+    rel_file_path = str(src_file)[len(str(source_dir)) + 1:]
+    contamination_file = os.path.join(contamination_dir, rel_file_path)
+    pii_file = os.path.join(pii_dir, rel_file_path)
+    out_file = output_dir.joinpath(rel_file_path)
+    return contamination_file, pii_file, out_file
 
 
 def main():
