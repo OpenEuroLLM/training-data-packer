@@ -11,12 +11,16 @@ from training_data_packer.align import AlignFieldNames
 from training_data_packer.decontaminate import Decontaminate
 from training_data_packer.filters import filter_to_be_deleted
 from training_data_packer.pii_masking import PiiMasker
+from training_data_packer.sampler import sampler_factory
 
 from .jsonl_zst import JsonlZstReader, JsonlZstWriter
 
 
-def find_jsonl_zst_files(input_dir: Path) -> list[Path]:
-    return sorted(Path(input_dir).glob("**/[A-Za-z0-9]*.jsonl.zst"))
+def find_jsonl_zst_files(source_dir: Path, release) -> list[Path]:
+    if release is None:
+        return sorted(Path(source_dir).glob("**/[A-Za-z0-9]*.jsonl.zst"))
+    else:
+        return sorted(Path(source_dir).glob(f"{release}/**/[A-Za-z0-9]*.jsonl.zst"))
 
 
 def read_metadata(file_path: Path) -> dict:
@@ -44,9 +48,9 @@ def package_file(src_file: Path, metadata: dict, contamination_file: str, pii_fi
     decontaminated_iter = Decontaminate(align_iter, contamination_iter)
     pii_masked_iter = PiiMasker(decontaminated_iter, pii_iter)
     filtered = filter_to_be_deleted(pii_masked_iter)
-    #sampled = sampler(filtered, metadata, src_file)
+    sampled = sampler_factory(filtered, metadata, src_file)
 
-    JsonlZstWriter(tmp_out_file).write(filtered)
+    JsonlZstWriter(tmp_out_file).write(sampled)
     os.rename(tmp_out_file, out_file)
 
 
@@ -56,13 +60,13 @@ def extract_files_for_task(files:list[Any], task_count:int, task_id:int):
     return grouped_files[task_id-1]
 
 
-def process(input_dir: Path, output_dir: Path, workers=1, slurm=False) -> None:
+def process(input_dir: Path, output_dir: Path, workers=1, slurm=False, release=None) -> None:
     metadata = read_metadata(input_dir.joinpath("metadata.yaml"))
     source_dir = input_dir.joinpath("source")
     contamination_dir = input_dir.joinpath("contamination")
     pii_dir = input_dir.joinpath("pii")
 
-    all_files = find_jsonl_zst_files(source_dir)
+    all_files = find_jsonl_zst_files(source_dir, release)
     logger.info(f"Found {len(all_files)} files")
 
     if slurm:
@@ -110,8 +114,9 @@ def main():
     parser.add_argument("--output_dir", help="Output directory for packed training data")
     parser.add_argument("-w", "--workers", help="Number of workers, default is 1", type=int, default=1)
     parser.add_argument("-s", "--slurm", help="Only process files for my slurm partition", action="store_true")
+    parser.add_argument("-r", "--release", help="Release to process, default is all")
     args = parser.parse_args()
-    process(Path(args.input_dir), Path(args.output_dir), workers=args.workers, slurm=args.slurm)
+    process(Path(args.input_dir), Path(args.output_dir), workers=args.workers, slurm=args.slurm, release=args.release)
 
 if __name__ == "__main__":
     main()
