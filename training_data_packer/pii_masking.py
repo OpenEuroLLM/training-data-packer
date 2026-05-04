@@ -52,6 +52,11 @@ def _merge_overlapping_ranges(pii_records: list[dict[str, Any]]) -> tuple[list[d
     return result, merged_types
 
 def _remove_duplicates_inplace(records: list[Any]) -> list[Any]:
+    """
+    Remove duplicate items in sorted list.
+    :param records:
+    :return: List without duplicates.
+    """
     write_index = 1
 
     for i in range(1, len(records)):
@@ -204,6 +209,7 @@ class PiiMasker:
             next_src_doc = next(self._src_data)
         except StopIteration as e:
             if self._next_pii_doc_id is not None:
+                logger.error(f"Document {self._next_pii_doc_id} has issues {e}")
                 raise ValueError() from e
             raise e
         if self._next_pii_doc_id is not None and self._next_pii_doc_id == next_src_doc["id"]:
