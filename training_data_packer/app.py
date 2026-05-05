@@ -4,7 +4,6 @@ from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Any
 
-import yaml
 from loguru import logger
 
 from training_data_packer.align import AlignFieldNames
@@ -13,20 +12,8 @@ from training_data_packer.filters import filter_on_blocklist, filter_to_be_delet
 from training_data_packer.jsonl_zst import JsonlZstReader, JsonlZstWriter
 from training_data_packer.pii_masking import PiiMasker
 from training_data_packer.sampler import sampler_factory
-from training_data_packer.utils.metadata import get_matching_release
-
-
-def find_jsonl_zst_files(source_dir: Path, release) -> list[Path]:
-    if release is None:
-        return sorted(Path(source_dir).glob("**/[A-Za-z0-9]*.jsonl.zst"))
-    else:
-        return sorted(Path(source_dir).glob(f"{release}/**/[A-Za-z0-9]*.jsonl.zst"))
-
-
-def read_metadata(file_path: Path) -> dict:
-    with open(file_path) as file:
-        metadata = yaml.safe_load(file)
-        return metadata
+from training_data_packer.utils.file import find_jsonl_zst_files
+from training_data_packer.utils.metadata import get_matching_release, read_metadata
 
 
 def package_file(src_file: Path, metadata: dict, contamination_file: str, pii_file: str, out_file: Path):

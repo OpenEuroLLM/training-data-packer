@@ -18,6 +18,7 @@ dev = [
 
 [project.scripts]
 oellm-package-data = "training_data_packer.app:main"
+oellm-package-merge = "training_data_packer.merge:main"
 
 [build-system]
 requires = ["uv_build>=0.7.19"]
