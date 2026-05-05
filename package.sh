@@ -12,4 +12,4 @@
 export IN_DIR=$1
 export OUT_DIR=$2
 
-uv run main.py --input_dir ${IN_DIR} --output_dir ${OUT_DIR} --workers 10 --slurm
+uv run main.py --input_dir ${IN_DIR} --output_dir ${OUT_DIR} --workers 8 --slurm

@@ -1,6 +1,6 @@
 import argparse
 import os
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Any
 
@@ -87,7 +87,7 @@ def process(input_dir: Path, output_dir: Path, workers=1, slurm=False, release=N
 
     if workers > 1:
         jobs = []
-        with ThreadPoolExecutor(max_workers=workers) as executor:
+        with ProcessPoolExecutor(max_workers=workers) as executor:
             for src_file in task_files:
                 contamination_file, pii_file, out_file = _calculate_file_paths(src_file, source_dir, contamination_dir,
                                                                               pii_dir, output_dir)
