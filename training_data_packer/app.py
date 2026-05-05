@@ -7,13 +7,13 @@ from typing import Any
 import yaml
 from loguru import logger
 
-from .align import AlignFieldNames
-from .decontaminate import Decontaminate
-from .filters import filter_on_blocklist, filter_to_be_deleted
-from .jsonl_zst import JsonlZstReader, JsonlZstWriter
-from .pii_masking import PiiMasker
-from .sampler import sampler_factory
-from .utils.metadata import get_matching_release
+from training_data_packer.align import AlignFieldNames
+from training_data_packer.decontaminate import Decontaminate
+from training_data_packer.filters import filter_on_blocklist, filter_to_be_deleted
+from training_data_packer.jsonl_zst import JsonlZstReader, JsonlZstWriter
+from training_data_packer.pii_masking import PiiMasker
+from training_data_packer.sampler import sampler_factory
+from training_data_packer.utils.metadata import get_matching_release
 
 
 def find_jsonl_zst_files(source_dir: Path, release) -> list[Path]:
@@ -37,7 +37,6 @@ def package_file(src_file: Path, metadata: dict, contamination_file: str, pii_fi
     if tmp_out_file.exists():
         logger.info(f"Remove old temporary file {tmp_out_file}")
         os.remove(tmp_out_file)
-
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
     release = get_matching_release(metadata, src_file)
@@ -95,6 +94,9 @@ def process(input_dir: Path, output_dir: Path, workers=1, slurm=False, release=N
                 job = executor.submit(package_file, src_file, metadata, contamination_file, pii_file, out_file)
                 jobs.append(job)
             executor.shutdown()
+            for n, job in enumerate(jobs):
+                if job.exception() is not None:
+                    logger.error(f"There were an exception thrown for file {task_files[n]}: {job.exception()}")
     else:
         for src_file in task_files:
             logger.debug(f"Processing file {src_file}")
