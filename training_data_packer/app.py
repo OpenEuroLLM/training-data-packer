@@ -9,9 +9,10 @@ from loguru import logger
 
 from training_data_packer.align import AlignFieldNames
 from training_data_packer.decontaminate import Decontaminate
-from training_data_packer.filters import filter_to_be_deleted
+from training_data_packer.filters import filter_to_be_deleted, filter_on_blocklist
 from training_data_packer.pii_masking import PiiMasker
 from training_data_packer.sampler import sampler_factory
+from training_data_packer.utils.metadata import get_matching_release
 
 from .jsonl_zst import JsonlZstReader, JsonlZstWriter
 
@@ -40,6 +41,8 @@ def package_file(src_file: Path, metadata: dict, contamination_file: str, pii_fi
 
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
+    release = get_matching_release(metadata, src_file)
+
     contamination_iter = AlignFieldNames(JsonlZstReader(contamination_file).read(), metadata, no_key_hierarchy = True)
     pii_iter = AlignFieldNames(JsonlZstReader(pii_file).read(), metadata, no_key_hierarchy = True)
 
@@ -47,10 +50,15 @@ def package_file(src_file: Path, metadata: dict, contamination_file: str, pii_fi
     align_iter = AlignFieldNames(src_reader.read(), metadata)
     decontaminated_iter = Decontaminate(align_iter, contamination_iter)
     pii_masked_iter = PiiMasker(decontaminated_iter, pii_iter)
-    filtered = filter_to_be_deleted(pii_masked_iter)
-    sampled = sampler_factory(filtered, metadata, src_file)
 
-    JsonlZstWriter(tmp_out_file).write(sampled)
+    # After this comment are actual records removed. Processing cannot require zipping of dataset works.
+
+    sampled = sampler_factory(pii_masked_iter, metadata, src_file)
+    filtered = filter_to_be_deleted(sampled)
+    if "block" in release:
+        filtered = filter_on_blocklist(filtered, release["block"])
+
+    JsonlZstWriter(tmp_out_file).write(filtered)
     os.rename(tmp_out_file, out_file)
 
 

@@ -26,8 +26,6 @@ name: HPLT 3.0
 url: https://hplt-project.org/datasets/v3.0
 text: text
 id: id
-wds: true
-registers: true
 annotations:
 - contamination:
   - owner: Prompsit

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from loguru import logger
 
+from training_data_packer import sample_register
 from training_data_packer.utils.metadata import get_matching_release
 
 
@@ -18,8 +19,7 @@ def sampler_factory(data_iterator, metadata: dict, src_file_name: Path):
             fraction = float(release["budget"].strip("%"))/100
             return itertools.filterfalse(lambda x: random.random()>fraction, data_iterator)
         case "wds+register":
-            # TODO: Implement WDS+register
-            raise NotImplementedError
+            return itertools.chain.from_iterable(map(sample_register.process_record, data_iterator))
         case _:
             logger.error(f"Unknown sampling rule {release['sample']} in {release_name}")
             raise ValueError(f"Unknown sampling rule {release['sample']} in {release_name}")

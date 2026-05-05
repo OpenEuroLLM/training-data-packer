@@ -24,6 +24,16 @@ class AlignFieldNames:
                 self._mapper["text"] = [metadata["text"].split(".")[-1]]
             else:
                 self._mapper["text"] = metadata["text"].split(".")
+        if "doc_scores" in metadata and metadata["doc_scores"]!="doc_scores":
+            if no_key_hierarchy:
+                self._mapper["doc_scores"] = [metadata["doc_scores"].split(".")[-1]]
+            else:
+                self._mapper["doc_scores"] = metadata["doc_scores"].split(".")
+        if "web-register" in metadata and metadata["web-register"]!="web-register":
+            if no_key_hierarchy:
+                self._mapper["web-register"] = [metadata["web-register"].split(".")[-1]]
+            else:
+                self._mapper["web-register"] = metadata["web-register"].split(".")
 
     def __iter__(self):
         return self
