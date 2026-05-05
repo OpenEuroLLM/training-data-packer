@@ -1,11 +1,12 @@
 # training-data-packer
-Packaging annotated datasets into final training data.
+Packaging annotated datasets into final training data. Purpose is to have a repeatable process and 
+well packaged data to remove any data management in the training step.
 
 ## Run
 
 To package the data in `tests/resources/integration/non_partitioned` run:
 ```shell
-uv run main.py --input_dir tests/resources/integration/non_partitioned --output_dir tmp
+uv run oellm-package-data --input_dir tests/resources/integration/non_partitioned --output_dir tmp
 ```
 
 ## Expected structure
@@ -28,13 +29,32 @@ text: text
 id: id
 annotations:
 - contamination:
-  - owner: Prompsit
+  - owner: Department B
   - status: complete
 - pii:
-  - owner: AI Sweden
+  - owner: Department A
   - status: complete
+release:
+  default:
+    sample: wds+register
+  eng_Latn:
+    sample: random
+    budget: 65%
+  swe_Latn:
+    sample: full
+
 ```
 
-Currently, the packager specifically requires `id` and `text` fields. If your source
-data uses different names for these attributes, use these parameters to map your
-existing fields to the required document ID and content fields.
+In the example above we tell tat field containing the text to be masked and output is in field
+`text`, which is the default. Document id are stored in `id`. If `id` is in a sub-record of the
+record use a dot-notation, `metadata.WARC-Record-ID`. 
+
+The `release` section contains definitions for different sub-dataset of our dataset. In this case
+it is one per language. The `default` is used if there are no sub-dataset or if it is not explicitly
+pointed out. 
+In a release a sampling method can be pointed out in the field `sample`. Three methods are currently
+supported:
+
+* `full` - Keep all data
+* `random` - Keep a random fraction of the dataset based on the field `budget`. `65%` means we keep 65% of the records.
+* `wds+register` - Requires the documents are decorated with Web Docs Scorer. Down- and up-sampling is done based on the scores. 

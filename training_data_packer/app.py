@@ -7,14 +7,13 @@ from typing import Any
 import yaml
 from loguru import logger
 
-from training_data_packer.align import AlignFieldNames
-from training_data_packer.decontaminate import Decontaminate
-from training_data_packer.filters import filter_on_blocklist, filter_to_be_deleted
-from training_data_packer.pii_masking import PiiMasker
-from training_data_packer.sampler import sampler_factory
-from training_data_packer.utils.metadata import get_matching_release
-
+from .align import AlignFieldNames
+from .decontaminate import Decontaminate
+from .filters import filter_on_blocklist, filter_to_be_deleted
 from .jsonl_zst import JsonlZstReader, JsonlZstWriter
+from .pii_masking import PiiMasker
+from .sampler import sampler_factory
+from .utils.metadata import get_matching_release
 
 
 def find_jsonl_zst_files(source_dir: Path, release) -> list[Path]:
@@ -118,8 +117,8 @@ def main():
         prog="training-data-packer",
         description="Pack training data from input directory to output directory.",
     )
-    parser.add_argument("--input_dir", help="Input directory containing source data")
-    parser.add_argument("--output_dir", help="Output directory for packed training data")
+    parser.add_argument("--input_dir", help="Input directory containing source data", required=True)
+    parser.add_argument("--output_dir", help="Output directory for packed training data", required=True)
     parser.add_argument("-w", "--workers", help="Number of workers, default is 1", type=int, default=1)
     parser.add_argument("-s", "--slurm", help="Only process files for my slurm partition", action="store_true")
     parser.add_argument("-r", "--release", help="Release to process, default is all")

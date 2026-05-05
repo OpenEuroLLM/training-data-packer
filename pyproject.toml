@@ -19,6 +19,10 @@ dev = [
 [project.scripts]
 oellm-package-data = "training_data_packer.app:main"
 
+[build-system]
+requires = ["uv_build>=0.7.19"]
+build-backend = "uv_build"
+
 [tool.uv.build-backend]
 module-name = "training_data_packer"
 module-root = ""
