@@ -85,8 +85,10 @@ def process_record(record: dict[str, Any], length_limit: int = 200, threshold: f
         register = '-'.join(sorted(selected))
 
         # Normalize specific cases
-        if register in ["NA-ne", "ne-NA"]: register = "ne"
-        if register in ["IN-dtp", "dtp-IN"]: register = "dtp"
+        if register in ["NA-ne", "ne-NA"]:
+            register = "ne"
+        if register in ["IN-dtp", "dtp-IN"]:
+            register = "dtp"
 
     if register not in REGISTER_COEFF:
         record["delete"] = True

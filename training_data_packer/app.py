@@ -9,7 +9,7 @@ from loguru import logger
 
 from training_data_packer.align import AlignFieldNames
 from training_data_packer.decontaminate import Decontaminate
-from training_data_packer.filters import filter_to_be_deleted, filter_on_blocklist
+from training_data_packer.filters import filter_on_blocklist, filter_to_be_deleted
 from training_data_packer.pii_masking import PiiMasker
 from training_data_packer.sampler import sampler_factory
 from training_data_packer.utils.metadata import get_matching_release
