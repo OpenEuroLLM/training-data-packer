@@ -13,6 +13,7 @@ def peek(iterator) -> tuple[Any, Iterator[Any]]:
     peek = next(iterator)
     return peek, itertools.chain([peek], iterator)
 
+
 def get_until_key_change(iterator, key_fn) -> tuple[Any, list[Any], Iterator[Any]]:
     result = []
     item = next(iterator)
@@ -27,4 +28,3 @@ def get_until_key_change(iterator, key_fn) -> tuple[Any, list[Any], Iterator[Any
         raise RuntimeError()
     except StopIteration:
         return key, result, iter([])
-

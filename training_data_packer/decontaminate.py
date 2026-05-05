@@ -1,5 +1,4 @@
 class Decontaminate:
-
     def __init__(self, src_data, decontamination_data):
         self._src_data = src_data
         self._decontamination_data = decontamination_data
@@ -21,7 +20,7 @@ class Decontaminate:
                 raise ValueError() from e
             raise e
         if self._next_doc_to_remove is not None and self._next_doc_to_remove == next_src_doc["id"]:
-            next_src_doc["delete"]=True
+            next_src_doc["delete"] = True
             try:
                 self._next_doc_to_remove = next(self._decontamination_data)["id"]
             except StopIteration:

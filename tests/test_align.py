@@ -5,7 +5,6 @@ from training_data_packer.align import AlignFieldNames
 
 
 class TestGetHierarchyKey(unittest.TestCase):
-
     def test_pop_key_one_level(self):
         input_data = {"id": "1234", "text": "Happy"}
         result = align._pop_hierarchy_key_value(["id"], input_data)
@@ -17,6 +16,7 @@ class TestGetHierarchyKey(unittest.TestCase):
         result = align._pop_hierarchy_key_value(["metadata", "id"], input_data)
         self.assertEqual(result, "1234")
         self.assertEqual({"metadata": {"text": "Happy"}}, input_data)
+
 
 class TestAlignFieldNames(unittest.TestCase):
     def test_no_mapping_needed(self):
@@ -64,5 +64,5 @@ class TestAlignFieldNames(unittest.TestCase):
         self.assertEqual(align_list, expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

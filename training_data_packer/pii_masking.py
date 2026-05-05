@@ -9,10 +9,11 @@ from training_data_packer.utils.iterator import get_until_key_change
 
 # RFC 1918 Private Ranges
 IPV4_PRIVATE_BLOCKS = [
-    ipaddress.IPv4Network('10.0.0.0/8'),
-    ipaddress.IPv4Network('172.16.0.0/12'),
-    ipaddress.IPv4Network('192.168.0.0/16')
+    ipaddress.IPv4Network("10.0.0.0/8"),
+    ipaddress.IPv4Network("172.16.0.0/12"),
+    ipaddress.IPv4Network("192.168.0.0/16"),
 ]
+
 
 def _has_overlapping_ranges(pii_records: list[dict[str, Any]]) -> bool:
     """
@@ -26,7 +27,9 @@ def _has_overlapping_ranges(pii_records: list[dict[str, Any]]) -> bool:
     return False
 
 
-def _merge_overlapping_ranges(pii_records: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], set[str]]:
+def _merge_overlapping_ranges(
+    pii_records: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], set[str]]:
     """
     Merge overlapping ranges of pii_records
     :param pii_records: Reverse on position on sorted list.
@@ -39,7 +42,7 @@ def _merge_overlapping_ranges(pii_records: list[dict[str, Any]]) -> tuple[list[d
     merged_types = set()
     for pii_record in pii_records[1:]:
         if pii_record["end_pos"] > current["start_pos"]:
-            current["value"] = pii_record["value"][:-(pii_record["end_pos"]-current["start_pos"])] + current["value"]
+            current["value"] = pii_record["value"][: -(pii_record["end_pos"] - current["start_pos"])] + current["value"]
             current["start_pos"] = pii_record["start_pos"]
             if current["name"] != "MERGED":
                 merged_types.add(current["name"])
@@ -50,6 +53,7 @@ def _merge_overlapping_ranges(pii_records: list[dict[str, Any]]) -> tuple[list[d
             current = pii_record
     result.append(current)
     return result, merged_types
+
 
 def _remove_duplicates_inplace(records: list[Any]) -> list[Any]:
     """
@@ -67,6 +71,7 @@ def _remove_duplicates_inplace(records: list[Any]) -> list[Any]:
     del records[write_index:]
     return records
 
+
 def _replace_segment(text: str, start_pos: int, end_pos: int, new_segment: str) -> str:
     length = len(text)
     if start_pos >= length:
@@ -76,6 +81,7 @@ def _replace_segment(text: str, start_pos: int, end_pos: int, new_segment: str) 
     if start_pos > end_pos:
         raise ValueError(f"Start position after end position {start_pos}-{end_pos}")
     return text[:start_pos] + new_segment + text[end_pos:]
+
 
 def _scramble_string(text: str) -> str:
     while True:
@@ -96,6 +102,7 @@ def _scramble_string(text: str) -> str:
         if result_str != text:
             return result_str
 
+
 def _scramble_ip_address(text: str) -> str:
     """
     Identifies if an IP is v4 or v6 and replaces it with a
@@ -113,7 +120,7 @@ def _scramble_ip_address(text: str) -> str:
 
         elif addr.version == 6:
             # Unique Local Address (ULA) range fd00::/8
-            network_prefix = 0xfd00 << 112
+            network_prefix = 0xFD00 << 112
             random_suffix = random.getrandbits(120)
             return str(ipaddress.IPv6Address(network_prefix | random_suffix))
 
@@ -121,16 +128,21 @@ def _scramble_ip_address(text: str) -> str:
     except ValueError as e:
         raise ValueError("Invalid IP Address") from e
 
+
 def _mask_email_address(document: dict[str, Any], pii_record: dict[str, Any]) -> dict[str, Any]:
     # TODO: random before @
     email_mask = "test@example.com"
     document["text"] = _replace_segment(document["text"], pii_record["start_pos"], pii_record["end_pos"], email_mask)
     return document
 
+
 def _mask_with_scrambled_string(document: dict[str, Any], pii_record: dict[str, Any]) -> dict[str, Any]:
     scrambled_value = _scramble_string(pii_record["value"])
-    document["text"] = _replace_segment(document["text"], pii_record["start_pos"], pii_record["end_pos"], scrambled_value)
+    document["text"] = _replace_segment(
+        document["text"], pii_record["start_pos"], pii_record["end_pos"], scrambled_value
+    )
     return document
+
 
 def _mask_bitcoin_address(document: dict[str, Any], pii_record: dict[str, Any]) -> dict[str, Any]:
     if pii_record["value"][0] == "1" or pii_record["value"][0] == "3":
@@ -138,10 +150,19 @@ def _mask_bitcoin_address(document: dict[str, Any], pii_record: dict[str, Any]) 
     elif pii_record["value"][0:3] == "bc1":
         scrambled_bitcoin = pii_record["value"][0:3] + _scramble_string(pii_record["value"][3:])
     else:
-        logger.warning(f"Unknown bitcoin address format {pii_record['value']} in document {pii_record['id']}, using scrambled string")
+        logger.warning(
+            f"Unknown bitcoin address format {pii_record['value']} in document {pii_record['id']},"
+            f" using scrambled string"
+        )
         scrambled_bitcoin = _scramble_string(pii_record["value"])
-    document["text"] = _replace_segment(document["text"], pii_record["start_pos"], pii_record["end_pos"], scrambled_bitcoin)
+    document["text"] = _replace_segment(
+        document["text"],
+        pii_record["start_pos"],
+        pii_record["end_pos"],
+        scrambled_bitcoin,
+    )
     return document
+
 
 def _mask_ip_address(document: dict[str, Any], pii_record: dict[str, Any]) -> dict[str, Any]:
     try:
@@ -160,11 +181,21 @@ def mask_document(document: dict[str, Any], pii_records: list[dict[str, Any]]) -
     pii_records_sorted = _remove_duplicates_inplace(pii_records_sorted)
     if _has_overlapping_ranges(pii_records_sorted):
         pii_records_sorted, merged_types = _merge_overlapping_ranges(pii_records_sorted)
-        logger.info(f"Document {document["id"]} has overlapping PII. Merging overlapping ranges. Merged types {merged_types}")
+        logger.info(
+            f"Document {document['id']} has overlapping PII. Merging overlapping ranges. Merged types {merged_types}"
+        )
     try:
         for pii_record in pii_records_sorted:
             match pii_record["name"]:
-                case "BANK_ACCOUNT" | "CREDIT_CARD" | "DRIVER_LICENSE" | "GOV_ID" | "LICENSE_PLATE" | "PHONE_NUMBER" | "MERGED":
+                case (
+                    "BANK_ACCOUNT"
+                    | "CREDIT_CARD"
+                    | "DRIVER_LICENSE"
+                    | "GOV_ID"
+                    | "LICENSE_PLATE"
+                    | "PHONE_NUMBER"
+                    | "MERGED"
+                ):
                     document = _mask_with_scrambled_string(document, pii_record)
                 case "BITCOIN_ADDRESS":
                     document = _mask_bitcoin_address(document, pii_record)
@@ -174,7 +205,9 @@ def mask_document(document: dict[str, Any], pii_records: list[dict[str, Any]]) -
                     document = _mask_ip_address(document, pii_record)
                 case _:
                     logger.warning(
-                        f"Unknown pii record type {pii_record['name']} in document {document['id']}, masked as scrambled string")
+                        f"Unknown pii record type {pii_record['name']} in document {document['id']},"
+                        f" masked as scrambled string"
+                    )
                     document = _mask_with_scrambled_string(document, pii_record)
                     document["pii_unknown"] = True
     except ValueError as e:
@@ -184,7 +217,8 @@ def mask_document(document: dict[str, Any], pii_records: list[dict[str, Any]]) -
 
 
 def pii_key(record):
-    return record['id']
+    return record["id"]
+
 
 class PiiMasker:
     """
@@ -221,4 +255,8 @@ class PiiMasker:
         try:
             self._next_pii_doc_id, self._next_pii_docs, self._pii_data = get_until_key_change(self._pii_data, pii_key)
         except StopIteration:
-            self._next_pii_doc_id, self._next_pii_docs, self._pii_data = None, None, iter([])
+            self._next_pii_doc_id, self._next_pii_docs, self._pii_data = (
+                None,
+                None,
+                iter([]),
+            )

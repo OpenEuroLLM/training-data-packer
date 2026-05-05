@@ -18,5 +18,5 @@ class TestIteratorGetUntilKeyChange(unittest.TestCase):
             key, values, iterator = get_until_key_change(iter([]), len)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

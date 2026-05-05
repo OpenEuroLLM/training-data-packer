@@ -28,6 +28,7 @@ def read_metadata(file_path: Path) -> dict:
         metadata = yaml.safe_load(file)
         return metadata
 
+
 def package_file(src_file: Path, metadata: dict, contamination_file: str, pii_file: str, out_file: Path):
     tmp_out_file = out_file.parent.joinpath("." + out_file.name)
     if out_file.exists():
@@ -41,8 +42,8 @@ def package_file(src_file: Path, metadata: dict, contamination_file: str, pii_fi
 
     release = get_matching_release(metadata, src_file)
 
-    contamination_iter = AlignFieldNames(JsonlZstReader(contamination_file).read(), metadata, no_key_hierarchy = True)
-    pii_iter = AlignFieldNames(JsonlZstReader(pii_file).read(), metadata, no_key_hierarchy = True)
+    contamination_iter = AlignFieldNames(JsonlZstReader(contamination_file).read(), metadata, no_key_hierarchy=True)
+    pii_iter = AlignFieldNames(JsonlZstReader(pii_file).read(), metadata, no_key_hierarchy=True)
 
     src_reader = JsonlZstReader(src_file)
     align_iter = AlignFieldNames(src_reader.read(), metadata)
@@ -60,10 +61,10 @@ def package_file(src_file: Path, metadata: dict, contamination_file: str, pii_fi
     os.rename(tmp_out_file, out_file)
 
 
-def extract_files_for_task(files:list[Any], task_count:int, task_id:int):
+def extract_files_for_task(files: list[Any], task_count: int, task_id: int):
     size, rest = divmod(len(files), task_count)
-    grouped_files =  [files[i * size + min(i, rest): (i + 1) * size + min(i + 1, rest)] for i in range(task_count)]
-    return grouped_files[task_id-1]
+    grouped_files = [files[i * size + min(i, rest) : (i + 1) * size + min(i + 1, rest)] for i in range(task_count)]
+    return grouped_files[task_id - 1]
 
 
 def process(input_dir: Path, output_dir: Path, workers=1, slurm=False, release=None) -> None:
@@ -88,10 +89,18 @@ def process(input_dir: Path, output_dir: Path, workers=1, slurm=False, release=N
         jobs = []
         with ProcessPoolExecutor(max_workers=workers) as executor:
             for src_file in task_files:
-                contamination_file, pii_file, out_file = _calculate_file_paths(src_file, source_dir, contamination_dir,
-                                                                              pii_dir, output_dir)
+                contamination_file, pii_file, out_file = _calculate_file_paths(
+                    src_file, source_dir, contamination_dir, pii_dir, output_dir
+                )
 
-                job = executor.submit(package_file, src_file, metadata, contamination_file, pii_file, out_file)
+                job = executor.submit(
+                    package_file,
+                    src_file,
+                    metadata,
+                    contamination_file,
+                    pii_file,
+                    out_file,
+                )
                 jobs.append(job)
             executor.shutdown()
             for n, job in enumerate(jobs):
@@ -100,14 +109,16 @@ def process(input_dir: Path, output_dir: Path, workers=1, slurm=False, release=N
     else:
         for src_file in task_files:
             logger.debug(f"Processing file {src_file}")
-            contamination_file, pii_file, out_file = _calculate_file_paths(src_file, source_dir, contamination_dir,
-                                                                          pii_dir, output_dir)
+            contamination_file, pii_file, out_file = _calculate_file_paths(
+                src_file, source_dir, contamination_dir, pii_dir, output_dir
+            )
             package_file(src_file, metadata, contamination_file, pii_file, out_file)
 
 
-def _calculate_file_paths(src_file, source_dir: Path, contamination_dir: Path, pii_dir: Path, output_dir: Path) -> tuple[
-    str, str, Path]:
-    rel_file_path = str(src_file)[len(str(source_dir)) + 1:]
+def _calculate_file_paths(
+    src_file, source_dir: Path, contamination_dir: Path, pii_dir: Path, output_dir: Path
+) -> tuple[str, str, Path]:
+    rel_file_path = str(src_file)[len(str(source_dir)) + 1 :]
     contamination_file = os.path.join(contamination_dir, rel_file_path)
     pii_file = os.path.join(pii_dir, rel_file_path)
     out_file = output_dir.joinpath(rel_file_path)
@@ -122,10 +133,22 @@ def main():
     parser.add_argument("--input_dir", help="Input directory containing source data", required=True)
     parser.add_argument("--output_dir", help="Output directory for packed training data", required=True)
     parser.add_argument("-w", "--workers", help="Number of workers, default is 1", type=int, default=1)
-    parser.add_argument("-s", "--slurm", help="Only process files for my slurm partition", action="store_true")
+    parser.add_argument(
+        "-s",
+        "--slurm",
+        help="Only process files for my slurm partition",
+        action="store_true",
+    )
     parser.add_argument("-r", "--release", help="Release to process, default is all")
     args = parser.parse_args()
-    process(Path(args.input_dir), Path(args.output_dir), workers=args.workers, slurm=args.slurm, release=args.release)
+    process(
+        Path(args.input_dir),
+        Path(args.output_dir),
+        workers=args.workers,
+        slurm=args.slurm,
+        release=args.release,
+    )
+
 
 if __name__ == "__main__":
     main()

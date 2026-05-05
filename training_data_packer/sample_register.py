@@ -1,13 +1,32 @@
 import random
 from typing import Any
 
-REGISTERS = ["dtp", "HI", "HI-IN", "ID", "IN", "IP", "MT", "NA", "ne", "OP", "SP", "LY", "no-label"]
+REGISTERS = [
+    "dtp",
+    "HI",
+    "HI-IN",
+    "ID",
+    "IN",
+    "IP",
+    "MT",
+    "NA",
+    "ne",
+    "OP",
+    "SP",
+    "LY",
+    "no-label",
+]
 
 LABEL_HIERARCHY = {
-    "MT": [], "LY": [], "SP": ["it"], "ID": [],
-    "NA": ["ne", "sr", "nb"], "HI": ["re"],
+    "MT": [],
+    "LY": [],
+    "SP": ["it"],
+    "ID": [],
+    "NA": ["ne", "sr", "nb"],
+    "HI": ["re"],
     "IN": ["en", "ra", "dtp", "fi", "lt"],
-    "OP": ["rv", "ob", "rs", "av"], "IP": ["ds", "ed"],
+    "OP": ["rv", "ob", "rs", "av"],
+    "IP": ["ds", "ed"],
 }
 LABEL_PARENT = {c: p for p, cs in LABEL_HIERARCHY.items() for c in cs}
 
@@ -24,12 +43,14 @@ REGISTER_COEFF = {
     "SP": 1.0,
     "LY": 1.0,
     "no-label": 1.0,
-    "HI-IN": 1.5
+    "HI-IN": 1.5,
 }
+
 
 def _calc_wds_coeff(wds):
     """Polynomial for WDS scaling."""
-    return (0.0213*(wds**3) - 0.4113*(wds**2) + 2.9626*wds - 7.1492)
+    return 0.0213 * (wds**3) - 0.4113 * (wds**2) + 2.9626 * wds - 7.1492
+
 
 def _assign_labels(probabilities, threshold):
     labels = set()
@@ -40,18 +61,22 @@ def _assign_labels(probabilities, threshold):
                 labels.add(LABEL_PARENT[label])
     return labels
 
+
 def _is_hybrid(labels):
     if len(labels) > 2:
         return True
     if len(labels) == 2:
         l1, l2 = list(labels)
-        return not (
-            (l1 in LABEL_PARENT and LABEL_PARENT[l1] == l2) or
-            (l2 in LABEL_PARENT and LABEL_PARENT[l2] == l1)
-        )
+        return not ((l1 in LABEL_PARENT and LABEL_PARENT[l1] == l2) or (l2 in LABEL_PARENT and LABEL_PARENT[l2] == l1))
     return False
 
-def process_record(record: dict[str, Any], length_limit: int = 200, threshold: float = 0.4, exclude_hybrids: bool = True) -> list[dict[str, Any]]:
+
+def process_record(
+    record: dict[str, Any],
+    length_limit: int = 200,
+    threshold: float = 0.4,
+    exclude_hybrids: bool = True,
+) -> list[dict[str, Any]]:
     """
     Takes one record and decides whether it should be included or excluded. If included decide amount
     of upsampling.
@@ -82,7 +107,7 @@ def process_record(record: dict[str, Any], length_limit: int = 200, threshold: f
     else:
         # Clean label logic
         selected = [j for j in r if j in REGISTERS]
-        register = '-'.join(sorted(selected))
+        register = "-".join(sorted(selected))
 
         # Normalize specific cases
         if register in ["NA-ne", "ne-NA"]:

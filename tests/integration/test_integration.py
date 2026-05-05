@@ -29,5 +29,5 @@ class IntegrationTests(unittest.TestCase):
             self.assertEqual(result[2]["pii_masks"], 2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
