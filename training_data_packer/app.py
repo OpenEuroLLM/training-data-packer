@@ -12,7 +12,7 @@ from training_data_packer.filters import filter_on_blocklist, filter_to_be_delet
 from training_data_packer.jsonl_zst import JsonlZstReader, JsonlZstWriter
 from training_data_packer.pii_masking import PiiMasker
 from training_data_packer.sampler import sampler_factory
-from training_data_packer.utils.file import find_jsonl_zst_files, JsonlReader
+from training_data_packer.utils.file import GenericJsonlReader, find_jsonl_zst_files
 from training_data_packer.utils.metadata import get_matching_release, read_metadata
 
 
@@ -29,8 +29,8 @@ def package_file(src_file: Path, metadata: dict, contamination_file: str, pii_fi
 
     release = get_matching_release(metadata, src_file)
 
-    contamination_iter = AlignFieldNames(JsonlReader(contamination_file).read(), metadata, no_key_hierarchy=True)
-    pii_iter = AlignFieldNames(JsonlZstReader(pii_file).read(), metadata, no_key_hierarchy=True)
+    contamination_iter = AlignFieldNames(GenericJsonlReader(contamination_file).read(), metadata, no_key_hierarchy=True)
+    pii_iter = AlignFieldNames(GenericJsonlReader(pii_file).read(), metadata, no_key_hierarchy=True)
 
     src_reader = JsonlZstReader(src_file)
     align_iter = AlignFieldNames(src_reader.read(), metadata)
@@ -104,10 +104,14 @@ def process(input_dir: Path, output_dir: Path, workers=1, slurm=False, release=N
 
 def _calculate_file_paths(
     src_file, source_dir: Path, contamination_dir: Path, pii_dir: Path, output_dir: Path
-) -> tuple[str, str, Path]:
+) -> tuple[Path, Path, Path]:
     rel_file_path = str(src_file)[len(str(source_dir)) + 1 :]
-    contamination_file = os.path.join(contamination_dir, rel_file_path).replace(".zst", "")
-    pii_file = os.path.join(pii_dir, rel_file_path)
+    contamination_file = contamination_dir.joinpath(rel_file_path)
+    if not contamination_file.exists():
+        contamination_file = contamination_dir.joinpath(rel_file_path.replace(".zst", ""))
+    pii_file = pii_dir.joinpath(rel_file_path)
+    if not pii_file.exists():
+        pii_file = pii_dir.joinpath(rel_file_path.replace(".zst", ""))
     out_file = output_dir.joinpath(rel_file_path)
     return contamination_file, pii_file, out_file
 

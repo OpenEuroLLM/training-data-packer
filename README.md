@@ -17,7 +17,14 @@ sbatch --array=0-10 ./package.sh input-dir  output-dir
 
 When running with slurm it will automatically shard the data over the array tasks.
 
+## Develop
 
+Before checking in run tests, linting and formating:
+```shell
+uv run --with pytest pytest
+uv run ruff check --fix 
+uv run ruff format
+```
 
 ## Expected structure
 ```
@@ -52,6 +59,8 @@ release:
     budget: 65%
   swe_Latn:
     sample: full
+    block:
+    - 6d1f3087-fcdb-4a84-bd64-00edc2862472
 
 ```
 
@@ -67,4 +76,7 @@ supported:
 
 * `full` - Keep all data
 * `random` - Keep a random fraction of the dataset based on the field `budget`. `65%` means we keep 65% of the records.
-* `wds+register` - Requires the documents are decorated with Web Docs Scorer. Down- and up-sampling is done based on the scores. 
+* `wds+register` - Requires the documents are decorated with Web Docs Scorer. Down- and up-sampling is done based on the scores.
+
+Each release can have a block-list, field `block`, containing a list of document to be removed. The 
+intended use is to remove documents with issues, these shall be kept to a minimum.
