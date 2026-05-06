@@ -8,6 +8,16 @@ To package the data in `tests/resources/integration/non_partitioned` run:
 ```shell
 uv run oellm-package-data --input_dir tests/resources/integration/non_partitioned --output_dir tmp
 ```
+The program checks if output files exist, if they exist new data is not regenerated. 
+
+It can also run via slurm:
+```shell
+sbatch --array=0-10 ./package.sh input-dir  output-dir
+```
+
+When running with slurm it will automatically shard the data over the array tasks.
+
+
 
 ## Expected structure
 ```

@@ -1,6 +1,6 @@
 import argparse
 import io
-import json
+import orjson as json
 import os
 import sys
 from collections.abc import Iterable
@@ -46,7 +46,7 @@ def merge(input_files: Iterable[Path], destination_dir: Path, token_size: float,
                             current_token_sum = 0
                             file_idx += 1
 
-                        encoded_line = (json.dumps(data) + "\n").encode("utf-8")
+                        encoded_line = (json.dumps(data) + b"\n")
                         writer.write(encoded_line)
                         current_token_sum += text_tokens
     finally:

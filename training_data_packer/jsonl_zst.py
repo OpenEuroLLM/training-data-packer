@@ -1,7 +1,6 @@
 import io
 import json
 from collections.abc import Generator, Iterator
-from os import PathLike
 from pathlib import Path
 from typing import Any
 
@@ -12,7 +11,7 @@ from loguru import logger
 class JsonlZstReader:
     def __init__(
         self,
-        input_file_name: str | PathLike[str],
+        input_file_name: str | Path,
         encoding="utf-8",
         chunk_size: int = 16384,
     ):
@@ -37,7 +36,7 @@ class JsonlZstReader:
 class JsonlZstWriter:
     def __init__(
         self,
-        output_file_name: str | PathLike[str],
+        output_file_name: str | Path,
         encoding="utf-8",
         chunk_size: int = 16384,
     ):
