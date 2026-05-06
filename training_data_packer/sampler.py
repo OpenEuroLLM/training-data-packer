@@ -5,13 +5,13 @@ from pathlib import Path
 from loguru import logger
 
 from training_data_packer import sample_register
-from training_data_packer.utils.metadata import get_matching_release
+from training_data_packer.utils.metadata import get_matching_part
 
 
 def sampler_factory(data_iterator, metadata: dict, src_file_name: Path):
     if "release" not in metadata:
         return data_iterator
-    release, release_name = get_matching_release(metadata, src_file_name)
+    release, release_name = get_matching_part(metadata, src_file_name)
     match release["sample"]:
         case "full":
             return data_iterator

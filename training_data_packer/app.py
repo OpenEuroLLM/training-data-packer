@@ -12,7 +12,7 @@ from training_data_packer.jsonl_zst import JsonlZstReader, JsonlZstWriter
 from training_data_packer.pii_masking import PiiMasker
 from training_data_packer.sampler import sampler_factory
 from training_data_packer.utils.file import GenericJsonlReader, find_jsonl_zst_files
-from training_data_packer.utils.metadata import get_matching_release, read_metadata
+from training_data_packer.utils.metadata import get_matching_part, read_metadata
 from training_data_packer.utils.slurm import get_my_slurm_tasks
 
 
@@ -27,7 +27,7 @@ def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_f
         os.remove(tmp_out_file)
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
-    release = get_matching_release(metadata, src_file)
+    release = get_matching_part(metadata, src_file)
 
     contamination_iter = AlignFieldNames(GenericJsonlReader(contamination_file).read(), metadata, no_key_hierarchy=True)
     pii_iter = AlignFieldNames(GenericJsonlReader(pii_file).read(), metadata, no_key_hierarchy=True)

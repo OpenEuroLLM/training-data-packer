@@ -13,8 +13,8 @@ class IntegrationTests(unittest.TestCase):
             out_dir = Path(tmpdir).joinpath("output")
             process(test_data, out_dir)
 
-            source_file = list(JsonlZstReader(test_data.joinpath("source/file_01.jsonl.zst")).read())
-            result = list(JsonlZstReader(out_dir.joinpath("file_01.jsonl.zst")).read())
+            source_file = list(JsonlZstReader(test_data.joinpath("source/shard01/file_01.jsonl.zst")).read())
+            result = list(JsonlZstReader(out_dir.joinpath("shard01/file_01.jsonl.zst")).read())
 
             self.assertEqual(len(result), 3)
             self.assertEqual(result[0]["id"], source_file[0]["id"])

@@ -3,6 +3,7 @@ import io
 import os
 import sys
 from collections.abc import Iterable
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import orjson as json
@@ -10,6 +11,7 @@ import zstandard as zstd
 from loguru import logger
 
 from training_data_packer.utils.file import find_jsonl_zst_files, get_directories_n_levels_down
+from training_data_packer.utils.slurm import get_my_slurm_tasks
 
 
 def merge(input_files: Iterable[Path], destination_dir: Path, token_size: float, shard_size: int):
@@ -67,13 +69,32 @@ def process(collection_dir: Path, token_size: float, shard_size: int, workers=1,
 
     # TODO: The release levels shall in some way be figured out from metadata.yaml
     release_levels = 1
-    release_dirs = get_directories_n_levels_down(input_dir, release_levels)
+    release_dirs = sorted(get_directories_n_levels_down(input_dir, release_levels))
     logger.info(f"Found {len(release_dirs)} releases")
 
-    for release_dir in release_dirs:
-        files = find_jsonl_zst_files(release_dir)
-        release_name = release_dir.relative_to(input_dir)
-        merge(files, output_dir.joinpath(release_name), token_size, shard_size)
+    if slurm:
+        task_releases = get_my_slurm_tasks(release_dirs)
+    else:
+        logger.info("Not a SLURM task, processing all files")
+        task_releases = release_dirs
+
+    if workers > 1:
+        jobs = []
+        with ProcessPoolExecutor(max_workers=workers) as executor:
+            for release_dir in task_releases:
+                files = find_jsonl_zst_files(release_dir)
+                release_name = release_dir.relative_to(input_dir)
+                job = executor.submit(merge, files, output_dir.joinpath(release_name), token_size, shard_size)
+                jobs.append(job)
+            executor.shutdown()
+            for n, job in enumerate(jobs):
+                if job.exception() is not None:
+                    logger.error(f"There were an exception thrown for release {task_releases[n]}: {job.exception()}")
+    else:
+        for release_dir in task_releases:
+            files = find_jsonl_zst_files(release_dir)
+            release_name = release_dir.relative_to(input_dir)
+            merge(files, output_dir.joinpath(release_name), token_size, shard_size)
 
 
 def main():

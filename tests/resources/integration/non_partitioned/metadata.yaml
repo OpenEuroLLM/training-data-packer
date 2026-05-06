@@ -12,3 +12,4 @@ annotations:
 release:
   default:
     sample: full
+  shard01:
