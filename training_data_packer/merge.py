@@ -11,10 +11,11 @@ import zstandard as zstd
 from loguru import logger
 
 from training_data_packer.utils.file import find_jsonl_zst_files, get_directories_n_levels_down
+from training_data_packer.utils.metadata import read_metadata
 from training_data_packer.utils.slurm import get_my_slurm_tasks
 
 
-def merge(input_files: Iterable[Path], destination_dir: Path, token_size: float, shard_size: int):
+def merge(input_files: Iterable[Path], destination_dir: Path, token_size: float, shard_size: int, file_prefix: str):
     os.makedirs(destination_dir, exist_ok=True)
 
     dctx = zstd.ZstdDecompressor()
@@ -41,7 +42,7 @@ def merge(input_files: Iterable[Path], destination_dir: Path, token_size: float,
                                 writer.close()
                                 out_f.close()
 
-                            output_path = destination_dir.joinpath(f"shard_{file_idx:04d}.jsonl.zst")
+                            output_path = destination_dir.joinpath(f"{file_prefix}_{file_idx:04d}.jsonl.zst")
                             out_f = open(output_path, "wb")
                             writer = cctx.stream_writer(out_f)
 
@@ -59,7 +60,7 @@ def merge(input_files: Iterable[Path], destination_dir: Path, token_size: float,
 
 
 def process(collection_dir: Path, token_size: float, shard_size: int, workers=1, slurm=False):
-    # metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
+    metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
     input_dir = collection_dir.joinpath("release_raw")
     output_dir = collection_dir.joinpath("release")
 
@@ -67,34 +68,48 @@ def process(collection_dir: Path, token_size: float, shard_size: int, workers=1,
         logger.info(f"Out data directory {output_dir} already exist, exiting")
         sys.exit(1)
 
-    # TODO: The release levels shall in some way be figured out from metadata.yaml
-    release_levels = 1
-    release_dirs = sorted(get_directories_n_levels_down(input_dir, release_levels))
-    logger.info(f"Found {len(release_dirs)} releases")
+    parts = sorted(metadata["release"].keys())
+    logger.info(f"Found {len(parts)} parts")
 
     if slurm:
-        task_releases = get_my_slurm_tasks(release_dirs)
+        task_parts = get_my_slurm_tasks(parts)
     else:
         logger.info("Not a SLURM task, processing all files")
-        task_releases = release_dirs
+        task_parts = parts
 
     if workers > 1:
         jobs = []
         with ProcessPoolExecutor(max_workers=workers) as executor:
-            for release_dir in task_releases:
-                files = find_jsonl_zst_files(release_dir)
-                release_name = release_dir.relative_to(input_dir)
-                job = executor.submit(merge, files, output_dir.joinpath(release_name), token_size, shard_size)
+            for part_name in task_parts:
+                part_config = metadata["release"][part_name]
+                flat_output = part_config["pack"] == "flat"
+                files = find_jsonl_zst_files(input_dir.joinpath(part_name))
+                job = executor.submit(
+                    merge,
+                    files,
+                    output_dir if flat_output else output_dir.joinpath(part_name),
+                    token_size,
+                    shard_size,
+                    part_config["prefix"]
+                )
                 jobs.append(job)
             executor.shutdown()
             for n, job in enumerate(jobs):
                 if job.exception() is not None:
-                    logger.error(f"There were an exception thrown for release {task_releases[n]}: {job.exception()}")
+                    logger.error(f"There were an exception thrown for release {task_parts[n]}: {job.exception()}")
     else:
-        for release_dir in task_releases:
-            files = find_jsonl_zst_files(release_dir)
-            release_name = release_dir.relative_to(input_dir)
-            merge(files, output_dir.joinpath(release_name), token_size, shard_size)
+        for part_name in task_parts:
+            part_config = metadata["release"][part_name]
+            flat_output = part_config["pack"] == "flat"
+            files = find_jsonl_zst_files(input_dir.joinpath(part_name))
+            merge(
+                files,
+                output_dir if flat_output else output_dir.joinpath(part_name),
+                token_size,
+                shard_size,
+                part_config["prefix"]
+            )
+
 
 
 def main():

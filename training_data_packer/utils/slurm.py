@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 from typing import Any
 
 from loguru import logger
@@ -11,7 +10,7 @@ def _get_my_partition_tasks(files: list[Any], task_count: int, task_id: int):
     return grouped_files[task_id - 1]
 
 
-def get_my_slurm_tasks(files: list[Path]) -> list[Any]:
+def get_my_slurm_tasks(files: list[Any]) -> list[Any]:
     task_count = os.environ["SLURM_ARRAY_TASK_COUNT"]
     task_id = os.environ["SLURM_ARRAY_TASK_ID"]
     task_files = _get_my_partition_tasks(files, int(task_count), int(task_id))
