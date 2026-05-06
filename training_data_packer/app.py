@@ -5,7 +5,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from training_data_packer.align import AlignFieldNames
+from training_data_packer.clean import AlignFieldNames, field_scrubber_factory
 from training_data_packer.decontaminate import Decontaminate
 from training_data_packer.filters import filter_on_blocklist, filter_to_be_deleted
 from training_data_packer.jsonl_zst import JsonlZstReader, JsonlZstWriter
@@ -32,9 +32,12 @@ def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_f
     contamination_iter = AlignFieldNames(GenericJsonlReader(contamination_file).read(), metadata, no_key_hierarchy=True)
     pii_iter = AlignFieldNames(GenericJsonlReader(pii_file).read(), metadata, no_key_hierarchy=True)
 
+    part_config, part_name = get_matching_part(metadata, src_file)
+
     src_reader = JsonlZstReader(src_file)
     align_iter = AlignFieldNames(src_reader.read(), metadata)
-    decontaminated_iter = Decontaminate(align_iter, contamination_iter)
+    scrub_iter = field_scrubber_factory(align_iter, part_config)
+    decontaminated_iter = Decontaminate(scrub_iter, contamination_iter)
     pii_masked_iter = PiiMasker(decontaminated_iter, pii_iter)
 
     # After this comment are actual records removed. Processing cannot require zipping of dataset works.

@@ -1,19 +1,21 @@
 import unittest
 
-from training_data_packer import align
-from training_data_packer.align import AlignFieldNames
+from parameterized import parameterized
+
+from training_data_packer import clean
+from training_data_packer.clean import AlignFieldNames, field_scrubber_factory
 
 
 class TestGetHierarchyKey(unittest.TestCase):
     def test_pop_key_one_level(self):
         input_data = {"id": "1234", "text": "Happy"}
-        result = align._pop_hierarchy_key_value(["id"], input_data)
+        result = clean._pop_hierarchy_key_value(["id"], input_data)
         self.assertEqual(result, "1234")
         self.assertEqual({"text": "Happy"}, input_data)
 
     def test_pop_key_two_level(self):
         input_data = {"metadata": {"id": "1234", "text": "Happy"}}
-        result = align._pop_hierarchy_key_value(["metadata", "id"], input_data)
+        result = clean._pop_hierarchy_key_value(["metadata", "id"], input_data)
         self.assertEqual(result, "1234")
         self.assertEqual({"metadata": {"text": "Happy"}}, input_data)
 
@@ -62,6 +64,24 @@ class TestAlignFieldNames(unittest.TestCase):
         align_it = AlignFieldNames(iter(src_indata), {"id": "id", "text": "context"})
         align_list = list(align_it)
         self.assertEqual(align_list, expected)
+
+
+class TestScrubFieldNames(unittest.TestCase):
+    @parameterized.expand(
+        [
+            ["no_scrub", [{"id": "1234", "text": "Happy"}], {"sample": "full"}, [{"id": "1234", "text": "Happy"}]],
+            [
+                "scrub",
+                [{"id": "1", "text": "H", "x": "no"}],
+                {"sample": "full", "scrub": ["x"]},
+                [{"id": "1", "text": "H"}],
+            ],
+        ]
+    )
+    def test_no_mapping_needed(self, name, iter, part_config, expected):
+        scrub_it = field_scrubber_factory(iter, part_config)
+        scrub_list = list(scrub_it)
+        self.assertEqual(expected, scrub_list)
 
 
 if __name__ == "__main__":

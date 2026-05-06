@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from typing import Any
 
 
@@ -43,3 +44,11 @@ class AlignFieldNames:
         for field in self._mapper:
             src_doc[field] = _pop_hierarchy_key_value(self._mapper[field], src_doc)
         return src_doc
+
+
+def field_scrubber_factory(data_iterator: Iterable[dict[str, Any]], part_config: dict) -> Iterable[dict[str, Any]]:
+    if "scrub" not in part_config or part_config["scrub"] is None or part_config["scrub"] == []:
+        return data_iterator
+    else:
+        scrub_keys = set(part_config["scrub"])
+        return map(lambda x: {k: v for k, v in x.items() if k not in scrub_keys}, data_iterator)  # noqa: C417
