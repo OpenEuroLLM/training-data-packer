@@ -63,9 +63,10 @@ def _assign_labels(probabilities, threshold):
 
 
 def _is_hybrid(labels):
-    if len(labels) > 2:
+    label_len = len(labels)
+    if label_len > 2:
         return True
-    if len(labels) == 2:
+    if label_len == 2:
         l1, l2 = list(labels)
         return not ((l1 in LABEL_PARENT and LABEL_PARENT[l1] == l2) or (l2 in LABEL_PARENT and LABEL_PARENT[l2] == l1))
     return False
@@ -88,8 +89,7 @@ def process_record(
     """
     # 1. Length Filter
     if len(record.get("text", "")) < length_limit:
-        record["delete"] = True
-        return [record]
+        return []
 
     # 2. Label Assignment
     probs = record.get("web-register", {})
@@ -102,8 +102,7 @@ def process_record(
         if r == {"HI", "IN"}:
             register = "HI-IN"
         else:
-            record["delete"] = True
-            return [record]
+            return []
     else:
         # Clean label logic
         selected = [j for j in r if j in REGISTERS]
@@ -116,8 +115,7 @@ def process_record(
             register = "dtp"
 
     if register not in REGISTER_COEFF:
-        record["delete"] = True
-        return [record]
+        return []
 
     # 4. Sampling Logic
     doc_score = record.get("doc_scores", [0])[0]
@@ -129,13 +127,11 @@ def process_record(
     result = []
     while m_work >= 1:
         record["registers"] = list(r)
-        record["upsampled"] = True
         result.append(record)
         m_work -= 1
 
     if random.random() < m_work:
         record["registers"] = list(r)
-        record["upsampled"] = True
         result.append(record)
 
     return result

@@ -42,12 +42,12 @@ def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_f
 
     # After this comment are actual records removed. Processing cannot require zipping of dataset works.
 
-    sampled = sampler_factory(pii_masked_iter, metadata, src_file)
-    filtered = filter_to_be_deleted(sampled)
+    filtered = filter_to_be_deleted(pii_masked_iter)
     if "block" in release:
         filtered = filter_on_blocklist(filtered, release["block"])
+    sampled = sampler_factory(filtered, metadata, src_file)
 
-    JsonlZstWriter(tmp_out_file).write(filtered)
+    JsonlZstWriter(tmp_out_file).write(sampled)
     os.rename(tmp_out_file, out_file)
 
 
