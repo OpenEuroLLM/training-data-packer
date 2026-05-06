@@ -1,5 +1,5 @@
 import io
-import json
+import orjson as json
 from collections.abc import Generator, Iterator
 from pathlib import Path
 from typing import Any
@@ -37,12 +37,10 @@ class JsonlZstWriter:
     def __init__(
         self,
         output_file_name: str | Path,
-        encoding="utf-8",
         chunk_size: int = 16384,
     ):
         self._output_file_name = Path(output_file_name)
         self._chunk_size = chunk_size
-        self._encoding = encoding
 
     def write(self, iterator) -> None:
         cctx = zstd.ZstdCompressor()
@@ -50,5 +48,5 @@ class JsonlZstWriter:
         with open(self._output_file_name, "wb") as f:
             with cctx.stream_writer(f) as compressor:
                 for item in iterator:
-                    compressor.write(json.dumps(item).encode(self._encoding))
+                    compressor.write(json.dumps(item))
                     compressor.write(b"\n")
