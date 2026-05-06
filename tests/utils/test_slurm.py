@@ -2,7 +2,7 @@ import unittest
 
 from parameterized import parameterized
 
-from training_data_packer.app import extract_files_for_task
+from training_data_packer.utils.slurm import _get_my_partition_tasks
 
 
 class TestAlignFieldNames(unittest.TestCase):
@@ -38,6 +38,6 @@ class TestAlignFieldNames(unittest.TestCase):
             ["fewer_files_than_tasks_2", ["a"], 2, 2, []],
         ]
     )
-    def test_extract_files_for_task(self, name, files, task_count, task_id, expected_files):
-        result = extract_files_for_task(files, task_count, task_id)
+    def test_get_my_partition_tasks(self, name, files, task_count, task_id, expected_files):
+        result = _get_my_partition_tasks(files, task_count, task_id)
         self.assertEqual(result, expected_files)

@@ -2,7 +2,6 @@ import argparse
 import os
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
-from typing import Any
 
 from loguru import logger
 
@@ -14,9 +13,10 @@ from training_data_packer.pii_masking import PiiMasker
 from training_data_packer.sampler import sampler_factory
 from training_data_packer.utils.file import GenericJsonlReader, find_jsonl_zst_files
 from training_data_packer.utils.metadata import get_matching_release, read_metadata
+from training_data_packer.utils.slurm import get_my_slurm_tasks
 
 
-def package_file(src_file: Path, metadata: dict, contamination_file: str, pii_file: str, out_file: Path):
+def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_file: Path, out_file: Path):
     tmp_out_file = out_file.parent.joinpath("." + out_file.name)
     if out_file.exists():
         # File is already processed. Do not do it again
@@ -48,12 +48,6 @@ def package_file(src_file: Path, metadata: dict, contamination_file: str, pii_fi
     os.rename(tmp_out_file, out_file)
 
 
-def extract_files_for_task(files: list[Any], task_count: int, task_id: int):
-    size, rest = divmod(len(files), task_count)
-    grouped_files = [files[i * size + min(i, rest) : (i + 1) * size + min(i + 1, rest)] for i in range(task_count)]
-    return grouped_files[task_id - 1]
-
-
 def process(input_dir: Path, output_dir: Path, workers=1, slurm=False, release=None) -> None:
     metadata = read_metadata(input_dir.joinpath("metadata.yaml"))
     source_dir = input_dir.joinpath("source")
@@ -64,10 +58,7 @@ def process(input_dir: Path, output_dir: Path, workers=1, slurm=False, release=N
     logger.info(f"Found {len(all_files)} files")
 
     if slurm:
-        task_count = os.environ["SLURM_ARRAY_TASK_COUNT"]
-        task_id = os.environ["SLURM_ARRAY_TASK_ID"]
-        task_files = extract_files_for_task(all_files, int(task_count), int(task_id))
-        logger.info(f"Slurm task id: {task_id} of {task_count}, processing {len(task_files)} files")
+        task_files = get_my_slurm_tasks(all_files)
     else:
         logger.info("Not a SLURM task, processing all files")
         task_files = all_files
