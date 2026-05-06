@@ -4,7 +4,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --output=logs/package_%A_%a.out
 #SBATCH --error=logs/package_%A_%a.err
-#SBATCH --time=00:15:00
+#SBATCH --time=00:60:00
 #SBATCH --mem=4G
 #SBATCH --nodes=1
 #SBATCH --account=project_465002530
