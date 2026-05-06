@@ -1,9 +1,9 @@
 import io
-import orjson as json
 from collections.abc import Generator, Iterator
 from pathlib import Path
 from typing import Any
 
+import orjson as json
 import zstandard as zstd
 from loguru import logger
 
