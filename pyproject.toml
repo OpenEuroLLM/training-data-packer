@@ -1,9 +1,9 @@
 [project]
 name = "training-data-packer"
 version = "0.1.0"
-description = "Add your description here"
+description = "Packaging annotated datasets into final training data."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
     "loguru>=0.7.3",
     "orjson>=3.11.8",

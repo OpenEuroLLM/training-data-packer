@@ -29,7 +29,7 @@ class GenericJsonlReader:
         chunk_size: int = 16384,
     ):
         self._input_file_name = Path(input_file_name)
-        self._compressed = str(input_file_name).endswith(".zst")
+        self._compressed = str(input_file_name).endswith(".zstd") or str(input_file_name).endswith(".zst")
         self._chunk_size = chunk_size
         self._encoding = encoding
 
