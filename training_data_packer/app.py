@@ -8,10 +8,10 @@ from loguru import logger
 from training_data_packer.clean import AlignFieldNames, field_scrubber_factory
 from training_data_packer.decontaminate import Decontaminate
 from training_data_packer.filters import filter_on_blocklist, filter_to_be_deleted
-from training_data_packer.jsonl_zst import JsonlZstReader, JsonlZstWriter
+from training_data_packer.jsonl_zst import JsonlZstWriter
 from training_data_packer.pii_masking import PiiMasker
 from training_data_packer.sampler import sampler_factory
-from training_data_packer.utils.file import GenericJsonlReader, find_jsonl_zst_files
+from training_data_packer.utils.file import GenericJsonlReader, find_files
 from training_data_packer.utils.metadata import get_matching_part, read_metadata
 from training_data_packer.utils.slurm import get_my_slurm_tasks
 
@@ -27,14 +27,12 @@ def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_f
         os.remove(tmp_out_file)
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
-    release = get_matching_part(metadata, src_file)
-
     contamination_iter = AlignFieldNames(GenericJsonlReader(contamination_file).read(), metadata, no_key_hierarchy=True)
     pii_iter = AlignFieldNames(GenericJsonlReader(pii_file).read(), metadata, no_key_hierarchy=True)
 
     part_config, part_name = get_matching_part(metadata, src_file)
 
-    src_reader = JsonlZstReader(src_file)
+    src_reader = GenericJsonlReader(src_file)
     align_iter = AlignFieldNames(src_reader.read(), metadata)
     scrub_iter = field_scrubber_factory(align_iter, part_config)
     decontaminated_iter = Decontaminate(scrub_iter, contamination_iter)
@@ -43,8 +41,8 @@ def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_f
     # After this comment are actual records removed. Processing cannot require zipping of dataset works.
 
     filtered = filter_to_be_deleted(pii_masked_iter)
-    if "block" in release:
-        filtered = filter_on_blocklist(filtered, release["block"])
+    if "block" in part_config:
+        filtered = filter_on_blocklist(filtered, part_config["block"])
     sampled = sampler_factory(filtered, metadata, src_file)
 
     JsonlZstWriter(tmp_out_file).write(sampled)
@@ -57,7 +55,7 @@ def process(input_dir: Path, output_dir: Path, workers=1, slurm=False, release=N
     contamination_dir = input_dir.joinpath("contamination")
     pii_dir = input_dir.joinpath("pii")
 
-    all_files = find_jsonl_zst_files(source_dir, release)
+    all_files = find_files(source_dir, metadata, release)
     logger.info(f"Found {len(all_files)} files")
 
     if slurm:
@@ -99,13 +97,13 @@ def process(input_dir: Path, output_dir: Path, workers=1, slurm=False, release=N
 def _calculate_file_paths(
     src_file, source_dir: Path, contamination_dir: Path, pii_dir: Path, output_dir: Path
 ) -> tuple[Path, Path, Path]:
-    rel_file_path = str(src_file)[len(str(source_dir)) + 1 :]
+    rel_file_path = Path(str(src_file)[len(str(source_dir)) + 1 :])
     contamination_file = contamination_dir.joinpath(rel_file_path)
     if not contamination_file.exists():
-        contamination_file = contamination_dir.joinpath(rel_file_path.replace(".zst", ""))
+        contamination_file = contamination_dir.joinpath(rel_file_path.parent, rel_file_path.stem)
     pii_file = pii_dir.joinpath(rel_file_path)
     if not pii_file.exists():
-        pii_file = pii_dir.joinpath(rel_file_path.replace(".zst", ""))
+        pii_file = pii_dir.joinpath(rel_file_path.parent, rel_file_path.stem)
     out_file = output_dir.joinpath(rel_file_path)
     return contamination_file, pii_file, out_file
 

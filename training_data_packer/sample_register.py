@@ -124,7 +124,6 @@ def process_record(
     wds_coeff = _calc_wds_coeff(doc_score)
     multiplier = REGISTER_COEFF[register] * wds_coeff
 
-
     if multiplier > 10:
         logger.warning(f"{record['id']} has hig multiplier {multiplier}")
     # 5. Writing (Upsampling/Downsampling)

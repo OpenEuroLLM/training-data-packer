@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import orjson as json
 import yaml
 from loguru import logger
 
@@ -25,3 +26,8 @@ def read_metadata(file_path: Path) -> dict:
     with open(file_path) as file:
         metadata = yaml.safe_load(file)
         return metadata
+
+
+def read_counts(file_path: Path) -> dict:
+    with open(file_path) as file:
+        return json.loads(file.read())

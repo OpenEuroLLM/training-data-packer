@@ -1,5 +1,6 @@
 name: HPLT 3.0
 url: https://hplt-project.org/datasets/v3.0
+suffix: .jsonl.zst
 text: text
 id: id
 annotations:

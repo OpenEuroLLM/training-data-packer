@@ -3,7 +3,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from training_data_packer.app import process
-from training_data_packer.jsonl_zst import JsonlZstReader
+from training_data_packer.utils.file import GenericJsonlReader
 
 
 class IntegrationTests(unittest.TestCase):
@@ -13,20 +13,20 @@ class IntegrationTests(unittest.TestCase):
             out_dir = Path(tmpdir).joinpath("output")
             process(test_data, out_dir)
 
-            source_file = list(JsonlZstReader(test_data.joinpath("source/shard01/file_01.jsonl.zst")).read())
-            result = list(JsonlZstReader(out_dir.joinpath("shard01/file_01.jsonl.zst")).read())
+            source_file = list(GenericJsonlReader(test_data.joinpath("source/shard01/file_01.jsonl.zst")).read())
+            result = list(GenericJsonlReader(out_dir.joinpath("shard01/file_01.jsonl.zst")).read())
 
-            self.assertEqual(len(result), 3)
-            self.assertEqual(result[0]["id"], source_file[0]["id"])
-            self.assertNotEqual(result[0]["text"], source_file[0]["text"])
-            self.assertEqual(result[0]["pii_masks"], 1)
+            self.assertEqual(3, len(result))
+            self.assertEqual(source_file[0]["id"], result[0]["id"])
+            self.assertNotEqual(source_file[0]["text"], result[0]["text"])
+            self.assertEqual(1, result[0]["pii_masks"])
 
-            self.assertEqual(result[1], source_file[1])
+            self.assertEqual(source_file[1], result[1])
             self.assertTrue("pii_masks" not in result[1])
 
-            self.assertEqual(result[2]["id"], source_file[4]["id"])
-            self.assertNotEqual(result[2]["text"], source_file[4]["text"])
-            self.assertEqual(result[2]["pii_masks"], 2)
+            self.assertEqual(source_file[4]["id"], result[2]["id"])
+            self.assertNotEqual(source_file[4]["text"], result[2]["text"])
+            self.assertEqual(2, result[2]["pii_masks"])
 
 
 if __name__ == "__main__":
