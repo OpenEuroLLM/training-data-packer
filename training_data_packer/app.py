@@ -1,13 +1,14 @@
 import argparse
+import itertools
 import os
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 from loguru import logger
 
+from training_data_packer import sample_register
 from training_data_packer.clean import AlignFieldNames, field_scrubber_factory
-from training_data_packer.decontaminate import Decontaminate
-from training_data_packer.filters import filter_on_blocklist, filter_to_be_deleted
+from training_data_packer.filters import filter_on_blocklist
 from training_data_packer.jsonl_zst import JsonlZstWriter
 from training_data_packer.pii_masking import PiiMasker
 from training_data_packer.sampler import sampler_factory
@@ -27,7 +28,6 @@ def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_f
         os.remove(tmp_out_file)
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
-    contamination_iter = AlignFieldNames(GenericJsonlReader(contamination_file).read(), metadata, no_key_hierarchy=True)
     pii_iter = AlignFieldNames(GenericJsonlReader(pii_file).read(), metadata, no_key_hierarchy=True)
 
     part_config, part_name = get_matching_part(metadata, src_file)
@@ -35,14 +35,21 @@ def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_f
     src_reader = GenericJsonlReader(src_file)
     align_iter = AlignFieldNames(src_reader.read(), metadata)
     scrub_iter = field_scrubber_factory(align_iter, part_config)
-    decontaminated_iter = Decontaminate(scrub_iter, contamination_iter)
-    pii_masked_iter = PiiMasker(decontaminated_iter, pii_iter)
 
     # After this comment are actual records removed. Processing cannot require zipping of dataset works.
-
-    filtered = filter_to_be_deleted(pii_masked_iter)
-    if "block" in part_config:
-        filtered = filter_on_blocklist(filtered, part_config["block"])
+    if "id" in metadata:
+        pii_masked_iter = PiiMasker(scrub_iter, pii_iter)
+        contamination_ids = [x["id"] for x in AlignFieldNames(GenericJsonlReader(contamination_file).read(), metadata)]
+        logger.info(f"Found {len(contamination_ids)} contamination ids for file {src_file}")
+        filtered = filter_on_blocklist(pii_masked_iter, contamination_ids)
+        if "block" in part_config:
+            filtered = filter_on_blocklist(filtered, part_config["block"])
+    else:
+        logger.info("No id field in metadata, skipping pii, decontamination and blocklist")
+        filtered = scrub_iter
+    if "wds+register" in metadata:
+        logger.info("WDS+register files")
+        filtered = itertools.chain.from_iterable(map(sample_register.process_record, filtered))
     sampled = sampler_factory(filtered, metadata, src_file)
 
     JsonlZstWriter(tmp_out_file).write(sampled)
@@ -51,7 +58,7 @@ def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_f
 
 def process(input_dir: Path, output_dir: Path, workers=1, slurm=False, release=None) -> None:
     metadata = read_metadata(input_dir.joinpath("metadata.yaml"))
-    source_dir = input_dir.joinpath("source")
+    source_dir = input_dir.joinpath(metadata["release"]["default"]["input"])
     contamination_dir = input_dir.joinpath("contamination")
     pii_dir = input_dir.joinpath("pii")
 
@@ -69,7 +76,7 @@ def process(input_dir: Path, output_dir: Path, workers=1, slurm=False, release=N
         with ProcessPoolExecutor(max_workers=workers) as executor:
             for src_file in task_files:
                 contamination_file, pii_file, out_file = _calculate_file_paths(
-                    src_file, source_dir, contamination_dir, pii_dir, output_dir
+                    src_file, source_dir, contamination_dir, pii_dir, output_dir, metadata
                 )
 
                 job = executor.submit(
@@ -89,22 +96,24 @@ def process(input_dir: Path, output_dir: Path, workers=1, slurm=False, release=N
         for src_file in task_files:
             logger.debug(f"Processing file {src_file}")
             contamination_file, pii_file, out_file = _calculate_file_paths(
-                src_file, source_dir, contamination_dir, pii_dir, output_dir
+                src_file, source_dir, contamination_dir, pii_dir, output_dir, metadata
             )
             package_file(src_file, metadata, contamination_file, pii_file, out_file)
 
 
 def _calculate_file_paths(
-    src_file, source_dir: Path, contamination_dir: Path, pii_dir: Path, output_dir: Path
+    src_file, source_dir: Path, contamination_dir: Path, pii_dir: Path, output_dir: Path, metadata: dict
 ) -> tuple[Path, Path, Path]:
     rel_file_path = Path(str(src_file)[len(str(source_dir)) + 1 :])
     contamination_file = contamination_dir.joinpath(rel_file_path)
     if not contamination_file.exists():
         contamination_file = contamination_dir.joinpath(rel_file_path.parent, rel_file_path.stem)
     pii_file = pii_dir.joinpath(rel_file_path)
+    if "pii" in metadata["annotations"]["pii"] and metadata["suffix"] != metadata["annotations"]["pii"]["suffix"]:
+        pii_file = Path(str(pii_file).replace(metadata["suffix"], metadata["pii_suffix"]))
     if not pii_file.exists():
         pii_file = pii_dir.joinpath(rel_file_path.parent, rel_file_path.stem)
-    out_file = output_dir.joinpath(rel_file_path)
+    out_file = output_dir.joinpath(rel_file_path.parent, rel_file_path.stem + ".zst")
     return contamination_file, pii_file, out_file
 
 

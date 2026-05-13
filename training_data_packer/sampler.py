@@ -16,7 +16,7 @@ def sampler_factory(data_iterator, metadata: dict, src_file_name: Path):
         case "full":
             return data_iterator
         case "random":
-            fraction = float(release["budget"].strip("%")) / 100
+            fraction = (float(release["budget"].strip("%")) + float(release["rubber"].strip("%"))) / 100
             return itertools.filterfalse(lambda x: random.random() > fraction, data_iterator)
         case "wds+register":
             return itertools.chain.from_iterable(map(sample_register.process_record, data_iterator))

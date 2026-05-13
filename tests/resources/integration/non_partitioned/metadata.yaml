@@ -4,13 +4,14 @@ suffix: .jsonl.zst
 text: text
 id: id
 annotations:
-- contamination:
-  - owner: Department A
-  - status: complete
-- pii:
-  - owner: Department B
-  - status: complete
+  contamination:
+    owner: Department A
+    status: complete
+  pii:
+    owner: Department B
+    status: complete
 release:
   default:
+    input: source
     sample: full
   shard01:

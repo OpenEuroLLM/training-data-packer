@@ -1,3 +1,6 @@
+from loguru import logger
+
+
 class Decontaminate:
     def __init__(self, src_data, decontamination_data):
         self._src_data = src_data
@@ -17,6 +20,7 @@ class Decontaminate:
             next_src_doc = next(self._src_data)
         except StopIteration as e:
             if self._next_doc_to_remove is not None:
+                logger.error(f"Decontamination iteration failed, docid left {self._next_doc_to_remove}")
                 raise ValueError() from e
             raise e
         if self._next_doc_to_remove is not None and self._next_doc_to_remove == next_src_doc["id"]:

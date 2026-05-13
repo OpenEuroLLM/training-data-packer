@@ -1,30 +1,34 @@
 import argparse
 import io
 import os
-import sys
 from collections.abc import Iterable
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
+from typing import Any
 
-import orjson as json
 import zstandard as zstd
 from loguru import logger
 
-from training_data_packer.utils.file import find_jsonl_zst_files, get_directories_n_levels_down
-from training_data_packer.utils.metadata import read_metadata
+from training_data_packer.utils.file import find_files
+from training_data_packer.utils.metadata import (
+    get_all_part_names,
+    get_matching_part,
+    get_shard_size_documents,
+    read_counts,
+    read_metadata,
+)
 from training_data_packer.utils.slurm import get_my_slurm_tasks
 
 
-def merge(input_files: Iterable[Path], destination_dir: Path, token_size: float, shard_size: int, file_prefix: str):
+def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: int, file_prefix: str):
+    logger.info(f"Writing to directory {destination_dir}, using prefix {file_prefix}")
     os.makedirs(destination_dir, exist_ok=True)
 
     dctx = zstd.ZstdDecompressor()
     cctx = zstd.ZstdCompressor(level=3)
 
     file_idx = 0
-    current_token_sum = 0
-
-    # Initialize the first output file
+    docs_written = 0
     out_f = None
     writer = None
 
@@ -34,10 +38,7 @@ def merge(input_files: Iterable[Path], destination_dir: Path, token_size: float,
                 with dctx.stream_reader(in_f) as reader:
                     text_stream = io.TextIOWrapper(reader, encoding="utf-8")
                     for line in text_stream:
-                        data = json.loads(line)
-                        text_tokens = len(data["text"]) / token_size
-
-                        if out_f is None or (current_token_sum + text_tokens > shard_size) or current_token_sum == 0:
+                        if out_f is None or (docs_written >= docs_per_shard) or docs_written == 0:
                             if out_f:
                                 writer.close()
                                 out_f.close()
@@ -46,12 +47,10 @@ def merge(input_files: Iterable[Path], destination_dir: Path, token_size: float,
                             out_f = open(output_path, "wb")
                             writer = cctx.stream_writer(out_f)
 
-                            current_token_sum = 0
+                            docs_written = 0
                             file_idx += 1
-
-                        encoded_line = json.dumps(data) + b"\n"
-                        writer.write(encoded_line)
-                        current_token_sum += text_tokens
+                        writer.write(line.encode("utf-8") + b"\n")
+                        docs_written += 1
     finally:
         if writer:
             writer.close()
@@ -59,17 +58,20 @@ def merge(input_files: Iterable[Path], destination_dir: Path, token_size: float,
             out_f.close()
 
 
-def process(collection_dir: Path, token_size: float, shard_size: int, workers=1, slurm=False):
+def process(collection_dir: Path, workers=1, slurm=False):
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
     input_dir = collection_dir.joinpath("release_raw")
     output_dir = collection_dir.joinpath("release")
 
-    if output_dir.exists():
-        logger.info(f"Out data directory {output_dir} already exist, exiting")
-        sys.exit(1)
-
-    parts = sorted(metadata["release"].keys())
+    parts = get_all_part_names(metadata)
     logger.info(f"Found {len(parts)} parts")
+
+    part_config, _ = get_matching_part(metadata, parts[0])
+    if "pack" in part_config and part_config["pack"] == "flat" and "prefix" not in part_config:
+        # This config requires single threaded
+        workers = 1
+        parts = ["default"]
+        logger.info("All parts will be flatten into one. This will run single threaded.")
 
     if slurm:
         task_parts = get_my_slurm_tasks(parts)
@@ -81,16 +83,19 @@ def process(collection_dir: Path, token_size: float, shard_size: int, workers=1,
         jobs = []
         with ProcessPoolExecutor(max_workers=workers) as executor:
             for part_name in task_parts:
-                part_config = metadata["release"][part_name]
+                part_config, _ = get_matching_part(metadata, part_name)
+                logger.info(f"Processing part {part_name} with config {part_config}")
                 flat_output = part_config["pack"] == "flat"
-                files = find_jsonl_zst_files(input_dir.joinpath(part_name))
+                metadata["suffix"] = ".jsonl.zst"
+                files = find_files(input_dir.joinpath(part_name), metadata)
+                logger.info(f"Processing part {part_name} with {len(files)} files")
+                docs_per_shard = get_shard_size_documents(part_config)
                 job = executor.submit(
                     merge,
                     files,
                     output_dir if flat_output else output_dir.joinpath(part_name),
-                    token_size,
-                    shard_size,
-                    part_config["prefix"]
+                    docs_per_shard,
+                    part_config.get("prefix", "shard"),
                 )
                 jobs.append(job)
             executor.shutdown()
@@ -98,18 +103,39 @@ def process(collection_dir: Path, token_size: float, shard_size: int, workers=1,
                 if job.exception() is not None:
                     logger.error(f"There were an exception thrown for release {task_parts[n]}: {job.exception()}")
     else:
-        for part_name in task_parts:
-            part_config = metadata["release"][part_name]
-            flat_output = part_config["pack"] == "flat"
-            files = find_jsonl_zst_files(input_dir.joinpath(part_name))
+        if parts == ["default"]:
+            metadata["suffix"] = ".jsonl.zst"
+            files = find_files(input_dir, metadata)
+            docs_per_shard = get_shard_size_documents(part_config)
             merge(
                 files,
-                output_dir if flat_output else output_dir.joinpath(part_name),
-                token_size,
-                shard_size,
-                part_config["prefix"]
+                output_dir,
+                docs_per_shard,
+                "shard",
             )
+        else:
+            for part_name in task_parts:
+                part_config, _ = get_matching_part(metadata, part_name)
+                logger.info(f"Processing part {part_name} with config {part_config}")
+                flat_output = part_config["pack"] == "flat"
+                metadata["suffix"] = ".jsonl.zst"
+                files = find_files(input_dir.joinpath(part_name), metadata)
+                logger.info(f"Processing part {part_name} with {len(files)} files")
+                docs_per_shard = get_shard_size_documents(part_config)
+                merge(
+                    files,
+                    output_dir if flat_output else output_dir.joinpath(part_name),
+                    docs_per_shard,
+                    part_config.get("prefix", "shard"),
+                )
 
+
+def count_docs_per_shard(counts_dir: Path, part_name, shard_size: int) -> Any:
+    counts_file_name = counts_dir.joinpath(part_name).joinpath("source.json")
+    counts = read_counts(counts_file_name)
+    tokens_per_doc = counts["tokens"] / counts["documents"]
+    docs_per_shard = shard_size / tokens_per_doc
+    return docs_per_shard
 
 
 def main():
@@ -119,8 +145,6 @@ def main():
     )
     parser.add_argument("--collection-dir", help="Collection directory containing data", required=True)
     parser.add_argument("-w", "--workers", help="Number of workers, default is 1", type=int, default=1)
-    parser.add_argument("-t", "--token-size", help="Characters per token", type=float, default=4.25)
-    parser.add_argument("--shard-size", help="Tokens per shard", type=int, default=100_000_000_000_000)
     parser.add_argument(
         "-s",
         "--slurm",
@@ -130,8 +154,8 @@ def main():
     args = parser.parse_args()
     process(
         Path(args.collection_dir),
-        args.token_size,
-        args.shard_size,
+        args.workers,
+        args.slurm,
     )
 
 
