@@ -109,8 +109,8 @@ def _calculate_file_paths(
     if not contamination_file.exists():
         contamination_file = contamination_dir.joinpath(rel_file_path.parent, rel_file_path.stem)
     pii_file = pii_dir.joinpath(rel_file_path)
-    if "pii" in metadata["annotations"]["pii"] and metadata["suffix"] != metadata["annotations"]["pii"]["suffix"]:
-        pii_file = Path(str(pii_file).replace(metadata["suffix"], metadata["pii_suffix"]))
+    if "suffix" in metadata["annotations"]["pii"] and metadata["suffix"] != metadata["annotations"]["pii"]["suffix"]:
+        pii_file = Path(str(pii_file).replace(metadata["suffix"], metadata["annotations"]["pii"]["suffix"]))
     if not pii_file.exists():
         pii_file = pii_dir.joinpath(rel_file_path.parent, rel_file_path.stem)
     out_file = output_dir.joinpath(rel_file_path.parent, rel_file_path.stem + ".zst")

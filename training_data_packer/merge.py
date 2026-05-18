@@ -49,7 +49,7 @@ def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: in
 
                             docs_written = 0
                             file_idx += 1
-                        writer.write(line.encode("utf-8") + b"\n")
+                        writer.write(line.encode("utf-8"))
                         docs_written += 1
     finally:
         if writer:
