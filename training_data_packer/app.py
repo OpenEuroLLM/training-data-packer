@@ -4,6 +4,7 @@ import os
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
+import glom
 from loguru import logger
 
 from training_data_packer import sample_register
@@ -105,14 +106,15 @@ def _calculate_file_paths(
     src_file, source_dir: Path, contamination_dir: Path, pii_dir: Path, output_dir: Path, metadata: dict
 ) -> tuple[Path, Path, Path]:
     rel_file_path = Path(str(src_file)[len(str(source_dir)) + 1 :])
-    contamination_file = contamination_dir.joinpath(rel_file_path)
-    if not contamination_file.exists():
-        contamination_file = contamination_dir.joinpath(rel_file_path.parent, rel_file_path.stem)
-    pii_file = pii_dir.joinpath(rel_file_path)
-    if "suffix" in metadata["annotations"]["pii"] and metadata["suffix"] != metadata["annotations"]["pii"]["suffix"]:
-        pii_file = Path(str(pii_file).replace(metadata["suffix"], metadata["annotations"]["pii"]["suffix"]))
-    if not pii_file.exists():
-        pii_file = pii_dir.joinpath(rel_file_path.parent, rel_file_path.stem)
+
+    contamination_suffix = glom.glom(metadata, "annotations.contamination.suffix", default=metadata["suffix"])
+    contamination_file = Path(
+        str(contamination_dir.joinpath(rel_file_path)).replace(metadata["suffix"], contamination_suffix)
+    )
+
+    pii_suffix = glom.glom(metadata, "annotations.pii.suffix", default=metadata["suffix"])
+    pii_file = Path(str(pii_dir.joinpath(rel_file_path)).replace(metadata["suffix"], pii_suffix))
+
     out_file = output_dir.joinpath(rel_file_path.parent, rel_file_path.stem + ".zst")
     return contamination_file, pii_file, out_file
 

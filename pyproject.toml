@@ -5,6 +5,8 @@ description = "Packaging annotated datasets into final training data."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "coverage==7.14.0",
+    "glom>=25.12.0",
     "loguru>=0.7.3",
     "orjson>=3.11.8",
     "pyyaml>=6.0.3",

@@ -7,9 +7,11 @@ annotations:
   contamination:
     owner: Department A
     status: complete
+    suffix: .jsonl
   pii:
     owner: Department B
     status: complete
+    suffix: .jsonl.zst
 release:
   default:
     input: source

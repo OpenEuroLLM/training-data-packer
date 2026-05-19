@@ -87,6 +87,7 @@ The file `metadata.yaml` contains metadata to help package the data. Example:
 ```yaml
 name: HPLT 3.0
 url: https://hplt-project.org/datasets/v3.0
+suffix: .jsonl.gz
 text: text
 id: id
 annotations:
@@ -107,7 +108,6 @@ release:
     sample: full
     block:
     - 6d1f3087-fcdb-4a84-bd64-00edc2862472
-
 ```
 
 In the example above we tell tat field containing the text to be masked and output is in field
