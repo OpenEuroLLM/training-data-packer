@@ -224,7 +224,7 @@ class PiiMasker:
     """
     Iterator over a source data set. Masking all docs according to
     pii_data iterator. Documents in src_data and pii_data must be in
-    the same order.
+    the same topological order.
     Records that have been masked get the field masked=True.
     """
 

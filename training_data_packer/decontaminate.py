@@ -2,6 +2,17 @@ from loguru import logger
 
 
 class Decontaminate:
+    """Decontaminate data
+
+    This is an iterator that take two iterators:
+    * source stream
+    * decontamination stream containing documents to be removed
+    The algorithm require documents to come in same topological order
+    if not there will be document id lefts in decontamination stream
+    once source is consumed, this will raise an error indicating issues
+    with the data.
+    """
+
     def __init__(self, src_data, decontamination_data):
         self._src_data = src_data
         self._decontamination_data = decontamination_data
