@@ -5,7 +5,6 @@ import unittest
 from parameterized import parameterized
 
 from training_data_packer import pii_masking
-from training_data_packer.pii_masking import PiiMasker
 
 
 class TestPiiUtilityFunctions(unittest.TestCase):
@@ -404,10 +403,25 @@ class TestMaskRecords(unittest.TestCase):
                 1,
                 False,
             ],
+            [
+                "mask_unknown",
+                "52347894 This is a random text.",
+                [
+                    {
+                        "start_pos": 0,
+                        "end_pos": 7,
+                        "value": "52347894",
+                        "id": "2",
+                        "name": "UNKNOWN",
+                    },
+                ],
+                1,
+                True,
+            ],
         ]
     )
     def test_mask_document_has_changed_docs(self, name, text, pii_records, expected, unknown_pii):
-        masked_doc = pii_masking.mask_document({"text": text}, pii_records)
+        masked_doc = pii_masking.mask_document({"id": "1234", "text": text}, pii_records)
         self.assertEqual(expected, masked_doc["pii_masks"])
         if unknown_pii:
             self.assertTrue(masked_doc["pii_unknown"])
@@ -444,8 +458,8 @@ class TestPIIMasker(unittest.TestCase):
         ]
         src_indata_iter = iter(copy.deepcopy(src_indata))
         pii_indata_iter = iter(pii_indata)
-        pii_it = PiiMasker(src_indata_iter, pii_indata_iter)
-        pii_list = list(pii_it)
+        masker_fn = pii_masking.get_pii_masker(pii_indata_iter)
+        pii_list = list(map(masker_fn, src_indata_iter))
         self.assertEqual(pii_list[0], src_indata[0])
         self.assertNotEqual(pii_list[1], src_indata[1])
         self.assertEqual(pii_list[1]["pii_masks"], 2)

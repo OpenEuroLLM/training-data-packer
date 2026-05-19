@@ -1,11 +1,10 @@
 import ipaddress
+import itertools
 import random
 import string
-from typing import Any
+from typing import Any, Callable, Iterable
 
 from loguru import logger
-
-from training_data_packer.utils.iterator import get_until_key_change
 
 # RFC 1918 Private Ranges
 IPV4_PRIVATE_BLOCKS = [
@@ -174,18 +173,8 @@ def _mask_ip_address(document: dict[str, Any], pii_record: dict[str, Any]) -> di
 
 
 def mask_document(document: dict[str, Any], pii_records: list[dict[str, Any]]) -> dict[str, Any]:
-    if document is None or pii_records is None:
-        logger.error("Either document or pii_records is None")
-        raise ValueError("Unknown input to mask_document")
-    pii_records_sorted = sorted(pii_records, key=lambda x: -x["start_pos"])
-    pii_records_sorted = _remove_duplicates_inplace(pii_records_sorted)
-    if _has_overlapping_ranges(pii_records_sorted):
-        pii_records_sorted, merged_types = _merge_overlapping_ranges(pii_records_sorted)
-        logger.info(
-            f"Document {document['id']} has overlapping PII. Merging overlapping ranges. Merged types {merged_types}"
-        )
     try:
-        for pii_record in pii_records_sorted:
+        for pii_record in pii_records:
             match pii_record["name"]:
                 case (
                     "BANK_ACCOUNT"
@@ -212,51 +201,28 @@ def mask_document(document: dict[str, Any], pii_records: list[dict[str, Any]]) -
                     document["pii_unknown"] = True
     except ValueError as e:
         logger.warning(f"Document {document['id']} has pii issues {e}")
-    document["pii_masks"] = len(pii_records_sorted)
+    document["pii_masks"] = len(pii_records)
     return document
 
 
-def pii_key(record):
-    return record["id"]
-
-
-class PiiMasker:
+def get_pii_masker(pii_iter: Iterable[dict[str, Any]]) -> Callable[[dict[str, Any]], dict[str, Any]]:
     """
-    Iterator over a source data set. Masking all docs according to
-    pii_data iterator. Documents in src_data and pii_data must be in
-    the same topological order.
-    Records that have been masked get the field masked=True.
+    Takes an iterator of PII records. Prepare them into a dict of document id to list of pii records for
+    the document. Preparation merge overlapping PII records and remove duplicates.
+    :param pii_iter: Iterator of PII records.
+    :return: Function that masks a provided document.
     """
+    pii_grouped = itertools.groupby(pii_iter, lambda x: x["id"])
+    # Sort reverse to do the masking from end of doc. That means position of masking is not changed
+    # by other masking operation.
+    pii_records_sorted = {i: sorted(records, key=lambda x: -x["start_pos"]) for i, records in pii_grouped}
+    pii_records_deduped = {i: _remove_duplicates_inplace(list(records)) for i, records in pii_records_sorted.items()}
+    pii = {i: _merge_overlapping_ranges(records) if _has_overlapping_ranges(records) else records for i, records in pii_records_deduped.items()}
 
-    def __init__(self, src_data, pii_data):
-        self._src_data = src_data
-        self._pii_data = pii_data
-        self._next_pii_doc_id, self._next_pii_docs = None, None
+    def masker(document):
+        if "id" in document and document["id"] in pii:
+            return mask_document(document, pii[document["id"]])
+        else:
+            return document
 
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if self._next_pii_doc_id is None:
-            self._get_next_pii_doc()
-        try:
-            next_src_doc = next(self._src_data)
-        except StopIteration as e:
-            if self._next_pii_doc_id is not None:
-                logger.error(f"Document {self._next_pii_doc_id} has issues {e}")
-                raise ValueError() from e
-            raise e
-        if self._next_pii_doc_id is not None and self._next_pii_doc_id == next_src_doc["id"]:
-            next_src_doc = mask_document(next_src_doc, self._next_pii_docs)
-            self._get_next_pii_doc()
-        return next_src_doc
-
-    def _get_next_pii_doc(self):
-        try:
-            self._next_pii_doc_id, self._next_pii_docs, self._pii_data = get_until_key_change(self._pii_data, pii_key)
-        except StopIteration:
-            self._next_pii_doc_id, self._next_pii_docs, self._pii_data = (
-                None,
-                None,
-                iter([]),
-            )
+    return masker

@@ -7,11 +7,10 @@ from pathlib import Path
 import glom
 from loguru import logger
 
-from training_data_packer import sample_register
+from training_data_packer import sample_register, pii_masking
 from training_data_packer.clean import AlignFieldNames, field_scrubber_factory
 from training_data_packer.filters import filter_on_blocklist
 from training_data_packer.jsonl_zst import JsonlZstWriter
-from training_data_packer.pii_masking import PiiMasker
 from training_data_packer.sampler import sampler_factory
 from training_data_packer.utils.file import GenericJsonlReader, find_files
 from training_data_packer.utils.metadata import get_matching_part, read_metadata
@@ -29,8 +28,6 @@ def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_f
         os.remove(tmp_out_file)
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
-    pii_iter = AlignFieldNames(GenericJsonlReader(pii_file).read(), metadata, no_key_hierarchy=True)
-
     part_config, part_name = get_matching_part(metadata, src_file)
 
     src_reader = GenericJsonlReader(src_file)
@@ -39,10 +36,13 @@ def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_f
 
     # After this comment are actual records removed. Processing cannot require zipping of dataset works.
     if "id" in metadata:
-        pii_masked_iter = PiiMasker(scrub_iter, pii_iter)
+        pii_iter = AlignFieldNames(GenericJsonlReader(pii_file).read(), metadata, no_key_hierarchy=True)
+        pii_masker = pii_masking.get_pii_masker(pii_iter)
+        pii_masked_iter = map(pii_masker, scrub_iter)
+
         contamination_ids = [x["id"] for x in AlignFieldNames(GenericJsonlReader(contamination_file).read(), metadata)]
-        logger.debug(f"Found {len(contamination_ids)} contamination ids for file {src_file}")
         filtered = filter_on_blocklist(pii_masked_iter, contamination_ids)
+
         if "block" in part_config:
             filtered = filter_on_blocklist(filtered, part_config["block"])
     else:
