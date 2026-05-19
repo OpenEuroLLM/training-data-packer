@@ -28,7 +28,7 @@ if it fails then run it again and it will take of where it left.
 
 To package the data in `tests/resources/integration/non_partitioned` run:
 ```shell
-uv run oellm-package-data --input_dir tests/resources/integration/non_partitioned --output_dir tmp
+uv run oellm-package-data --input_dir tests/resources/integration/flat_release --output_dir tmp
 ```
 The program checks if output files exist, if they exist new data is not regenerated. 
 

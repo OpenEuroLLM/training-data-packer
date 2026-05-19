@@ -7,8 +7,8 @@ from training_data_packer.utils.file import GenericJsonlReader
 
 
 class IntegrationTests(unittest.TestCase):
-    def test_non_partitioned_data(self):
-        test_data = Path("tests/resources/integration/non_partitioned")
+    def test_flat_release(self):
+        test_data = Path("tests/resources/integration/flat_release")
         with TemporaryDirectory() as tmpdir:
             out_dir = Path(tmpdir).joinpath("output")
             process(test_data, out_dir)
@@ -27,6 +27,22 @@ class IntegrationTests(unittest.TestCase):
             self.assertEqual(source_file[4]["id"], result[2]["id"])
             self.assertNotEqual(source_file[4]["text"], result[2]["text"])
             self.assertEqual(2, result[2]["pii_masks"])
+
+    def test_block_list(self):
+        test_data = Path("tests/resources/integration/block_list")
+        with TemporaryDirectory() as tmpdir:
+            out_dir = Path(tmpdir).joinpath("output")
+            process(test_data, out_dir)
+
+            source_file = list(GenericJsonlReader(test_data.joinpath("source/shard01/file_01.jsonl.zst")).read())
+            result = list(GenericJsonlReader(out_dir.joinpath("shard01/file_01.jsonl.zst")).read())
+
+            self.assertEqual(3, len(result))
+            self.assertEqual(source_file[0]["id"], result[0]["id"])
+
+            self.assertEqual(source_file[1], result[1])
+
+            self.assertEqual(source_file[5]["id"], result[2]["id"])
 
 
 if __name__ == "__main__":

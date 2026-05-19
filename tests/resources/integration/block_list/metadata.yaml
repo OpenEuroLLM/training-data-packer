@@ -1,0 +1,21 @@
+name: HPLT 3.0
+url: https://hplt-project.org/datasets/v3.0
+suffix: .jsonl.zst
+text: text
+id: id
+annotations:
+  contamination:
+    owner: Department A
+    status: complete
+    suffix: .jsonl
+  pii:
+    owner: Department B
+    status: complete
+    suffix: .jsonl.zst
+release:
+  default:
+    input: source
+    sample: full
+  shard01:
+    block:
+      - 1234
