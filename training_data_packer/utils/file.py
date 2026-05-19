@@ -24,12 +24,6 @@ def find_files(source_dir: Path, metadata: dict, part: str = None) -> list[Path]
         return sorted(Path(source_dir).glob(f"{part}/**/[A-Za-z0-9]*" + suffix, recurse_symlinks=True))
 
 
-def get_directories_n_levels_down(base_path: Path, n_levels: int) -> list[Path]:
-    glob = "/".join(["*"] * n_levels)
-    dirs = [p for p in base_path.glob(glob) if p.is_dir()]
-    return dirs
-
-
 class GenericJsonlReader:
     """
     Reader for jsonline files, compressed or not

@@ -4,7 +4,6 @@ import os
 from collections.abc import Iterable
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
-from typing import Any
 
 import zstandard as zstd
 from loguru import logger
@@ -14,7 +13,6 @@ from training_data_packer.utils.metadata import (
     get_all_part_names,
     get_matching_part,
     get_shard_size_documents,
-    read_counts,
     read_metadata,
 )
 from training_data_packer.utils.slurm import get_my_slurm_tasks
@@ -128,14 +126,6 @@ def process(collection_dir: Path, workers=1, slurm=False):
                     docs_per_shard,
                     part_config.get("prefix", "shard"),
                 )
-
-
-def count_docs_per_shard(counts_dir: Path, part_name, shard_size: int) -> Any:
-    counts_file_name = counts_dir.joinpath(part_name).joinpath("source.json")
-    counts = read_counts(counts_file_name)
-    tokens_per_doc = counts["tokens"] / counts["documents"]
-    docs_per_shard = shard_size / tokens_per_doc
-    return docs_per_shard
 
 
 def main():

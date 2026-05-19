@@ -2,16 +2,18 @@ import shutil
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List
 
 from training_data_packer.merge import process
 from training_data_packer.utils.file import GenericJsonlReader
 
-def _get_rows_in_file(file_path: Path) -> List[dict]:
+
+def _get_rows_in_file(file_path: Path) -> list[dict]:
     return list(GenericJsonlReader(file_path).read())
+
 
 def _count_lines_in_file(file_path: Path) -> int:
     return len(_get_rows_in_file(file_path))
+
 
 class MergeIntegrationTests(unittest.TestCase):
     def test_merge_flat_with_part(self):
@@ -72,7 +74,6 @@ class MergeIntegrationTests(unittest.TestCase):
             self.assertEqual(_count_lines_in_file(workdir.joinpath("release/shard02/shard_0002.jsonl.zst")), 10)
             self.assertEqual(_count_lines_in_file(workdir.joinpath("release/shard02/shard_0003.jsonl.zst")), 10)
             self.assertEqual(_count_lines_in_file(workdir.joinpath("release/shard02/shard_0004.jsonl.zst")), 6)
-
 
 
 if __name__ == "__main__":
