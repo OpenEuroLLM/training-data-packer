@@ -4,7 +4,7 @@ from typing import Any
 from loguru import logger
 
 
-def _get_my_partition_tasks(files: list[Any], task_count: int, task_id: int):
+def _get_my_partition_tasks(files: list[Any], task_count: int, task_id: int) -> list[Any]:
     size, rest = divmod(len(files), task_count)
     grouped_files = [files[i * size + min(i, rest) : (i + 1) * size + min(i + 1, rest)] for i in range(task_count)]
     return grouped_files[task_id - 1]

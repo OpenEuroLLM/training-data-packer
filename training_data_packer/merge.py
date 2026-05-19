@@ -56,7 +56,7 @@ def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: in
             out_f.close()
 
 
-def process(collection_dir: Path, workers=1, slurm=False):
+def process(collection_dir: Path, workers: int = 1, slurm: bool = False):
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
     input_dir = collection_dir.joinpath("release_raw")
     output_dir = collection_dir.joinpath("release")

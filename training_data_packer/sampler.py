@@ -1,6 +1,8 @@
 import itertools
 import random
+from collections.abc import Iterable
 from pathlib import Path
+from typing import Any
 
 from loguru import logger
 
@@ -8,7 +10,9 @@ from training_data_packer import sample_register
 from training_data_packer.utils.metadata import get_matching_part
 
 
-def sampler_factory(data_iterator, metadata: dict, src_file_name: Path):
+def sampler_factory(
+    data_iterator: Iterable[dict[str, Any]], metadata: dict, src_file_name: Path
+) -> Iterable[dict[str, Any]]:
     if "release" not in metadata:
         return data_iterator
     release, release_name = get_matching_part(metadata, src_file_name)

@@ -7,20 +7,19 @@ from pathlib import Path
 import glom
 from loguru import logger
 
-from training_data_packer import sample_register, pii_masking
+from training_data_packer import pii_masking, sample_register
 from training_data_packer.clean import AlignFieldNames, field_scrubber_factory
 from training_data_packer.filters import filter_on_blocklist
-from training_data_packer.jsonl_zst import JsonlZstWriter
 from training_data_packer.sampler import sampler_factory
-from training_data_packer.utils.file import GenericJsonlReader, find_files
+from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, find_files
 from training_data_packer.utils.metadata import get_matching_part, read_metadata
 from training_data_packer.utils.slurm import get_my_slurm_tasks
 
 
-def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_file: Path, out_file: Path):
+def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_file: Path, out_file: Path) -> None:
     tmp_out_file = out_file.parent.joinpath("." + out_file.name)
     if out_file.exists():
-        # File is already processed. Do not do it again
+        # File is already processed. Do not process it again
         logger.info(f"Skipping {out_file}, already exists")
         return
     if tmp_out_file.exists():
@@ -57,7 +56,7 @@ def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_f
     os.rename(tmp_out_file, out_file)
 
 
-def process(input_dir: Path, output_dir: Path, workers=1, slurm=False, release=None) -> None:
+def process(input_dir: Path, output_dir: Path, workers=1, slurm: bool = False, release: str | None = None) -> None:
     metadata = read_metadata(input_dir.joinpath("metadata.yaml"))
     source_dir = input_dir.joinpath(metadata["release"]["default"]["input"])
     contamination_dir = input_dir.joinpath("contamination")
@@ -103,7 +102,7 @@ def process(input_dir: Path, output_dir: Path, workers=1, slurm=False, release=N
 
 
 def _calculate_file_paths(
-    src_file, source_dir: Path, contamination_dir: Path, pii_dir: Path, output_dir: Path, metadata: dict
+    src_file: Path, source_dir: Path, contamination_dir: Path, pii_dir: Path, output_dir: Path, metadata: dict
 ) -> tuple[Path, Path, Path]:
     rel_file_path = Path(str(src_file)[len(str(source_dir)) + 1 :])
 

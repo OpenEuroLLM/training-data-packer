@@ -2,7 +2,8 @@ import ipaddress
 import itertools
 import random
 import string
-from typing import Any, Callable, Iterable
+from collections.abc import Callable, Iterable
+from typing import Any
 
 from loguru import logger
 
@@ -217,7 +218,10 @@ def get_pii_masker(pii_iter: Iterable[dict[str, Any]]) -> Callable[[dict[str, An
     # by other masking operation.
     pii_records_sorted = {i: sorted(records, key=lambda x: -x["start_pos"]) for i, records in pii_grouped}
     pii_records_deduped = {i: _remove_duplicates_inplace(list(records)) for i, records in pii_records_sorted.items()}
-    pii = {i: _merge_overlapping_ranges(records) if _has_overlapping_ranges(records) else records for i, records in pii_records_deduped.items()}
+    pii = {
+        i: _merge_overlapping_ranges(records) if _has_overlapping_ranges(records) else records
+        for i, records in pii_records_deduped.items()
+    }
 
     def masker(document):
         if "id" in document and document["id"] in pii:

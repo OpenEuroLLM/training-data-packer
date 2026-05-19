@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from typing import Any
 
 
@@ -12,7 +12,7 @@ def _pop_hierarchy_key_value(key: list[Any], data: dict) -> Any:
 
 
 class AlignFieldNames:
-    def __init__(self, src_data, metadata: dict, no_key_hierarchy=False):
+    def __init__(self, src_data: Iterator[Any], metadata: dict, no_key_hierarchy: bool = False):
         self._src_data = src_data
         self._mapper = {}
         if "id" in metadata and metadata["id"] != "id":
