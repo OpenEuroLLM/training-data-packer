@@ -65,6 +65,32 @@ class TestAlignFieldNames(unittest.TestCase):
         align_list = list(align_it)
         self.assertEqual(align_list, expected)
 
+    def test_hierarchy_text(self):
+        src_indata = [
+            {"metadata": {"int-id": "1234"}, "context": "Happy"},
+            {"metadata": {"int-id": "1235"}, "context": "Gazonk"},
+        ]
+        expected = [
+            {"id": "1234", "metadata": {}, "text": "Happy"},
+            {"id": "1235", "metadata": {}, "text": "Gazonk"},
+        ]
+        align_it = AlignFieldNames(iter(src_indata), {"id": "metadata.int-id", "text": "context", "doc_s": "doc_score"})
+        align_list = list(align_it)
+        self.assertEqual(align_list, expected)
+
+    def test_ignore_hierarchy_text(self):
+        src_indata = [
+            {"id": "1234", "context": "Happy"},
+            {"id": "1235", "context": "Gazonk"},
+        ]
+        expected = [
+            {"id": "1234", "text": "Happy"},
+            {"id": "1235", "text": "Gazonk"},
+        ]
+        align_it = AlignFieldNames(iter(src_indata), {"id": "metadata.id", "text": "context"}, no_key_hierarchy=True)
+        align_list = list(align_it)
+        self.assertEqual(align_list, expected)
+
 
 class TestScrubFieldNames(unittest.TestCase):
     @parameterized.expand(
