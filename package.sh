@@ -11,5 +11,6 @@
 
 export IN_DIR=$1
 export OUT_DIR=$2
+export LOGURU_LEVEL=INFO
 
 time uv run oellm-package-data --input_dir ${IN_DIR} --output_dir ${OUT_DIR} --workers 8 --slurm

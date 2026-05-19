@@ -40,7 +40,7 @@ def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_f
     if "id" in metadata:
         pii_masked_iter = PiiMasker(scrub_iter, pii_iter)
         contamination_ids = [x["id"] for x in AlignFieldNames(GenericJsonlReader(contamination_file).read(), metadata)]
-        logger.info(f"Found {len(contamination_ids)} contamination ids for file {src_file}")
+        logger.debug(f"Found {len(contamination_ids)} contamination ids for file {src_file}")
         filtered = filter_on_blocklist(pii_masked_iter, contamination_ids)
         if "block" in part_config:
             filtered = filter_on_blocklist(filtered, part_config["block"])
