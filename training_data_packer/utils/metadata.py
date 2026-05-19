@@ -15,6 +15,8 @@ def get_shard_size_documents(part_config: dict) -> int:
         return int(shard_size[:-2]) * 1_000_000_000
     if shard_size.endswith("md"):
         return int(shard_size[:-2]) * 1_000_000
+    if shard_size.isdigit():
+        return int(shard_size)
     raise ValueError(f"Invalid shard prefix {shard_size}")
 
 

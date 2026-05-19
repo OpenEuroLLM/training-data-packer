@@ -1,0 +1,20 @@
+name: Test data
+suffix: .jsonl.zst
+text: text
+id: id
+annotations:
+  contamination:
+    owner: Department A
+    status: complete
+  pii:
+    owner: Department B
+    status: complete
+release:
+  default:
+    input: source
+    pack: flat
+    shard: 10
+  shard01:
+    prefix: 01_0
+  shard02:
+    prefix: 02_0
