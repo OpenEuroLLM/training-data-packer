@@ -29,9 +29,16 @@ class IntegrationTests(unittest.TestCase):
             self.assertNotEqual(source_file[4]["text"], result[2]["text"])
             self.assertEqual(2, result[2]["pii_masks"])
 
-            with open(out_dir.joinpath("shard01/.file_01.jsonl.zst.json"), mode="r") as file:
+            with open(out_dir.joinpath("shard01/.file_01.jsonl.zst.metrics.json"), mode="r") as file:
                 metrics = json.load(file)
-                self.assertEqual({"contamination": {"list_length": 2, "removed": 2}}, metrics)
+                self.assertEqual(
+                    {
+                        "input": {"lines_read": 5},
+                        "contamination": {"list_length": 2, "removed": 2},
+                        "output": {"lines_written": 3},
+                    },
+                    metrics
+                )
 
     def test_block_list(self):
         test_data = Path("tests/resources/integration/block_list")
@@ -49,10 +56,15 @@ class IntegrationTests(unittest.TestCase):
 
             self.assertEqual(source_file[5]["id"], result[2]["id"])
 
-            with open(out_dir.joinpath("shard01/.file_01.jsonl.zst.json"), mode="r") as file:
+            with open(out_dir.joinpath("shard01/.file_01.jsonl.zst.metrics.json"), mode="r") as file:
                 metrics = json.load(file)
                 self.assertEqual(
-                    {"block_list": {"list_length": 1, "removed": 1}, "contamination": {"list_length": 2, "removed": 2}},
+                    {
+                        "input": {"lines_read": 6},
+                        "block_list": {"list_length": 1, "removed": 1},
+                        "contamination": {"list_length": 2, "removed": 2},
+                        "output": {"lines_written": 3},
+                    },
                     metrics,
                 )
 

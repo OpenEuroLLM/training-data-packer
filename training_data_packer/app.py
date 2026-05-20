@@ -58,10 +58,16 @@ def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_f
         filtered = itertools.chain.from_iterable(map(sample_register.process_record, filtered))
     sampled = sampler_factory(filtered, metadata, src_file)
 
-    JsonlZstWriter(tmp_out_file).write(sampled)
+    writer = JsonlZstWriter(tmp_out_file)
+    writer.write(sampled)
     os.rename(tmp_out_file, out_file)
-    metrics_collection = metrics.collect_metrics(contamination_filter, block_filter)
-    metrics_filename = out_file.parent.joinpath("." + out_file.name + ".json")
+    metrics_collection = metrics.collect_metrics(
+        src_reader,
+        contamination_filter,
+        block_filter,
+        writer,
+    )
+    metrics_filename = out_file.parent.joinpath("." + out_file.name + ".metrics.json")
     metrics.write_metrics_to_file(metrics_collection, metrics_filename)
 
 

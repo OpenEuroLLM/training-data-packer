@@ -39,10 +39,13 @@ class GenericJsonlReader:
         input_file_name: str | Path,
         encoding="utf-8",
         chunk_size: int = 16384,
+        counter_name: str = "input",
     ):
         self._input_file_name = Path(input_file_name)
         self._chunk_size = chunk_size
         self._encoding = encoding
+        self._counter_name = counter_name
+        self._lines = 0
 
     def read(self) -> Generator[Any, Any, Iterator[Any] | None]:
         if not self._input_file_name.exists():
@@ -56,15 +59,25 @@ class GenericJsonlReader:
                 with dctx.stream_reader(f, read_size=self._chunk_size) as reader:
                     text_stream = io.TextIOWrapper(reader, encoding=self._encoding)
                     for line in text_stream:
+                        self._lines += 1
                         yield json.loads(line)
         elif self._input_file_name.suffix == ".gz":
             with gzip.open(self._input_file_name, "rb") as f:
                 for line in f:
+                    self._lines += 1
                     yield json.loads(line)
         else:
             with open(self._input_file_name, "rb") as f:
                 for line in f:
+                    self._lines += 1
                     yield json.loads(line)
+
+    def get_metrics(self):
+        return {
+            self._counter_name: {
+                "lines_read": self._lines,
+            }
+        }
 
 
 class JsonlZstWriter:
@@ -72,9 +85,12 @@ class JsonlZstWriter:
         self,
         output_file_name: str | Path,
         chunk_size: int = 16384,
+        counter_name: str = "output",
     ):
         self._output_file_name = Path(output_file_name)
         self._chunk_size = chunk_size
+        self._counter_name = counter_name
+        self._lines = 0
 
     def write(self, iterator) -> None:
         cctx = zstd.ZstdCompressor()
@@ -84,3 +100,11 @@ class JsonlZstWriter:
                 for item in iterator:
                     compressor.write(json.dumps(item))
                     compressor.write(b"\n")
+                    self._lines += 1
+
+    def get_metrics(self):
+        return {
+            self._counter_name: {
+                "lines_written": self._lines,
+            }
+        }
