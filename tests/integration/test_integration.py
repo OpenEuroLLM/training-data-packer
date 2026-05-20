@@ -1,3 +1,4 @@
+import json
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -28,6 +29,10 @@ class IntegrationTests(unittest.TestCase):
             self.assertNotEqual(source_file[4]["text"], result[2]["text"])
             self.assertEqual(2, result[2]["pii_masks"])
 
+            with open(out_dir.joinpath("shard01/.file_01.jsonl.zst.json"), mode="r") as file:
+                metrics = json.load(file)
+                self.assertEqual({"contamination": {"list_length": 2, "removed": 2}}, metrics)
+
     def test_block_list(self):
         test_data = Path("tests/resources/integration/block_list")
         with TemporaryDirectory() as tmpdir:
@@ -43,6 +48,13 @@ class IntegrationTests(unittest.TestCase):
             self.assertEqual(source_file[1], result[1])
 
             self.assertEqual(source_file[5]["id"], result[2]["id"])
+
+            with open(out_dir.joinpath("shard01/.file_01.jsonl.zst.json"), mode="r") as file:
+                metrics = json.load(file)
+                self.assertEqual(
+                    {"block_list": {"list_length": 1, "removed": 1}, "contamination": {"list_length": 2, "removed": 2}},
+                    metrics,
+                )
 
 
 if __name__ == "__main__":

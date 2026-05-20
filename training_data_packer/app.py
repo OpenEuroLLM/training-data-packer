@@ -9,8 +9,9 @@ from loguru import logger
 
 from training_data_packer import pii_masking, sample_register
 from training_data_packer.clean import AlignFieldNames, field_scrubber_factory
-from training_data_packer.filters import filter_on_blocklist
+from training_data_packer.filters import FilterOnBlocklist
 from training_data_packer.sampler import sampler_factory
+from training_data_packer.utils import metrics
 from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, find_files
 from training_data_packer.utils.metadata import get_matching_part, read_metadata
 from training_data_packer.utils.slurm import get_my_slurm_tasks
@@ -27,6 +28,9 @@ def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_f
         os.remove(tmp_out_file)
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
+    contamination_filter = None
+    block_filter = None
+
     part_config, part_name = get_matching_part(metadata, src_file)
 
     src_reader = GenericJsonlReader(src_file)
@@ -40,10 +44,12 @@ def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_f
         pii_masked_iter = map(pii_masker, scrub_iter)
 
         contamination_ids = [x["id"] for x in AlignFieldNames(GenericJsonlReader(contamination_file).read(), metadata)]
-        filtered = filter_on_blocklist(pii_masked_iter, contamination_ids)
+        contamination_filter = FilterOnBlocklist("contamination", contamination_ids)
+        filtered = contamination_filter.filter(pii_masked_iter)
 
         if "block" in part_config:
-            filtered = filter_on_blocklist(filtered, part_config["block"])
+            block_filter = FilterOnBlocklist("block_list", part_config["block"])
+            filtered = block_filter.filter(filtered)
     else:
         logger.info("No id field in metadata, skipping pii, decontamination and blocklist")
         filtered = scrub_iter
@@ -54,6 +60,9 @@ def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_f
 
     JsonlZstWriter(tmp_out_file).write(sampled)
     os.rename(tmp_out_file, out_file)
+    metrics_collection = metrics.collect_metrics(contamination_filter, block_filter)
+    metrics_filename = out_file.parent.joinpath("." + out_file.name + ".json")
+    metrics.write_metrics_to_file(metrics_collection, metrics_filename)
 
 
 def process(input_dir: Path, output_dir: Path, workers=1, slurm: bool = False, release: str | None = None) -> None:
