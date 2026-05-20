@@ -20,7 +20,7 @@ dev = [
 ]
 
 [project.scripts]
-oellm-package-data = "training_data_packer.app:main"
+oellm-package-data = "training_data_packer.package:main"
 oellm-package-merge = "training_data_packer.merge:main"
 
 [build-system]
