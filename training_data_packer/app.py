@@ -10,6 +10,7 @@ from loguru import logger
 from training_data_packer import pii_masking, sample_register
 from training_data_packer.clean import AlignFieldNames, field_scrubber_factory
 from training_data_packer.filters import FilterOnBlocklist
+from training_data_packer.pii_masking import PIIMasker
 from training_data_packer.sampler import sampler_factory
 from training_data_packer.utils import metrics
 from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, find_files
@@ -30,6 +31,7 @@ def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_f
 
     contamination_filter = None
     block_filter = None
+    pii_masker = None
 
     part_config, part_name = get_matching_part(metadata, src_file)
 
@@ -40,8 +42,8 @@ def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_f
     # After this comment are actual records removed. Processing cannot require zipping of dataset works.
     if "id" in metadata:
         pii_iter = AlignFieldNames(GenericJsonlReader(pii_file).read(), metadata, no_key_hierarchy=True)
-        pii_masker = pii_masking.get_pii_masker(pii_iter)
-        pii_masked_iter = map(pii_masker, scrub_iter)
+        pii_masker = PIIMasker()
+        pii_masked_iter = map(pii_masker.get_masker(pii_iter), scrub_iter)
 
         contamination_ids = [x["id"] for x in AlignFieldNames(GenericJsonlReader(contamination_file).read(), metadata)]
         contamination_filter = FilterOnBlocklist("contamination", contamination_ids)
@@ -63,6 +65,7 @@ def package_file(src_file: Path, metadata: dict, contamination_file: Path, pii_f
     os.rename(tmp_out_file, out_file)
     metrics_collection = metrics.collect_metrics(
         src_reader,
+        pii_masker,
         contamination_filter,
         block_filter,
         writer,

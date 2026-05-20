@@ -34,6 +34,7 @@ class IntegrationTests(unittest.TestCase):
                 self.assertEqual(
                     {
                         "input": {"lines_read": 5},
+                        "pii_masker": {"masked_documents": 2, "pii_documents": 2},
                         "contamination": {"list_length": 2, "removed": 2},
                         "output": {"lines_written": 3},
                     },
@@ -61,6 +62,7 @@ class IntegrationTests(unittest.TestCase):
                 self.assertEqual(
                     {
                         "input": {"lines_read": 6},
+                        "pii_masker": {"masked_documents": 0, "pii_documents": 0},
                         "block_list": {"list_length": 1, "removed": 1},
                         "contamination": {"list_length": 2, "removed": 2},
                         "output": {"lines_written": 3},

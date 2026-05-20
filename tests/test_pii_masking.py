@@ -458,13 +458,22 @@ class TestPIIMasker(unittest.TestCase):
         ]
         src_indata_iter = iter(copy.deepcopy(src_indata))
         pii_indata_iter = iter(pii_indata)
-        masker_fn = pii_masking.get_pii_masker(pii_indata_iter)
-        pii_list = list(map(masker_fn, src_indata_iter))
+        pii_masker = pii_masking.PIIMasker()
+        pii_list = list(map(pii_masker.get_masker(pii_indata_iter), src_indata_iter))
         self.assertEqual(pii_list[0], src_indata[0])
         self.assertNotEqual(pii_list[1], src_indata[1])
         self.assertEqual(pii_list[1]["pii_masks"], 2)
         self.assertEqual(pii_list[2], src_indata[2])
         self.assertEqual(list(pii_indata_iter), [])
+        self.assertEqual(
+            pii_masker.get_metrics(),
+            {
+                "pii_masker": {
+                    "masked_documents": 1,
+                    "pii_documents": 1,
+                }
+            }
+        )
 
 
 if __name__ == "__main__":

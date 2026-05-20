@@ -206,27 +206,43 @@ def mask_document(document: dict[str, Any], pii_records: list[dict[str, Any]]) -
     return document
 
 
-def get_pii_masker(pii_iter: Iterable[dict[str, Any]]) -> Callable[[dict[str, Any]], dict[str, Any]]:
-    """
-    Takes an iterator of PII records. Prepare them into a dict of document id to list of pii records for
-    the document. Preparation merge overlapping PII records and remove duplicates.
-    :param pii_iter: Iterator of PII records.
-    :return: Function that masks a provided document.
-    """
-    pii_grouped = itertools.groupby(pii_iter, lambda x: x["id"])
-    # Sort reverse to do the masking from end of doc. That means position of masking is not changed
-    # by other masking operation.
-    pii_records_sorted = {i: sorted(records, key=lambda x: -x["start_pos"]) for i, records in pii_grouped}
-    pii_records_deduped = {i: _remove_duplicates_inplace(list(records)) for i, records in pii_records_sorted.items()}
-    pii = {
-        i: _merge_overlapping_ranges(records) if _has_overlapping_ranges(records) else records
-        for i, records in pii_records_deduped.items()
-    }
+class PIIMasker:
+    def __init__(self, metric_name: str = "pii_masker") -> None:
+        self._metric_name = metric_name
+        self._masked_documents = 0
+        self._pii_documents = 0
 
-    def masker(document):
-        if "id" in document and document["id"] in pii:
-            return mask_document(document, pii[document["id"]])
-        else:
-            return document
+    def get_metrics(self):
+        return {
+            self._metric_name: {
+                "masked_documents": self._masked_documents,
+                "pii_documents": self._pii_documents,
+            }
+        }
 
-    return masker
+    def get_masker(self, pii_iter: Iterable[dict[str, Any]]) -> Callable[[dict[str, Any]], dict[str, Any]]:
+        """
+        Takes an iterator of PII records. Prepare them into a dict of document id to list of pii records for
+        the document. Preparation merge overlapping PII records and remove duplicates.
+        :param pii_iter: Iterator of PII records.
+        :return: Function that masks a provided document.
+        """
+        pii_grouped = itertools.groupby(pii_iter, lambda x: x["id"])
+        # Sort reverse to do the masking from end of doc. That means position of masking is not changed
+        # by other masking operation.
+        pii_records_sorted = {i: sorted(records, key=lambda x: -x["start_pos"]) for i, records in pii_grouped}
+        pii_records_deduped = {i: _remove_duplicates_inplace(list(records)) for i, records in pii_records_sorted.items()}
+        pii = {
+            i: _merge_overlapping_ranges(records) if _has_overlapping_ranges(records) else records
+            for i, records in pii_records_deduped.items()
+        }
+        self._pii_documents += len(pii)
+
+        def masker(document):
+            if "id" in document and document["id"] in pii:
+                self._masked_documents += 1
+                return mask_document(document, pii[document["id"]])
+            else:
+                return document
+
+        return masker
