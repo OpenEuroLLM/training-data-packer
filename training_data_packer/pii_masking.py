@@ -29,14 +29,14 @@ def _has_overlapping_ranges(pii_records: list[dict[str, Any]]) -> bool:
 
 def _merge_overlapping_ranges(
     pii_records: list[dict[str, Any]],
-) -> tuple[list[dict[str, Any]], set[str]]:
+) -> list[dict[str, Any]]:
     """
     Merge overlapping ranges of pii_records
     :param pii_records: Reverse on position on sorted list.
     :return: Pii records where overlaps are merged and set of types overlapping.
     """
     if len(pii_records) <= 1:
-        return pii_records, set()
+        return pii_records
     result = []
     current = pii_records[0]
     merged_types = set()
@@ -52,7 +52,7 @@ def _merge_overlapping_ranges(
             result.append(current)
             current = pii_record
     result.append(current)
-    return result, merged_types
+    return result
 
 
 def _remove_duplicates_inplace(records: list[Any]) -> list[Any]:

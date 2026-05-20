@@ -130,9 +130,8 @@ class TestPiiUtilityFunctions(unittest.TestCase):
         ]
     )
     def test_merge_overlapping_ranges(self, name, pii_records, expected, expected_merged):
-        result, merged_types = pii_masking._merge_overlapping_ranges(pii_records)
+        result = pii_masking._merge_overlapping_ranges(pii_records)
         self.assertEqual(result, expected)
-        self.assertEqual(merged_types, expected_merged)
 
     @parameterized.expand(
         [

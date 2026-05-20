@@ -12,7 +12,7 @@ class TestCalculateFilePath(unittest.TestCase):
 
     def test_calculate_file_paths_default(self):
         src_file = self.src_dir.joinpath("shard01/file01.jsonl.zst")
-        metadata = {"suffix": "jsonl.zstd"}
+        metadata = {"suffix": ".jsonl.zstd"}
         contamination_file, pii_file, out_file = package._calculate_file_paths(
             src_file, self.src_dir, self.contamination_dir, self.pii_dir, self.output_dir, metadata
         )
@@ -22,7 +22,7 @@ class TestCalculateFilePath(unittest.TestCase):
 
     def test_calculate_file_paths_contamination_suffix(self):
         src_file = self.src_dir.joinpath("shard01/file01.jsonl.zst")
-        metadata = {"suffix": "jsonl.zst", "annotations": {"contamination": {"suffix": "jsonl"}}}
+        metadata = {"suffix": ".jsonl.zst", "annotations": {"contamination": {"suffix": ".jsonl"}}}
         contamination_file, pii_file, out_file = package._calculate_file_paths(
             src_file, self.src_dir, self.contamination_dir, self.pii_dir, self.output_dir, metadata
         )
@@ -32,7 +32,7 @@ class TestCalculateFilePath(unittest.TestCase):
 
     def test_calculate_file_paths_pii_suffix(self):
         src_file = self.src_dir.joinpath("shard01/file01.jsonl.zst")
-        metadata = {"suffix": "jsonl.zst", "annotations": {"pii": {"suffix": "jsonl"}}}
+        metadata = {"suffix": ".jsonl.zst", "annotations": {"pii": {"suffix": ".jsonl"}}}
         contamination_file, pii_file, out_file = package._calculate_file_paths(
             src_file, self.src_dir, self.contamination_dir, self.pii_dir, self.output_dir, metadata
         )
@@ -42,7 +42,7 @@ class TestCalculateFilePath(unittest.TestCase):
 
     def test_calculate_file_paths_other_suffix(self):
         src_file = self.src_dir.joinpath("shard01/file01.jsonl.gz")
-        metadata = {"suffix": "jsonl.gz"}
+        metadata = {"suffix": ".jsonl.gz"}
         contamination_file, pii_file, out_file = package._calculate_file_paths(
             src_file, self.src_dir, self.contamination_dir, self.pii_dir, self.output_dir, metadata
         )
