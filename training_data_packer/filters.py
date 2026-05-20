@@ -1,6 +1,6 @@
 import itertools
 from collections.abc import Iterable
-from typing import Any, Dict
+from typing import Any
 
 
 class FilterOnBlocklist:
@@ -18,7 +18,7 @@ class FilterOnBlocklist:
         }
 
     def filter(self, data_iterator: Iterable[dict[str, Any]]):
-        def filter_fn(x: Dict[str, Any]) -> bool:
+        def filter_fn(x: dict[str, Any]) -> bool:
             if x["id"] in self.block_list:
                 self.counter += 1
                 return True

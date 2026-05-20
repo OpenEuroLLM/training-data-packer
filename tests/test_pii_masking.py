@@ -472,7 +472,7 @@ class TestPIIMasker(unittest.TestCase):
                     "masked_documents": 1,
                     "pii_documents": 1,
                 }
-            }
+            },
         )
 
 

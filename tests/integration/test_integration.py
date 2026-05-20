@@ -29,7 +29,7 @@ class IntegrationTests(unittest.TestCase):
             self.assertNotEqual(source_file[4]["text"], result[2]["text"])
             self.assertEqual(2, result[2]["pii_masks"])
 
-            with open(out_dir.joinpath("shard01/.file_01.jsonl.zst.metrics.json"), mode="r") as file:
+            with open(out_dir.joinpath("shard01/.file_01.jsonl.zst.metrics.json")) as file:
                 metrics = json.load(file)
                 self.assertEqual(
                     {
@@ -38,7 +38,7 @@ class IntegrationTests(unittest.TestCase):
                         "contamination": {"list_length": 2, "removed": 2},
                         "output": {"lines_written": 3},
                     },
-                    metrics
+                    metrics,
                 )
 
     def test_block_list(self):
@@ -57,7 +57,7 @@ class IntegrationTests(unittest.TestCase):
 
             self.assertEqual(source_file[5]["id"], result[2]["id"])
 
-            with open(out_dir.joinpath("shard01/.file_01.jsonl.zst.metrics.json"), mode="r") as file:
+            with open(out_dir.joinpath("shard01/.file_01.jsonl.zst.metrics.json")) as file:
                 metrics = json.load(file)
                 self.assertEqual(
                     {

@@ -1,13 +1,14 @@
 import unittest
-from typing import Dict, Any
+from typing import Any
 
 from training_data_packer.utils import metrics
 
+
 class DummyClassWithMetrics:
-    def __init__(self, test_metrics: Dict[str, Any]):
+    def __init__(self, test_metrics: dict[str, Any]):
         self.my_metrics = test_metrics
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         return self.my_metrics
 
 
@@ -23,5 +24,5 @@ class TestMetrics(unittest.TestCase):
         self.assertEqual(result, {"foo": "bar", "gazonk": {"lines": 5}})
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

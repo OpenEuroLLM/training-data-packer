@@ -231,7 +231,9 @@ class PIIMasker:
         # Sort reverse to do the masking from end of doc. That means position of masking is not changed
         # by other masking operation.
         pii_records_sorted = {i: sorted(records, key=lambda x: -x["start_pos"]) for i, records in pii_grouped}
-        pii_records_deduped = {i: _remove_duplicates_inplace(list(records)) for i, records in pii_records_sorted.items()}
+        pii_records_deduped = {
+            i: _remove_duplicates_inplace(list(records)) for i, records in pii_records_sorted.items()
+        }
         pii = {
             i: _merge_overlapping_ranges(records) if _has_overlapping_ranges(records) else records
             for i, records in pii_records_deduped.items()
