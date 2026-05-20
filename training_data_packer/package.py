@@ -132,7 +132,7 @@ def _calculate_file_paths(
     pii_suffix = glom.glom(metadata, "annotations.pii.suffix", default=metadata["suffix"])
     pii_file = Path(str(pii_dir.joinpath(rel_file_path)).replace(metadata["suffix"], pii_suffix))
 
-    out_file = output_dir.joinpath(rel_file_path.parent, rel_file_path.stem + ".zst")
+    out_file = output_dir.joinpath(rel_file_path.parent, str(rel_file_path.name).replace(metadata["suffix"], ".jsonl.zst"))
     return contamination_file, pii_file, out_file
 
 
