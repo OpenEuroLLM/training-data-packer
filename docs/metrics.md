@@ -34,8 +34,11 @@ To collect and summarize metrics for an entire collection, use the `oellm-collec
 uv run oellm-collect-metrics --collection-dir ${COLLECTION_DIR}
 ```
 
-This will read all `.filename.metrics.json` files in the collection directory and its subdirectories, 
-sum up all numeric values, and write a summary to `metrics.json` in the root of the collection directory.
+This will read all `.filename.metrics.json` files in the `release_raw` directory and its subdirectories, 
+sum up all numeric values, and write a summary to `metrics.json` in the `release_raw` directory.
+
+If `metadata.yaml` has `release.default.pack` set to `tree`, the tool will instead create a `metrics.json` 
+file for each release section (except `default`) in their respective subdirectories under `release_raw`.
 
 ## Metric description
 
