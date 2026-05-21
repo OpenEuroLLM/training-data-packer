@@ -8,6 +8,7 @@ The packer consist of two tools:
     run it again and it will take of where it left.
 * oellm-package-merge - This shall run after oellm-package-data and deduces the number of files to simplify
     tokenization and training.
+* oellm-collect-metrics - Collect and summarize metrics from a collection directory.
 
 Both tools read a file `metadata.yaml` containing metadata about the structure and processing of the data.
 

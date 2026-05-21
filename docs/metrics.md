@@ -27,6 +27,16 @@ The metric file looks like:
 }
 ```
 
+## Collecting metrics
+To collect and summarize metrics for an entire collection, use the `oellm-collect-metrics` tool:
+
+```shell
+uv run oellm-collect-metrics --collection-dir ${COLLECTION_DIR}
+```
+
+This will read all `.filename.metrics.json` files in the collection directory and its subdirectories, 
+sum up all numeric values, and write a summary to `metrics.json` in the root of the collection directory.
+
 ## Metric description
 
 ### input.lines_read
