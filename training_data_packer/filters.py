@@ -7,7 +7,7 @@ class FilterOnBlocklist:
     def __init__(self, name: str, block_list: list[Any]):
         self.counter = 0
         self.name = name
-        self.block_list = set(block_list)
+        self.block_list = set([str(x) for x in block_list])
 
     def get_metrics(self):
         return {
@@ -19,7 +19,7 @@ class FilterOnBlocklist:
 
     def filter(self, data_iterator: Iterable[dict[str, Any]]):
         def filter_fn(x: dict[str, Any]) -> bool:
-            if x["id"] in self.block_list:
+            if str(x["id"]) in self.block_list:
                 self.counter += 1
                 return True
             else:
