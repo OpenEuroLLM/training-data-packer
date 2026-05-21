@@ -2,7 +2,11 @@
 name = "training-data-packer"
 version = "0.1.0"
 description = "Packaging annotated datasets into final training data."
+authors = [
+    { name = "Magnus Runesson", email = "Magnus.Runesson@ai.se" },
+]
 readme = "README.md"
+license = "Apache-2.0"
 requires-python = ">=3.14"
 dependencies = [
     "coverage==7.14.0",
@@ -12,6 +16,9 @@ dependencies = [
     "pyyaml>=6.0.3",
     "zstandard>=0.25.0",
 ]
+
+[project.urls]
+repository = "https://github.com/OpenEuroLLM/training-data-packer"
 
 [project.optional-dependencies]
 dev = [
@@ -33,7 +40,7 @@ module-root = ""
 
 [tool.ruff]
 line-length = 120
-target-version = "py312"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = [

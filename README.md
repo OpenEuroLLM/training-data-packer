@@ -66,9 +66,9 @@ sbatch --array=0-9 ./merge.sh \
 
 Before checking in run tests, linting and formating:
 ```shell
-uv run --with pytest pytest
-uv run ruff check --fix 
 uv run ruff format
+uv run ruff check --fix
+uv run --with pytest pytest 
 ```
 
 ## Expected structure

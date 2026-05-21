@@ -1,14 +1,26 @@
 from pathlib import Path
+from typing import Any
 
 import yaml
 from loguru import logger
 
 
-def get_all_part_names(metadata: dict) -> list[str]:
+def get_all_part_names(metadata: dict[str, Any]) -> list[str]:
+    """
+    Returns all part names from metadata.
+    :param metadata: Metadata dictionary.
+    :return: List of part names.
+    """
     return sorted(filter(lambda x: x != "default", metadata["release"].keys()))
 
 
-def get_shard_size_documents(part_config: dict) -> int:
+def get_shard_size_documents(part_config: dict[str, Any]) -> int:
+    """
+    Returns shard size in documents from part config.
+    Interprets extensions bd and md, billion and million documents.
+    :param part_config: Part config dictionary.
+    :return: Shard size in documents.
+    """
     shard_size = part_config["shard"]
     if shard_size.endswith("bd"):
         return int(shard_size[:-2]) * 1_000_000_000
@@ -19,7 +31,13 @@ def get_shard_size_documents(part_config: dict) -> int:
     raise ValueError(f"Invalid shard prefix {shard_size}")
 
 
-def get_matching_part(metadata: dict, src_file_name: Path) -> tuple[dict, str]:
+def get_matching_part(metadata: dict[str, Any], src_file_name: Path) -> tuple[dict, str]:
+    """
+    Returns matching part config and part name from metadata for given source file name.
+    :param metadata: Metadata dictionary.
+    :param src_file_name: Source file name.
+    :return: Tuple of part config and part name.
+    """
     release = metadata["release"]
     if "default" in release:
         default_part = release["default"]
@@ -36,7 +54,14 @@ def get_matching_part(metadata: dict, src_file_name: Path) -> tuple[dict, str]:
     raise ValueError(f"No part for file {src_file_name}")
 
 
-def read_metadata(file_path: Path) -> dict:
+def read_metadata(file_path: Path) -> dict[str, Any]:
+    """
+    Reads metadata from file and returns it as dictionary.
+    All field values are strings.
+    :param file_path: Path to metadata file.
+    :return: Metadata dictionary.
+    """
     with open(file_path) as file:
+        # BaseLoader to guarantee that the YAML parser will return unicode strings
         metadata = yaml.load(file, Loader=yaml.BaseLoader)
         return metadata
