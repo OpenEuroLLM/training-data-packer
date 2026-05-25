@@ -15,7 +15,11 @@ Both tools read a file `metadata.yaml` containing metadata about the structure a
 ## Requirements
 You must have `uv` installed, see [uv-homepage](https://docs.astral.sh/uv/).
 
-Check out this [repo](https://github.com/OpenEuroLLM/training-data-packer#) and do `uv sync`.
+Check out this [repo](https://github.com/OpenEuroLLM/training-data-packer#) and do:
+```shell
+uv sync --extra dev
+uv run pre-commit install
+```
 
 Tip is to do an `uv sync` evry time pulling from the repository.
 
@@ -67,9 +71,7 @@ sbatch --array=0-9 ./merge.sh \
 
 Before checking in run tests, linting and formating:
 ```shell
-uv run ruff format
-uv run ruff check --fix
-uv run --with pytest pytest 
+uv run pre-commit
 ```
 
 ## Expected structure
