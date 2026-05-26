@@ -120,7 +120,7 @@ graph TD;
         PIIShard-->CleanSource[(Cleaned and aligned source)]
     end
     CleanSource-->PIIDetection
-    PIIDetection[[PII Detection]]-->PII
+    PIIDetection[[PII Detection]]-->PIIdata
     CleanSource-->ContaminationDetection
     ContaminationDetection[[Contamination Detection]]-->ContaminationData
     subgraph Package
