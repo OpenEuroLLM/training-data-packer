@@ -11,19 +11,16 @@ import pyarrow.parquet as pq
 _FIELD_NAME_RE = re.compile(r"^[a-zA-Z0-9_]+$")
 
 
-def query_field(
-    directory: str | Path,
-    field: str,
-    value: Any,
-) -> list[dict[str, Any]]:
+def get_lookup_fn(directory: str | Path, field: str):
     """
-    Query a directory of parquet files on a given field and return matching records.
+    Creates a function query a directory of parquet files on a given field
+    and return matching records.
 
     :param directory: Path to directory containing parquet files.
     :param field: Field name to query on (alphanumeric and underscore only).
-    :param value: Value to match against the field.
-    :return: List of matching records as dicts.
+    :return: Function to lookup values in parquet files.
     """
+
     if not _FIELD_NAME_RE.match(field):
         raise ValueError(f"Invalid field name '{field}': only alphanumeric characters and underscores are allowed.")
 
@@ -35,9 +32,16 @@ def query_field(
     if not parquet_files:
         raise FileNotFoundError(f"No parquet files found in '{directory}'.")
 
-    result: list[dict[str, Any]] = []
-    for pf in parquet_files:
-        table = pq.read_table(pf, filters=[(field, "=", value)])
-        result.extend(table.to_pylist())
+    def lookup(value: Any) -> list[dict[str, Any]]:
+        """
+        Query a directory of parquet files on a given field and return matching records.
+        :param value: Value to match against field.
+        :return: List of documents matching value.
+        """
+        result: list[dict[str, Any]] = []
+        for pf in parquet_files:
+            table = pq.read_table(pf, filters=[(field, "=", value)])
+            result.extend(table.to_pylist())
+        return result
 
-    return result
+    return lookup

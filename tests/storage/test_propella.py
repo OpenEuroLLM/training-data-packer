@@ -4,8 +4,9 @@ from tempfile import TemporaryDirectory
 
 import pyarrow as pa
 import pyarrow.parquet as pq
+from parameterized import parameterized
 
-from training_data_packer.storage.propella import query_field
+from training_data_packer.storage.propella import get_lookup_fn
 
 
 def _create_parquet_file(path: Path, data: list[dict]) -> None:
@@ -20,8 +21,8 @@ def _create_parquet_file(path: Path, data: list[dict]) -> None:
     pq.write_table(table, path)
 
 
-class TestQueryField(unittest.TestCase):
-    def test_query_field_with_matching_records(self):
+class TestGetLookupFn(unittest.TestCase):
+    def test_lookup_with_matching_records(self):
         with TemporaryDirectory() as tmpdir:
             tmp_path = Path(tmpdir)
             file1 = tmp_path / "file1.parquet"
@@ -42,7 +43,8 @@ class TestQueryField(unittest.TestCase):
                 ],
             )
 
-            result = query_field(tmp_path, "status", "active")
+            lookup_fn = get_lookup_fn(tmp_path, "status")
+            result = lookup_fn("active")
             self.assertEqual(len(result), 2)
             self.assertEqual(result[0]["name"], "Alice")
             self.assertEqual(result[1]["name"], "Charlie")
@@ -59,7 +61,8 @@ class TestQueryField(unittest.TestCase):
                 ],
             )
 
-            result = query_field(tmp_path, "status", "inactive")
+            lookup_fn = get_lookup_fn(tmp_path, "status")
+            result = lookup_fn("inactive")
             self.assertEqual(len(result), 0)
 
     def test_query_field_with_numeric_value(self):
@@ -75,36 +78,27 @@ class TestQueryField(unittest.TestCase):
                 ],
             )
 
-            result = query_field(tmp_path, "score", 85)
+            lookup_fn = get_lookup_fn(tmp_path, "score")
+            result = lookup_fn(85)
             self.assertEqual(len(result), 2)
             self.assertEqual(result[0]["name"], "Alice")
             self.assertEqual(result[1]["name"], "Charlie")
 
-    def test_query_field_invalid_field_name_with_dash(self):
-        with TemporaryDirectory() as tmpdir:
+    @parameterized.expand(
+        [
+            ["dash", "field-name"],
+            ["space", "field name"],
+            ["dot", "field.name"],
+            ["special", "field@name"],
+        ]
+    )
+    def test_invalid_field_name(self, name, field_name):
+        with TemporaryDirectory() as tmp_path:
             with self.assertRaises(ValueError) as cm:
-                query_field(tmpdir, "field-name", "value")
+                get_lookup_fn(tmp_path, field_name)
             self.assertIn("only alphanumeric characters and underscores are allowed", str(cm.exception))
 
-    def test_query_field_invalid_field_name_with_space(self):
-        with TemporaryDirectory() as tmpdir:
-            with self.assertRaises(ValueError) as cm:
-                query_field(tmpdir, "field name", "value")
-            self.assertIn("only alphanumeric characters and underscores are allowed", str(cm.exception))
-
-    def test_query_field_invalid_field_name_with_dot(self):
-        with TemporaryDirectory() as tmpdir:
-            with self.assertRaises(ValueError) as cm:
-                query_field(tmpdir, "field.name", "value")
-            self.assertIn("only alphanumeric characters and underscores are allowed", str(cm.exception))
-
-    def test_query_field_invalid_field_name_with_special_chars(self):
-        with TemporaryDirectory() as tmpdir:
-            with self.assertRaises(ValueError) as cm:
-                query_field(tmpdir, "field@name", "value")
-            self.assertIn("only alphanumeric characters and underscores are allowed", str(cm.exception))
-
-    def test_query_field_valid_field_name_alphanumeric_only(self):
+    def test_valid_field_name_alphanumeric_only(self):
         with TemporaryDirectory() as tmpdir:
             tmp_path = Path(tmpdir)
             file1 = tmp_path / "file1.parquet"
@@ -116,11 +110,12 @@ class TestQueryField(unittest.TestCase):
                 ],
             )
 
-            result = query_field(tmp_path, "abc123", "value1")
+            lookup_fn = get_lookup_fn(tmp_path, "abc123")
+            result = lookup_fn("value1")
             self.assertEqual(len(result), 1)
             self.assertEqual(result[0]["id"], 1)
 
-    def test_query_field_valid_field_name_with_underscores(self):
+    def test_valid_field_name_with_underscores(self):
         with TemporaryDirectory() as tmpdir:
             tmp_path = Path(tmpdir)
             file1 = tmp_path / "file1.parquet"
@@ -132,52 +127,23 @@ class TestQueryField(unittest.TestCase):
                 ],
             )
 
-            result = query_field(tmp_path, "field_name", "value1")
+            lookup_fn = get_lookup_fn(tmp_path, "field_name")
+            result = lookup_fn("value1")
             self.assertEqual(len(result), 1)
             self.assertEqual(result[0]["id"], 1)
 
-    def test_query_field_not_a_directory(self):
-        with TemporaryDirectory() as tmpdir:
-            test_file = Path(tmpdir) / "test.parquet"
+    def test_not_a_directory(self):
+        with TemporaryDirectory() as tmp_path:
+            test_file = Path(tmp_path) / "test.parquet"
             test_file.write_text("not a directory")
             with self.assertRaises(NotADirectoryError):
-                query_field(test_file, "valid_field", "value")
+                get_lookup_fn(test_file, "field_name")
 
-    def test_query_field_no_parquet_files(self):
-        with TemporaryDirectory() as tmpdir:
+    def test_no_parquet_files(self):
+        with TemporaryDirectory() as tmp_path:
             with self.assertRaises(FileNotFoundError) as cm:
-                query_field(tmpdir, "valid_field", "value")
+                get_lookup_fn(tmp_path, "field_name")
             self.assertIn("No parquet files found", str(cm.exception))
-
-    def test_query_field_with_single_file(self):
-        with TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
-            file1 = tmp_path / "data.parquet"
-            _create_parquet_file(
-                file1,
-                [
-                    {"id": 1, "name": "Alice", "status": "active"},
-                    {"id": 2, "name": "Bob", "status": "inactive"},
-                    {"id": 3, "name": "Charlie", "status": "active"},
-                ],
-            )
-
-            result = query_field(tmp_path, "status", "active")
-            self.assertEqual(len(result), 2)
-            names = [r["name"] for r in result]
-            self.assertEqual(names, ["Alice", "Charlie"])
-
-    def test_query_field_with_multiple_parquet_files(self):
-        with TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
-            _create_parquet_file(tmp_path / "part1.parquet", [{"id": 1, "key": "alpha"}, {"id": 2, "key": "beta"}])
-            _create_parquet_file(tmp_path / "part2.parquet", [{"id": 3, "key": "alpha"}, {"id": 4, "key": "gamma"}])
-            _create_parquet_file(tmp_path / "part3.parquet", [{"id": 5, "key": "alpha"}, {"id": 6, "key": "delta"}])
-
-            result = query_field(tmp_path, "key", "alpha")
-            self.assertEqual(len(result), 3)
-            ids = sorted([r["id"] for r in result])
-            self.assertEqual(ids, [1, 3, 5])
 
 
 if __name__ == "__main__":
