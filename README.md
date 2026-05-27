@@ -2,13 +2,16 @@
 Packaging annotated datasets into final training data. Purpose is to have a repeatable process and
 well packaged data to remove any data management in the training step.
 
-The packer consist of two tools:
+The packer consist of four tools:
 * oellm-package-data - Take source files and apply decontamination, PII-masking and sampling. Each file in
     in source get a correspondent file with the data processed. The tool is idempotent, if it fails then
     run it again and it will take of where it left.
 * oellm-package-merge - This shall run after oellm-package-data and deduces the number of files to simplify
     tokenization and training.
 * oellm-collect-metrics - Collect and summarize metrics from a collection directory.
+* oellm-propella-structure - Structure Propella data based on source data structure. For each record in the
+    source files, if its ID exists in the propella data, it is written to the output. This arrange propella
+    data in same order as source data.
 
 Both tools read a file `metadata.yaml` containing metadata about the structure and processing of the data.
 
@@ -65,6 +68,18 @@ It can also run via slurm:
 ```shell
 sbatch --array=0-9 ./merge.sh \
     /scratch/project_465002530/training/collection/baby/nemotron-cc-opus-1.1
+```
+
+### Propella Structure
+
+The propella-structure tool filters source records based on IDs found in propella parquet files. It reads
+source files from `collection_dir/source`, looks up each record's ID in the propella directory, and
+writes matching records to `collection_dir/propella`. This is useful for structuring propella data according to
+source data.
+
+To run:
+```shell
+uv run oellm-propella-structure --collection-dir ${COLLECTION_DIR} --propella ${PROPELLA_DIR}
 ```
 
 ## Develop
