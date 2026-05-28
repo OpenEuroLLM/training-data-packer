@@ -6,13 +6,12 @@ from typing import Any
 
 from loguru import logger
 
+from training_data_packer.processor.propella import SourceToPropellaMapper
 from training_data_packer.storage.propella import get_lookup_fn
 from training_data_packer.utils import metrics
 from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, find_files
 from training_data_packer.utils.metadata import read_metadata
 from training_data_packer.utils.slurm import get_my_slurm_tasks
-
-from .processor.propella import SourceToPropellaMapper
 
 
 def process(collection_dir: Path, propella_dir: Path, workers=1, slurm: bool = False) -> None:

@@ -1,6 +1,8 @@
 from collections.abc import Callable
 from typing import Any
 
+from loguru import logger
+
 
 class SourceToPropellaMapper:
     """
@@ -19,6 +21,7 @@ class SourceToPropellaMapper:
         self._metric_name = metric_name
         self._processed_records = 0
         self._unmatched_records = 0
+        self._multiple_match = 0
         self._lookup_fn = lookup_fn
         self._id_field = id_field
 
@@ -31,6 +34,7 @@ class SourceToPropellaMapper:
             self._metric_name: {
                 "processed_records": self._processed_records,
                 "unmatched_records": self._unmatched_records,
+                "multiple_match": self._multiple_match,
             }
         }
 
@@ -45,14 +49,17 @@ class SourceToPropellaMapper:
             id = doc.get(self._id_field)
             propella_records = self._lookup_fn(id)
             len_records = len(propella_records)
+            self._processed_records += 1
+            if self._processed_records % 1000 == 0:
+                logger.info(f"{self._processed_records} records processed")
             if len_records == 1:
-                self._processed_records += 1
                 return propella_records[0]
             elif len_records == 0:
                 self._unmatched_records += 1
-                self._processed_records += 1
                 return {self._id_field: id}
             else:
-                raise ValueError(f"Lookup function returns multiple answers for {id}")
+                logger.warning(f"Lookup function returns multiple answers for {id}, using the first found.")
+                self._multiple_match += 1
+                return propella_records[0]
 
         return mapper
