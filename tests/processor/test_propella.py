@@ -11,8 +11,8 @@ class TestPropellaProcessor(unittest.TestCase):
         ]
         id_field = "my_id"
         lookup_data = {
-            "foo": [{"my_id": "foo", "data": "foo_data"}],
-            "bar": [],  # Emulating not found.
+            "foo": {"my_id": "foo", "data": "foo_data"},
+            "bar": None,  # Emulating not found.
         }
         source_to_propella_mapper = SourceToPropellaMapper(id_field, lambda x: lookup_data[x])
         result = list(map(source_to_propella_mapper.get_mapper(), source_data))
@@ -24,8 +24,8 @@ class TestPropellaProcessor(unittest.TestCase):
             result,
         )
         result_metrics = source_to_propella_mapper.get_metrics()
-        self.assertEqual(2, result_metrics["doc_ordering"]["processed_records"])
-        self.assertEqual(1, result_metrics["doc_ordering"]["unmatched_records"])
+        self.assertEqual(2, result_metrics["propella_matching"]["processed_records"])
+        self.assertEqual(1, result_metrics["propella_matching"]["unmatched_records"])
 
 
 if __name__ == "__main__":

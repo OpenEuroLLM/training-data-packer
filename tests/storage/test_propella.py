@@ -43,11 +43,13 @@ class TestGetLookupFn(unittest.TestCase):
                 ],
             )
 
-            lookup_fn = get_lookup_fn(tmp_path, "status")
-            result = lookup_fn("active")
-            self.assertEqual(len(result), 2)
-            self.assertEqual(result[0]["name"], "Alice")
-            self.assertEqual(result[1]["name"], "Charlie")
+            lookup_fn, metrics = get_lookup_fn(tmp_path, "id")
+            result = lookup_fn(3)
+            self.assertEqual(result["name"], "Charlie")
+            self.assertEqual(
+                {"propella_src": {"duplicated_keys": 0, "missing_id_field": 0, "rows_read": 4, "unique_keys": 4}},
+                metrics,
+            )
 
     def test_query_field_with_no_matches(self):
         with TemporaryDirectory() as tmpdir:
@@ -61,9 +63,9 @@ class TestGetLookupFn(unittest.TestCase):
                 ],
             )
 
-            lookup_fn = get_lookup_fn(tmp_path, "status")
-            result = lookup_fn("inactive")
-            self.assertEqual(len(result), 0)
+            lookup_fn, _ = get_lookup_fn(tmp_path, "id")
+            result = lookup_fn(3)
+            self.assertIsNone(result)
 
     def test_query_field_with_numeric_value(self):
         with TemporaryDirectory() as tmpdir:
@@ -78,11 +80,9 @@ class TestGetLookupFn(unittest.TestCase):
                 ],
             )
 
-            lookup_fn = get_lookup_fn(tmp_path, "score")
-            result = lookup_fn(85)
-            self.assertEqual(len(result), 2)
-            self.assertEqual(result[0]["name"], "Alice")
-            self.assertEqual(result[1]["name"], "Charlie")
+            lookup_fn, _ = get_lookup_fn(tmp_path, "id")
+            result = lookup_fn(2)
+            self.assertEqual(result["name"], "Bob")
 
     @parameterized.expand(
         [
@@ -97,40 +97,6 @@ class TestGetLookupFn(unittest.TestCase):
             with self.assertRaises(ValueError) as cm:
                 get_lookup_fn(tmp_path, field_name)
             self.assertIn("only alphanumeric characters and underscores are allowed", str(cm.exception))
-
-    def test_valid_field_name_alphanumeric_only(self):
-        with TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
-            file1 = tmp_path / "file1.parquet"
-            _create_parquet_file(
-                file1,
-                [
-                    {"id": 1, "abc123": "value1"},
-                    {"id": 2, "abc123": "value2"},
-                ],
-            )
-
-            lookup_fn = get_lookup_fn(tmp_path, "abc123")
-            result = lookup_fn("value1")
-            self.assertEqual(len(result), 1)
-            self.assertEqual(result[0]["id"], 1)
-
-    def test_valid_field_name_with_underscores(self):
-        with TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
-            file1 = tmp_path / "file1.parquet"
-            _create_parquet_file(
-                file1,
-                [
-                    {"id": 1, "field_name": "value1"},
-                    {"id": 2, "field_name": "value2"},
-                ],
-            )
-
-            lookup_fn = get_lookup_fn(tmp_path, "field_name")
-            result = lookup_fn("value1")
-            self.assertEqual(len(result), 1)
-            self.assertEqual(result[0]["id"], 1)
 
     def test_not_a_directory(self):
         with TemporaryDirectory() as tmp_path:

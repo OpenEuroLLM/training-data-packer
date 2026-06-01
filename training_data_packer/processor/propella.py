@@ -17,7 +17,9 @@ class SourceToPropellaMapper:
         dictionary returned by the get_metrics method.
     """
 
-    def __init__(self, id_field: str, lookup_fn: Callable[[Any], dict[str, Any]], metric_name: str = "doc_ordering"):
+    def __init__(
+        self, id_field: str, lookup_fn: Callable[[Any], dict[str, Any]], metric_name: str = "propella_matching"
+    ):
         self._metric_name = metric_name
         self._processed_records = 0
         self._unmatched_records = 0
@@ -34,7 +36,6 @@ class SourceToPropellaMapper:
             self._metric_name: {
                 "processed_records": self._processed_records,
                 "unmatched_records": self._unmatched_records,
-                "multiple_match": self._multiple_match,
             }
         }
 
@@ -47,19 +48,14 @@ class SourceToPropellaMapper:
 
         def mapper(doc: dict[Any]) -> dict[Any]:
             id = doc.get(self._id_field)
-            propella_records = self._lookup_fn(id)
-            len_records = len(propella_records)
+            propella_record = self._lookup_fn(id)
             self._processed_records += 1
-            if self._processed_records % 1000 == 0:
+            if self._processed_records % 100_000 == 0:
                 logger.info(f"{self._processed_records} records processed")
-            if len_records == 1:
-                return propella_records[0]
-            elif len_records == 0:
+            if propella_record is None:
                 self._unmatched_records += 1
                 return {self._id_field: id}
             else:
-                logger.warning(f"Lookup function returns multiple answers for {id}, using the first found.")
-                self._multiple_match += 1
-                return propella_records[0]
+                return propella_record
 
         return mapper

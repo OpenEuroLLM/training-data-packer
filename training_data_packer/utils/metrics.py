@@ -6,7 +6,9 @@ from typing import Any
 def collect_metrics(*objects) -> dict[str, Any]:
     metrics = {}
     for obj in objects:
-        if obj is not None:
+        if isinstance(obj, dict):
+            metrics |= obj
+        elif obj is not None:
             metrics |= obj.get_metrics()
     return metrics
 
