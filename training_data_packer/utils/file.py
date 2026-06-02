@@ -33,7 +33,7 @@ def get_subdirectories(directory: str | Path) -> list[Path]:
     path = Path(directory)
     if not path.is_dir():
         raise NotADirectoryError(path)
-    return sorted([entry for entry in path.iterdir() if entry.is_dir])
+    return sorted([entry for entry in path.iterdir() if entry.is_dir()])
 
 
 class GenericJsonlReader:
