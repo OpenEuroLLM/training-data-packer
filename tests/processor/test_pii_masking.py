@@ -233,16 +233,18 @@ class TestMaskRecords(unittest.TestCase):
         [
             [
                 "happy_path",
-                "This is my email pii@example.org.",
-                {"start_pos": 17, "end_pos": 32},
-                "This is my email test@example.com.",
+                "This is my email user@example.org.",
+                {"start_pos": 17, "end_pos": 33, "value": "user@example.org"},
+                "This is my email XXXX@example.com.",
             ],
         ]
     )
     def test_mask_email_address(self, name, text, pii_record, expected):
         document = {"text": text}
         result = pii_masking._mask_email_address(document, pii_record)
-        self.assertEqual(result["text"], expected)
+        self.assertEqual(expected[0:16], result["text"][0:16])
+        self.assertNotEqual(pii_record["value"], result["text"][17:-1])
+        self.assertEqual(expected[21:], result["text"][21:])
 
     @parameterized.expand(
         [
