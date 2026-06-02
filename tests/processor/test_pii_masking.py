@@ -4,7 +4,7 @@ import unittest
 
 from parameterized import parameterized
 
-from training_data_packer import pii_masking
+from training_data_packer.processor import pii_masking
 
 
 class TestPiiUtilityFunctions(unittest.TestCase):
