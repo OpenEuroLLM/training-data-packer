@@ -2,8 +2,8 @@ import unittest
 
 from parameterized import parameterized
 
-from training_data_packer import clean
-from training_data_packer.clean import AlignFieldNames, field_scrubber_factory
+from training_data_packer.processor import clean
+from training_data_packer.processor.clean import AlignFieldNames, field_scrubber_factory
 
 
 class TestGetHierarchyKey(unittest.TestCase):

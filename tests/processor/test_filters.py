@@ -1,6 +1,6 @@
 import unittest
 
-from training_data_packer.filters import FilterOnBlocklist
+from training_data_packer.processor.filters import FilterOnBlocklist
 
 
 class TestFilterOnBlocklist(unittest.TestCase):
