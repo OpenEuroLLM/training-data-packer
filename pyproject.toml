@@ -13,6 +13,7 @@ dependencies = [
     "glom>=25.12.0",
     "loguru>=0.7.3",
     "orjson>=3.11.8",
+    "pyarrow>=20.0.0",
     "pyyaml>=6.0.3",
     "zstandard>=0.25.0",
 ]
@@ -32,6 +33,8 @@ dev = [
 oellm-package-data = "training_data_packer.package:main"
 oellm-package-merge = "training_data_packer.merge:main"
 oellm-collect-metrics = "training_data_packer.collect_metrics:main"
+oellm-propella-structure = "training_data_packer.propella_structure:main"
+oellm-propella-merge = "training_data_packer.propella_merge:main"
 
 [build-system]
 requires = ["uv_build>=0.7.19"]
@@ -46,6 +49,9 @@ line-length = 120
 target-version = "py314"
 
 [tool.ruff.lint]
+ignore = [
+    "C417",  # Unnecessary `map` or `filter` where a comprehension could be used
+]
 select = [
     "E",    # pycodestyle errors
     "W",    # pycodestyle warnings

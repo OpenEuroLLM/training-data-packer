@@ -1,0 +1,126 @@
+from collections.abc import Callable
+from typing import Any
+
+from loguru import logger
+
+
+class SourceToPropellaMapper:
+    """
+    Initializes the SourceToPropellaMapper with the provided metadata,
+    lookup function, and metric name.
+
+    :param id_field: Name of the id field.
+    :param lookup_fn: Function responsible for looking up Propella records
+        based on an ID. It accepts an ID and returns a list of matching
+        records.
+    :param metric_name: The key name used to store the metrics in the
+        dictionary returned by the get_metrics method.
+    """
+
+    def __init__(
+        self, id_field: str, lookup_fn: Callable[[Any], dict[str, Any]], metric_name: str = "propella_matching"
+    ):
+        self._metric_name = metric_name
+        self._processed_records = 0
+        self._unmatched_records = 0
+        self._multiple_match = 0
+        self._lookup_fn = lookup_fn
+        self._id_field = id_field
+
+    def get_metrics(self):
+        """
+        Returns metrics of the mapper.
+        :return: Dictionary with metrics.
+        """
+        return {
+            self._metric_name: {
+                "processed_records": self._processed_records,
+                "unmatched_records": self._unmatched_records,
+            }
+        }
+
+    def get_mapper(self):
+        """
+        Returns a mapper that for each element it get lookup the object with same id
+        using lookup_fn and returns it
+        :return: function lookup objects
+        """
+
+        def mapper(doc: dict[Any]) -> dict[Any]:
+            id = doc.get(self._id_field)
+            propella_record = self._lookup_fn(id)
+            self._processed_records += 1
+            if self._processed_records % 100_000 == 0:
+                logger.info(f"{self._processed_records} records processed")
+            if propella_record is None:
+                self._unmatched_records += 1
+                return {self._id_field: id}
+            else:
+                return propella_record
+
+        return mapper
+
+
+class MergePropellaRecords:
+    def __init__(self, id_field: str, metric_name: str = "propella_merge"):
+        self._metric_name = metric_name
+        self._id_field = id_field
+        self._processed_rows = 0
+        self._duplicates = 0
+        self._no_match = 0
+
+    def get_metrics(self):
+        """
+        Returns metrics of the mapper.
+        :return: Dictionary with metrics.
+        """
+        return {
+            self._metric_name: {
+                "processed_rows": self._processed_rows,
+                "rows_with_duplicates": self._duplicates,
+                "rows_with_only_id": self._no_match,
+            }
+        }
+
+    def get_mapper(self):
+        """
+        Generates and returns a mapper function designed to process and align multiple
+        document entries based on an id. The returned function validates
+        that all provided dictionaries reference the same entity ID. It iterates
+        through the input to locate the first document containing data beyond the
+        identifier key, treating subsequent data sources as duplicates. The mapper
+        updates internal tracking counters for processed rows, duplicates, and
+        non-matching entries during execution.
+
+        :return: A callable that takes a list of dictionaries and returns a single
+            dictionary. The function validates ID alignment across the input list. It
+            returns the first record found containing data other than the ID. If
+            multiple records contain data, it returns a dictionary with only the ID.
+            If no data is found, it returns a dictionary with only the ID. It raises
+            a ValueError if the identifiers in the documents do not align.
+        :rtype: Callable[[list[dict[Any]]], dict[Any]]
+        """
+
+        def mapper(docs: list[dict[Any]]) -> dict[Any]:
+            id_value = docs[0].get(self._id_field)
+            self._processed_rows += 1
+            candidate = None
+            duplicate = False
+            for d in docs:
+                if d[self._id_field] != id_value:
+                    raise ValueError("Files not aligned")
+                if len(d) > 1:
+                    if candidate is None:
+                        candidate = d
+                    else:
+                        duplicate = True
+                        self._duplicates += 1
+                        break
+            if duplicate:
+                return {self._id_field: id_value}
+            if candidate is None:
+                self._no_match += 1
+                return {self._id_field: id_value}
+            return candidate
+
+        return mapper

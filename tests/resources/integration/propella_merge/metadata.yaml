@@ -1,0 +1,9 @@
+name: Propella Test
+url: https://example.com
+suffix: .jsonl.zst
+text: text
+id: id
+release:
+  default:
+    input: source
+    sample: full

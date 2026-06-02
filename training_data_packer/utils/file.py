@@ -24,6 +24,18 @@ def find_files(source_dir: Path, metadata: dict, part: str = None) -> list[Path]
         return sorted(Path(source_dir).glob(f"{part}/**/[A-Za-z0-9]*" + suffix, recurse_symlinks=True))
 
 
+def get_subdirectories(directory: str | Path) -> list[Path]:
+    """
+    Returns all immediate subdirectories of the given directory (non-recursive)
+    :param directory: Directory to search for subdirectories
+    :return: List of Path objects to subdirectories. Sorted.
+    """
+    path = Path(directory)
+    if not path.is_dir():
+        raise NotADirectoryError(path)
+    return sorted([entry for entry in path.iterdir() if entry.is_dir()])
+
+
 class GenericJsonlReader:
     """
     Reader for jsonline files, compressed or not

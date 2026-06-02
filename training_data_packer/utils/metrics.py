@@ -6,7 +6,9 @@ from typing import Any
 def collect_metrics(*objects) -> dict[str, Any]:
     metrics = {}
     for obj in objects:
-        if obj is not None:
+        if isinstance(obj, dict):
+            metrics |= obj
+        elif obj is not None:
             metrics |= obj.get_metrics()
     return metrics
 
@@ -14,6 +16,11 @@ def collect_metrics(*objects) -> dict[str, Any]:
 def write_metrics_to_file(metrics: dict[str, Any], metrics_file_name: Path) -> None:
     with open(metrics_file_name, mode="w") as file:
         json.dump(metrics, file, indent=4)
+
+
+def read_metrics_from_file(metrics_file_name: Path) -> dict[str, Any]:
+    with open(metrics_file_name) as f:
+        return json.load(f)
 
 
 def aggregate_metrics(metrics_list: list[dict[str, Any]]) -> dict[str, Any]:
