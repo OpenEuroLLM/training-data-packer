@@ -6,7 +6,7 @@ from typing import Any
 
 from loguru import logger
 
-from training_data_packer import sample_register
+from training_data_packer.processor.sample import sample_register
 from training_data_packer.utils.metadata import get_matching_part
 
 
