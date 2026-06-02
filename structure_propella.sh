@@ -1,9 +1,9 @@
 #!/bin/bash -x
 #SBATCH --partition=small
-#SBATCH --job-name=structure-propella
+#SBATCH --job-name=propella-structure
 #SBATCH --cpus-per-task=1
-#SBATCH --output=logs/structure-propella_%A_%a.out
-#SBATCH --error=logs/structure-propella_%A_%a.err
+#SBATCH --output=logs/propella-structure_%A_%a.out
+#SBATCH --error=logs/propella-structure_%A_%a.err
 #SBATCH --time=72:00:00
 #SBATCH --mem=150G
 #SBATCH --nodes=1
