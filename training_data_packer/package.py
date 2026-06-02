@@ -8,9 +8,9 @@ import glom
 from loguru import logger
 
 from training_data_packer import sample_register
-from training_data_packer.clean import AlignFieldNames, field_scrubber_factory
 from training_data_packer.filters import FilterOnBlocklist
 from training_data_packer.pii_masking import PIIMasker
+from training_data_packer.processor.clean import AlignFieldNames, field_scrubber_factory
 from training_data_packer.sampler import sampler_factory
 from training_data_packer.utils import metrics
 from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, find_files
