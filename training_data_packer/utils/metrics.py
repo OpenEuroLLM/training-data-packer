@@ -18,6 +18,11 @@ def write_metrics_to_file(metrics: dict[str, Any], metrics_file_name: Path) -> N
         json.dump(metrics, file, indent=4)
 
 
+def read_metrics_from_file(metrics_file_name: Path) -> dict[str, Any]:
+    with open(metrics_file_name) as f:
+        return json.load(f)
+
+
 def aggregate_metrics(metrics_list: list[dict[str, Any]]) -> dict[str, Any]:
     summary = {}
     for m in metrics_list:

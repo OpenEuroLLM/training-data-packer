@@ -1,0 +1,18 @@
+{
+    "input": {
+        "lines_read": 4
+    },
+    "propella_matching": {
+        "processed_records": 4,
+        "unmatched_records": 2
+    },
+    "output": {
+        "lines_written": 4
+    },
+    "propella_src": {
+        "duplicated_keys": 1,
+        "unique_keys": 4,
+        "rows_read": 5,
+        "missing_id_field": 0
+    }
+}

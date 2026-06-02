@@ -48,6 +48,9 @@ line-length = 120
 target-version = "py314"
 
 [tool.ruff.lint]
+ignore = [
+    "C417",  # Unnecessary `map` or `filter` where a comprehension could be used
+]
 select = [
     "E",    # pycodestyle errors
     "W",    # pycodestyle warnings
