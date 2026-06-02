@@ -152,8 +152,8 @@ def _mask_email_address(document: dict[str, Any], pii_record: dict[str, Any]) ->
     :param pii_record: Pii record containing position of email address in document.
     :return: Masked document.
     """
-    # TODO: random before @
-    email_mask = "test@example.com"
+    user_name, domain = pii_record["value"].split("@")
+    email_mask = f"{_scramble_string(user_name)}@example.com"
     document["text"] = _replace_segment(document["text"], pii_record["start_pos"], pii_record["end_pos"], email_mask)
     return document
 
