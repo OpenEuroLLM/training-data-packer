@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import Any
 
 from loguru import logger
@@ -124,3 +124,32 @@ class MergePropellaRecords:
             return candidate
 
         return mapper
+
+
+def propella_annotate_factory(
+    in_iter: Iterable[dict[str, Any]], propella_data_iter: None | Iterable[dict[str, Any]]
+) -> Iterable[dict[str, Any]]:
+    """
+    Annotate in_iter with propella data from propella_data_iter.
+
+    :param in_iter: An iterable of dictionaries representing the primary data
+        objects requiring potential annotation.
+    :param propella_data_iter: An optional iterable of dictionaries sourced from
+        Propella. If provided, its length must match the input iterable to allow
+        for strict alignment.
+
+    :return: An iterable of dictionaries that includes the merged Propella data
+        under 'propella-4b' where applicable, or the original data if the Propella
+        iterator is None.
+    """
+    if propella_data_iter is not None:
+
+        def mapper(x):
+            if len(x[1]) == 1:
+                return x[0]
+            del x[1]["id"]
+            x[0]["propella-4b"] = x[1]
+            return x[0]
+
+        return map(mapper, zip(in_iter, propella_data_iter, strict=True))
+    return in_iter

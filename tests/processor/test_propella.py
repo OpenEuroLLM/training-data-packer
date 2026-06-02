@@ -1,6 +1,12 @@
 import unittest
 
-from training_data_packer.processor.propella import MergePropellaRecords, SourceToPropellaMapper
+from parameterized import parameterized
+
+from training_data_packer.processor.propella import (
+    MergePropellaRecords,
+    SourceToPropellaMapper,
+    propella_annotate_factory,
+)
 
 
 class TestPropellaProcessor(unittest.TestCase):
@@ -109,6 +115,35 @@ class TestMergePropellaRecords(unittest.TestCase):
         self.assertEqual(3, metrics["propella_merge"]["processed_rows"])
         self.assertEqual(1, metrics["propella_merge"]["rows_with_duplicates"])
         self.assertEqual(1, metrics["propella_merge"]["rows_with_only_id"])
+
+
+class TestPropellaAnnotateFactory(unittest.TestCase):
+    @parameterized.expand(
+        [
+            [
+                "merge",
+                [{"id": "1234", "text": "Happy"}],
+                [{"id": "1234", "sample": "full"}],
+                [{"id": "1234", "text": "Happy", "propella-4b": {"sample": "full"}}],
+            ],
+            [
+                "only-id",
+                [{"id": "1234", "text": "Happy"}],
+                [{"id": "1234"}],
+                [{"id": "1234", "text": "Happy"}],
+            ],
+            [
+                "None",
+                [{"id": "1234", "text": "Happy"}],
+                None,
+                [{"id": "1234", "text": "Happy"}],
+            ],
+        ]
+    )
+    def test_no_mapping_needed(self, name, in_iter, prop_iter, expected):
+        result_iter = propella_annotate_factory(in_iter, prop_iter)
+        result_list = list(result_iter)
+        self.assertEqual(expected, result_list)
 
 
 if __name__ == "__main__":
