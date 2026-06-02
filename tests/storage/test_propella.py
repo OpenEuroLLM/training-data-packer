@@ -98,11 +98,10 @@ class TestGetLookupFn(unittest.TestCase):
                 get_lookup_fn(tmp_path, field_name)
             self.assertIn("only alphanumeric characters and underscores are allowed", str(cm.exception))
 
-    def test_not_a_directory(self):
+    def test_not_a_directory_nor_file(self):
         with TemporaryDirectory() as tmp_path:
-            test_file = Path(tmp_path) / "test.parquet"
-            test_file.write_text("not a directory")
-            with self.assertRaises(NotADirectoryError):
+            test_file = Path(tmp_path) / "test.gaxonk"
+            with self.assertRaises(FileNotFoundError):
                 get_lookup_fn(test_file, "field_name")
 
     def test_no_parquet_files(self):

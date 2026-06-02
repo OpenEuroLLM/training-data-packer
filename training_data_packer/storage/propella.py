@@ -12,12 +12,12 @@ from loguru import logger
 _FIELD_NAME_RE = re.compile(r"^[a-zA-Z0-9_]+$")
 
 
-def get_lookup_fn(directory: str | Path, field: str):
+def get_lookup_fn(parquet_path: str | Path, field: str):
     """
-    Creates a function query a directory of parquet files on a given field
-    and return matching records.
+    Creates a function query a directory of parquet files or a single parquet file
+    on a given field and return matching records.
 
-    :param directory: Path to directory containing parquet files.
+    :param parquet_path: Path to directory containing parquet files or path to one parquet file.
     :param field: Field name to query on (alphanumeric and underscore only).
     :return: Function to lookup values in parquet files.
     """
@@ -25,13 +25,15 @@ def get_lookup_fn(directory: str | Path, field: str):
     if not _FIELD_NAME_RE.match(field):
         raise ValueError(f"Invalid field name '{field}': only alphanumeric characters and underscores are allowed.")
 
-    dir_path = Path(directory)
-    if not dir_path.is_dir():
-        raise NotADirectoryError(f"'{directory}' is not a valid directory.")
-
-    parquet_files = sorted(dir_path.glob("*.parquet"))
-    if not parquet_files:
-        raise FileNotFoundError(f"No parquet files found in '{directory}'.")
+    dir_path = Path(parquet_path)
+    if dir_path.is_dir():
+        parquet_files = sorted(dir_path.glob("*.parquet"))
+        if not parquet_files:
+            raise FileNotFoundError(f"No parquet files found in '{parquet_path}'.")
+    elif dir_path.is_file():
+        parquet_files = [dir_path]
+    else:
+        raise FileNotFoundError(f"'{parquet_path}' is not a valid directory nor file.")
 
     lookup_dict: dict[Any, list[dict[str, Any]]] = {}
     logger.info("Reading parquet files: {','.join(parquet_files)")
