@@ -25,7 +25,7 @@ class TestPropellaStructure(unittest.TestCase):
 
             process(workdir, workdir.joinpath("data.parquet").parent)
 
-            output_file = workdir.joinpath("propella/shard01/file_01.jsonl.zst")
+            output_file = workdir.joinpath("propella-4b/shard01/file_01.jsonl.zst")
             self.assertTrue(output_file.exists())
 
             result = list(GenericJsonlReader(output_file).read())
@@ -97,7 +97,7 @@ class TestPropellaStructure(unittest.TestCase):
 
             process(workdir, workdir.joinpath("data.parquet").parent)
 
-            output_file = workdir.joinpath("propella/shard01/file_02.jsonl.zst")
+            output_file = workdir.joinpath("propella-4b/shard01/file_02.jsonl.zst")
             self.assertTrue(output_file.exists())
 
             result = list(GenericJsonlReader(output_file).read())

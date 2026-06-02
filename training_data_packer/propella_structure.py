@@ -20,7 +20,7 @@ def process(collection_dir: Path, propella_dir: Path, part: str = "", slurm: boo
     For each record, if its ID exists in propella_dir parquet files, write it to the
     output within the collection_dir.
     """
-    output_dir = collection_dir.joinpath("propella").joinpath(part)
+    output_dir = collection_dir.joinpath("propella-4b").joinpath(part)
     source_dir = collection_dir.joinpath("source").joinpath(part)
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
 
