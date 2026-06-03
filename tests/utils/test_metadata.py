@@ -1,6 +1,8 @@
 import unittest
 
-from training_data_packer.utils.metadata import get_matching_part, get_shard_size_documents
+from parameterized import parameterized
+
+from training_data_packer.utils.metadata import get_matching_part, get_metadata_value, get_shard_size_documents
 
 
 class TestMetadata(unittest.TestCase):
@@ -50,6 +52,23 @@ class TestMetadata(unittest.TestCase):
         self.assertEqual(350, get_shard_size_documents({"shard": "350"}))
         with self.assertRaises(ValueError):
             get_shard_size_documents({"shard": "350tt"})
+
+    @parameterized.expand(
+        [
+            ["Value_set", {"foo": "bar"}, "foo", "gazsonk", "bar"],
+            ["default", {"foo": "bar"}, "key", "gazonk", "gazonk"],
+            [
+                "hierarchy",
+                {"foo": {"bar": 42}},
+                "foo.bar",
+                17,
+                42,
+            ],
+        ]
+    )
+    def test_get_metadata_value(self, name, metadata, key, default_value, expected):
+        result = get_metadata_value(metadata, key, default_value)
+        self.assertEqual(expected, result)
 
 
 if __name__ == "__main__":

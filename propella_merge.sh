@@ -14,4 +14,4 @@ export PART=$2
 
 export LOGURU_LEVEL=INFO
 
-time uv run oellm-propella-structure --collection-dir ${COLLECTION_DIR} --part $PART --workers 8 --slurm
+time uv run oellm-propella-merge --collection-dir ${COLLECTION_DIR} --part $PART --workers 8 --slurm

@@ -1,8 +1,25 @@
 from pathlib import Path
 from typing import Any
 
+import glom
 import yaml
 from loguru import logger
+
+
+def get_metadata_value(metadata: dict[str, Any], key: str, default: Any = None) -> Any:
+    """
+    Retrieve a specific value from the provided metadata structure using a
+    dot-notation key for deep access.
+    :param metadata: The source data structure, typically a dictionary, which
+                     contains the data to be searched.
+    :param key: A string representing the path to the target value, supporting
+                dot notation for nested access.
+    :param default: An optional fallback value to be returned if the specified
+                    key path does not exist within the metadata.
+    :return: The value extracted from the metadata corresponding to the given
+             key, or the default value if the key is not resolved.
+    """
+    return glom.glom(metadata, key, default=default)
 
 
 def get_all_part_names(metadata: dict[str, Any]) -> list[str]:
