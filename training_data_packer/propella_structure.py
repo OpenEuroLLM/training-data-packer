@@ -9,8 +9,8 @@ from loguru import logger
 from training_data_packer.processor.propella import SourceToPropellaMapper
 from training_data_packer.storage.propella import get_lookup_fn
 from training_data_packer.utils import metrics
-from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, find_files
-from training_data_packer.utils.metadata import read_metadata
+from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, change_suffix, find_files
+from training_data_packer.utils.metadata import get_metadata_value, read_metadata
 from training_data_packer.utils.slurm import get_my_slurm_tasks
 
 
@@ -35,11 +35,20 @@ def process(collection_dir: Path, propella_dir: Path, part: str = "", slurm: boo
     propella_lookup_fn, propella_metrics = get_lookup_fn(propella_dir, metadata["id"])
     for source_file in task_files:
         rel_path = source_file.relative_to(source_dir)
-        output_file = output_dir.joinpath(rel_path)
+        output_file = _compute_output_filename(output_dir, rel_path, metadata)
         if output_file.exists():
             logger.info(f"Skipping {source_file}, output already exists")
         else:
             process_file(metadata, propella_lookup_fn, source_file, output_file, propella_metrics)
+
+
+def _compute_output_filename(output_dir: Path, rel_path: Path, metadata: dict[str, Any]) -> Path:
+    output_file = change_suffix(
+        output_dir.joinpath(rel_path),
+        metadata["suffix"],
+        get_metadata_value(metadata, "annotations.propella-4b.suffix", metadata["suffix"]),
+    )
+    return output_file
 
 
 def process_file(

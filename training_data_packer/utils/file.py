@@ -1,5 +1,6 @@
 import gzip
 import io
+import re
 from collections.abc import Generator, Iterator
 from pathlib import Path
 from typing import Any
@@ -34,6 +35,11 @@ def get_subdirectories(directory: str | Path) -> list[Path]:
     if not path.is_dir():
         raise NotADirectoryError(path)
     return sorted([entry for entry in path.iterdir() if entry.is_dir()])
+
+
+def change_suffix(filename: str | Path, original_suffix, new_suffix) -> Path:
+    new_filename = re.sub(f"(.*){original_suffix}", f"\\1{new_suffix}", str(filename))
+    return Path(new_filename)
 
 
 class GenericJsonlReader:

@@ -4,7 +4,6 @@ import os
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
-import glom
 from loguru import logger
 
 from training_data_packer.processor.clean import AlignFieldNames, field_scrubber_factory
@@ -14,8 +13,8 @@ from training_data_packer.processor.propella import propella_annotate_factory
 from training_data_packer.processor.sample import sample_register
 from training_data_packer.processor.sample.sampler import sampler_factory
 from training_data_packer.utils import metrics
-from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, find_files
-from training_data_packer.utils.metadata import get_matching_part, read_metadata
+from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, change_suffix, find_files
+from training_data_packer.utils.metadata import get_matching_part, get_metadata_value, read_metadata
 from training_data_packer.utils.slurm import get_my_slurm_tasks
 
 
@@ -140,20 +139,18 @@ def _calculate_file_paths(
 ) -> tuple[Path, Path, Path, Path]:
     rel_file_path = Path(str(src_file)[len(str(source_dir)) + 1 :])
 
-    contamination_suffix = glom.glom(metadata, "annotations.contamination.suffix", default=metadata["suffix"])
-    contamination_file = Path(
-        str(contamination_dir.joinpath(rel_file_path)).replace(metadata["suffix"], contamination_suffix)
+    contamination_suffix = get_metadata_value(metadata, "annotations.contamination.suffix", default=metadata["suffix"])
+    contamination_file = change_suffix(
+        contamination_dir.joinpath(rel_file_path), metadata["suffix"], contamination_suffix
     )
 
-    pii_suffix = glom.glom(metadata, "annotations.pii.suffix", default=metadata["suffix"])
-    pii_file = Path(str(pii_dir.joinpath(rel_file_path)).replace(metadata["suffix"], pii_suffix))
+    pii_suffix = get_metadata_value(metadata, "annotations.pii.suffix", default=metadata["suffix"])
+    pii_file = change_suffix(pii_dir.joinpath(rel_file_path), metadata["suffix"], pii_suffix)
 
-    propella_suffix = glom.glom(metadata, "annotations.pii.propella-4b", default=metadata["suffix"])
-    propella_file = Path(str(propella_dir.joinpath(rel_file_path)).replace(metadata["suffix"], propella_suffix))
+    propella_suffix = get_metadata_value(metadata, "annotations.pii.propella-4b", default=metadata["suffix"])
+    propella_file = change_suffix(propella_dir.joinpath(rel_file_path), metadata["suffix"], propella_suffix)
 
-    out_file = output_dir.joinpath(
-        rel_file_path.parent, str(rel_file_path.name).replace(metadata["suffix"], ".jsonl.zst")
-    )
+    out_file = output_dir.joinpath(change_suffix(rel_file_path, metadata["suffix"], ".jsonl.zst"))
     return contamination_file, pii_file, propella_file, out_file
 
 

@@ -8,8 +8,14 @@ from loguru import logger
 
 from training_data_packer.processor.propella import MergePropellaRecords
 from training_data_packer.utils import metrics
-from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, find_files, get_subdirectories
-from training_data_packer.utils.metadata import read_metadata
+from training_data_packer.utils.file import (
+    GenericJsonlReader,
+    JsonlZstWriter,
+    change_suffix,
+    find_files,
+    get_subdirectories,
+)
+from training_data_packer.utils.metadata import get_metadata_value, read_metadata
 from training_data_packer.utils.metrics import read_metrics_from_file
 from training_data_packer.utils.slurm import get_my_slurm_tasks
 
@@ -20,7 +26,7 @@ def process(collection_dir: Path, part: str = "", workers=1, slurm: bool = False
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
 
     # Find all source file and take their names
-    all_names = map(lambda x: x.name, find_files(source_dir, metadata))
+    all_names = list(map(lambda x: x.name, find_files(source_dir, metadata)))
 
     for f in all_names:
         process_file(metadata, f, output_dir)
@@ -66,7 +72,13 @@ def process_file(metadata: dict[str, Any], source_name: str, propella_dir: Path)
                          merged output.
     :return: None
     """
-    out_file_name = propella_dir.joinpath(source_name)
+    new_name = change_suffix(
+        source_name,
+        metadata["suffix"],
+        get_metadata_value(metadata, "annotations.propella-4b.suffix", metadata["suffix"]),
+    )
+    out_file_name = propella_dir.joinpath(new_name)
+
     if out_file_name.exists():
         logger.info(f"File {out_file_name} already exist, skipping")
         return
