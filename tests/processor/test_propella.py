@@ -17,15 +17,15 @@ class TestPropellaProcessor(unittest.TestCase):
         ]
         id_field = "my_id"
         lookup_data = {
-            "foo": {"my_id": "foo", "data": "foo_data"},
+            "foo": {"id": "foo", "data": "foo_data"},
             "bar": None,  # Emulating not found.
         }
         source_to_propella_mapper = SourceToPropellaMapper(id_field, lambda x: lookup_data[x])
         result = list(map(source_to_propella_mapper.get_mapper(), source_data))
         self.assertEqual(
             [
-                {"my_id": "foo", "data": "foo_data"},
-                {"my_id": "bar"},
+                {"id": "foo", "data": "foo_data"},
+                {"id": "bar"},
             ],
             result,
         )
