@@ -54,7 +54,7 @@ class SourceToPropellaMapper:
                 logger.info(f"{self._processed_records} records processed")
             if propella_record is None:
                 self._unmatched_records += 1
-                return {self._id_field: id}
+                return {"id": id}
             else:
                 return propella_record
 
