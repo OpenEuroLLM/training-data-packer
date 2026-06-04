@@ -88,7 +88,7 @@ def process_file(metadata: dict[str, Any], source_name: str, propella_dir: Path)
     for d in directories_to_process:
         read_iterators.append(GenericJsonlReader(d.joinpath(source_name)).read())
     zip_iter = zip(*read_iterators, strict=True)
-    map_processor = MergePropellaRecords(metadata["id"])
+    map_processor = MergePropellaRecords("id")
     map_iter = map(map_processor.get_mapper(), zip_iter)
 
     writer = JsonlZstWriter(tmp_output_file)

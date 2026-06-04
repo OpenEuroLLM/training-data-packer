@@ -32,7 +32,7 @@ def process(collection_dir: Path, propella_dir: Path, part: str = "", slurm: boo
         task_files = all_files
     if propella_dir.is_file():
         output_dir = output_dir.joinpath(propella_dir.stem)
-    propella_lookup_fn, propella_metrics = get_lookup_fn(propella_dir, metadata["id"])
+    propella_lookup_fn, propella_metrics = get_lookup_fn(propella_dir, "id")
     for source_file in task_files:
         rel_path = source_file.relative_to(source_dir)
         output_file = _compute_output_filename(output_dir, rel_path, metadata)
