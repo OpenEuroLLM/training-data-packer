@@ -82,11 +82,11 @@ def process_file(metadata: dict[str, Any], source_name: str, propella_dir: Path)
     if out_file_name.exists():
         logger.info(f"File {out_file_name} already exist, skipping")
         return
-    tmp_output_file = propella_dir.joinpath("." + source_name)
+    tmp_output_file = propella_dir.joinpath("." + str(new_name))
     read_iterators = []
     directories_to_process = get_subdirectories(propella_dir)
     for d in directories_to_process:
-        read_iterators.append(GenericJsonlReader(d.joinpath(source_name)).read())
+        read_iterators.append(GenericJsonlReader(d.joinpath(new_name)).read())
     zip_iter = zip(*read_iterators, strict=True)
     map_processor = MergePropellaRecords("id")
     map_iter = map(map_processor.get_mapper(), zip_iter)
@@ -98,10 +98,10 @@ def process_file(metadata: dict[str, Any], source_name: str, propella_dir: Path)
 
     metrics_from_dir = []
     for d in directories_to_process:
-        m = read_metrics_from_file(d.joinpath(f".{source_name}.metrics.json"))
+        m = read_metrics_from_file(d.joinpath(f".{new_name}.metrics.json"))
         metrics_from_dir.append({d.name: m})
     metrics_collection = metrics.collect_metrics(map_processor, {"propella_sub": metrics_from_dir})
-    metrics_filename = propella_dir.joinpath("." + source_name + ".metrics.json")
+    metrics_filename = propella_dir.joinpath("." + str(new_name) + ".metrics.json")
     metrics.write_metrics_to_file(metrics_collection, metrics_filename)
 
 
