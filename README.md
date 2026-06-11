@@ -1,6 +1,6 @@
 # training-data-packer
 Packaging annotated datasets into final training data. Purpose is to have a repeatable process and
- well-packaged data to remove any data management in the training step.
+well-packaged data to remove any data management in the training step.
 
 The packer consists of the following tools:
 * oellm-package-data - Take source files and apply decontamination, PII-masking, and sampling. Each file
@@ -16,6 +16,18 @@ The packer consists of the following tools:
   individual Propella-parquet files. Then use this tool to merge the results from all Propella-parquet files.
 
 Both tools read a file `metadata.yaml` containing metadata about the structure and processing of the data.
+
+
+## Related projects
+This project uses data produced from several other projects:
+* [Training data collection](https://github.com/OpenEuroLLM/training-data-collection) containing the
+  metadata for OpenEuroLLM models
+* [Decontamination](https://github.com/OpenEuroLLM/pretraining-decontamination)
+* PII detection for [baby cycle](https://github.com/OpenEuroLLM/pii-masking-oellm)
+  and [flag cucle](https://github.com/yann-ufal/pii-detection-solo)
+
+After packaging is happening tokenization must happen before the training. This is
+done according to the description [here](https://github.com/OpenEuroLLM/tokenizer/tree/main/baby-tokenization).
 
 ## Requirements
 You must have `uv` installed, see [uv-homepage](https://docs.astral.sh/uv/).
@@ -52,7 +64,7 @@ When using Slurm, data sharding is handled automatically across the task array.
 Here is a full example running on Lumi:
 ```shell
 sbatch --array=0-49 ./package.sh \
-    /scratch/project_465002530/training/collection/baby/nemotron-cc-opus-1.1
+    /scratch/project_465002530/training/collection/baby/nemotron-cc-opus-1.1 \
     /scratch/project_465002530/training/collection/baby/nemotron-cc-opus-1.1/release_raw
 ```
 
@@ -61,7 +73,7 @@ The merger reduces the number of files but still keeps semantics in paths, like 
 The merger uses the `metadata.yaml` in provided collection-directory. As input it use the subdirectory `release_raw` and
 write the merged files to `release` subdirectory.
 
-the merger run after `oellm-package-data`.
+The merger run after `oellm-package-data`.
 
 To run local:
 ```shell
