@@ -62,7 +62,7 @@ def process_file(
     os.makedirs(output_file.parent, exist_ok=True)
 
     source_reader = GenericJsonlReader(source_file)
-    source_to_propella_mapper = SourceToPropellaMapper(metadata["id"], propella_lookup_fn)
+    source_to_propella_mapper = SourceToPropellaMapper(metadata, propella_lookup_fn)
     mapped_iter = map(source_to_propella_mapper.get_mapper(), source_reader.read())
     writer = JsonlZstWriter(tmp_output_file)
     writer.write(mapped_iter)
