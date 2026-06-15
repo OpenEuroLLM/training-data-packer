@@ -3,6 +3,9 @@ from typing import Any
 
 from loguru import logger
 
+import training_data_packer.utils.misc
+from training_data_packer.utils.metadata import get_metadata_value
+
 
 class SourceToPropellaMapper:
     """
@@ -18,14 +21,23 @@ class SourceToPropellaMapper:
     """
 
     def __init__(
-        self, id_field: str, lookup_fn: Callable[[Any], dict[str, Any]], metric_name: str = "propella_matching"
+        self,
+        metadata: dict[str, Any],
+        lookup_fn: Callable[[Any], dict[str, Any]],
+        metric_name: str = "propella_matching",
     ):
         self._metric_name = metric_name
         self._processed_records = 0
         self._unmatched_records = 0
         self._multiple_match = 0
         self._lookup_fn = lookup_fn
-        self._id_field = id_field
+        self._id_field = metadata["id"]
+        self._text_field = metadata["text"]
+        id_hash = get_metadata_value(metadata, "annotations.propella-4b.id-hash", None)
+        if id_hash is not None:
+            self._id_hash_fn = training_data_packer.utils.misc.hash_factory(id_hash)
+        else:
+            self._id_hash_fn = None
 
     def get_metrics(self):
         """
@@ -47,15 +59,24 @@ class SourceToPropellaMapper:
         """
 
         def mapper(doc: dict[Any]) -> dict[Any]:
-            id = doc.get(self._id_field)
+            if self._id_hash_fn is not None:
+                id = self._id_hash_fn(doc.get(self._text_field))
+            else:
+                id = doc.get(self._id_field)
             propella_record = self._lookup_fn(id)
             self._processed_records += 1
             if self._processed_records % 100_000 == 0:
                 logger.info(f"{self._processed_records} records processed")
             if propella_record is None:
                 self._unmatched_records += 1
-                return {"id": id}
+                if self._id_hash_fn is not None:
+                    return {"id": doc.get(self._id_field), "hash_sha256": id}
+                else:
+                    return {"id": id}
             else:
+                if self._id_hash_fn:
+                    propella_record["hash_sha256"] = propella_record["id"]
+                    propella_record["id"] = doc.get(self._id_field)
                 return propella_record
 
         return mapper

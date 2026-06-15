@@ -15,17 +15,53 @@ class TestPropellaProcessor(unittest.TestCase):
             {"my_id": "foo"},
             {"my_id": "bar"},
         ]
-        id_field = "my_id"
+        metadata = {"id": "my_id", "text": "text"}
         lookup_data = {
             "foo": {"id": "foo", "data": "foo_data"},
             "bar": None,  # Emulating not found.
         }
-        source_to_propella_mapper = SourceToPropellaMapper(id_field, lambda x: lookup_data[x])
+        source_to_propella_mapper = SourceToPropellaMapper(metadata, lambda x: lookup_data[x])
         result = list(map(source_to_propella_mapper.get_mapper(), source_data))
         self.assertEqual(
             [
                 {"id": "foo", "data": "foo_data"},
                 {"id": "bar"},
+            ],
+            result,
+        )
+        result_metrics = source_to_propella_mapper.get_metrics()
+        self.assertEqual(2, result_metrics["propella_matching"]["processed_records"])
+        self.assertEqual(1, result_metrics["propella_matching"]["unmatched_records"])
+
+    def test_mappe_with_id_hash(self):
+        source_data = [
+            {"id": "foo", "text": "this is my document"},
+            {"id": "bar", "text": "this is my second document"},
+        ]
+        metadata = {
+            "id": "id",
+            "text": "text",
+            "annotations": {
+                "propella-4b": {"id-hash": "sha256"},
+            },
+        }
+        lookup_data = {
+            "0422bdf3f65ea9ebda3004d0b4e392906c10f5591a32034eeb41f86b78919d4d": {
+                "id": "0422bdf3f65ea9ebda3004d0b4e392906c10f5591a32034eeb41f86b78919d4d",
+                "data": "foo_data",
+            },
+            "6c0bf0ef0125de8874197d25e9e5cb04fd07f70917060b40025eb3ef8b7369cf": None,  # Emulating not found.
+        }
+        source_to_propella_mapper = SourceToPropellaMapper(metadata, lambda x: lookup_data[x])
+        result = list(map(source_to_propella_mapper.get_mapper(), source_data))
+        self.assertEqual(
+            [
+                {
+                    "id": "foo",
+                    "hash_sha256": "0422bdf3f65ea9ebda3004d0b4e392906c10f5591a32034eeb41f86b78919d4d",
+                    "data": "foo_data",
+                },
+                {"id": "bar", "hash_sha256": "6c0bf0ef0125de8874197d25e9e5cb04fd07f70917060b40025eb3ef8b7369cf"},
             ],
             result,
         )
