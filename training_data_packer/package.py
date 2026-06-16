@@ -81,12 +81,13 @@ def package_file(
     metrics.write_metrics_to_file(metrics_collection, metrics_filename)
 
 
-def process(input_dir: Path, output_dir: Path, workers=1, slurm: bool = False, release: str | None = None) -> None:
-    metadata = read_metadata(input_dir.joinpath("metadata.yaml"))
-    source_dir = input_dir.joinpath(metadata["release"]["default"]["input"])
-    contamination_dir = input_dir.joinpath("contamination")
-    pii_dir = input_dir.joinpath("pii")
-    propella_dir = input_dir.joinpath("propella-4b")
+def process(collection_dir: Path, workers=1, slurm: bool = False, release: str | None = None) -> None:
+    metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
+    source_dir = collection_dir.joinpath(metadata["release"]["default"]["input"])
+    contamination_dir = collection_dir.joinpath("nemo-curator")
+    pii_dir = collection_dir.joinpath("openai-privacy-filter")
+    propella_dir = collection_dir.joinpath("propella-4b")
+    output_dir = collection_dir.joinpath("release-raw")
 
     all_files = find_files(source_dir, metadata, release)
     logger.info(f"Found {len(all_files)} files")
@@ -159,8 +160,7 @@ def main():
         prog="training-data-packer",
         description="Pack training data from input directory to output directory.",
     )
-    parser.add_argument("--input_dir", help="Input directory containing source data", required=True)
-    parser.add_argument("--output_dir", help="Output directory for packed training data", required=True)
+    parser.add_argument("--collection-dir", help="Directory for collection", required=True)
     parser.add_argument("-w", "--workers", help="Number of workers, default is 1", type=int, default=1)
     parser.add_argument(
         "-s",
@@ -171,8 +171,7 @@ def main():
     parser.add_argument("-r", "--release", help="Release to process, default is all")
     args = parser.parse_args()
     process(
-        Path(args.input_dir),
-        Path(args.output_dir),
+        Path(args.collection_dir),
         workers=args.workers,
         slurm=args.slurm,
         release=args.release,

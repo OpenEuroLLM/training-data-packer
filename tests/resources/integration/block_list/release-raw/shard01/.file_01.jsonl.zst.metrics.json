@@ -1,0 +1,20 @@
+{
+    "input": {
+        "lines_read": 6
+    },
+    "pii_masker": {
+        "masked_documents": 0,
+        "pii_documents": 0
+    },
+    "contamination": {
+        "removed": 2,
+        "list_length": 2
+    },
+    "block_list": {
+        "removed": 1,
+        "list_length": 1
+    },
+    "output": {
+        "lines_written": 3
+    }
+}
