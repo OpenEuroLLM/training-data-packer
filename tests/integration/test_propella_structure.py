@@ -33,13 +33,13 @@ class TestPropellaStructure(unittest.TestCase):
 
             id1_record = next((r for r in result if r["id"] == "id1"), None)
             self.assertIsNotNone(id1_record)
-            self.assertIn("metadata", id1_record)
-            self.assertEqual({"key": "value1"}, id1_record["metadata"])
+            self.assertIn("metadata", id1_record["propella-4b"])
+            self.assertEqual({"key": "value1"}, id1_record["propella-4b"]["metadata"])
 
             id2_record = next((r for r in result if r["id"] == "id2"), None)
             self.assertIsNotNone(id2_record)
-            self.assertIn("metadata", id2_record)
-            self.assertEqual({"key": "value2"}, id2_record["metadata"])
+            self.assertIn("metadata", id2_record["propella-4b"])
+            self.assertEqual({"key": "value2"}, id2_record["propella-4b"]["metadata"])
 
             id3_record = next((r for r in result if r["id"] == "id3"), None)
             self.assertIsNotNone(id3_record)
@@ -47,8 +47,8 @@ class TestPropellaStructure(unittest.TestCase):
 
             id4_record = next((r for r in result if r["id"] == "id4"), None)
             self.assertIsNotNone(id4_record)
-            self.assertIn("metadata", id4_record)
-            self.assertEqual({"key": "value4"}, id4_record["metadata"])
+            self.assertIn("metadata", id4_record["propella-4b"])
+            self.assertEqual({"key": "value4"}, id4_record["propella-4b"]["metadata"])
 
     def test_propella_structure_skip_existing(self):
         """
@@ -108,7 +108,7 @@ class TestPropellaStructure(unittest.TestCase):
 
             id2_record = next((r for r in result if r["id"] == "id2"), None)
             self.assertIsNotNone(id2_record)
-            self.assertEqual({"key": "value2"}, id2_record["metadata"])
+            self.assertEqual({"key": "value2"}, id2_record["propella-4b"]["metadata"])
 
             id3_record = next((r for r in result if r["id"] == "id3"), None)
             self.assertIsNotNone(id3_record)

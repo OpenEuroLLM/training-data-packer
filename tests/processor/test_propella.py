@@ -24,7 +24,7 @@ class TestPropellaProcessor(unittest.TestCase):
         result = list(map(source_to_propella_mapper.get_mapper(), source_data))
         self.assertEqual(
             [
-                {"id": "foo", "data": "foo_data"},
+                {"id": "foo", "propella-4b": {"id": "foo", "data": "foo_data"}},
                 {"id": "bar"},
             ],
             result,
@@ -42,7 +42,7 @@ class TestPropellaProcessor(unittest.TestCase):
             "id": "id",
             "text": "text",
             "annotations": {
-                "propella-4b": {"id-hash": {"algorithm": "sha256"}},
+                "propella-4b": {"hash": "sha256"},
             },
         }
         lookup_data = {
@@ -58,10 +58,13 @@ class TestPropellaProcessor(unittest.TestCase):
             [
                 {
                     "id": "foo",
-                    "hash_sha256": "0422bdf3f65ea9ebda3004d0b4e392906c10f5591a32034eeb41f86b78919d4d",
-                    "data": "foo_data",
+                    "hash": "0422bdf3f65ea9ebda3004d0b4e392906c10f5591a32034eeb41f86b78919d4d",
+                    "propella-4b": {
+                        "id": "0422bdf3f65ea9ebda3004d0b4e392906c10f5591a32034eeb41f86b78919d4d",
+                        "data": "foo_data",
+                    },
                 },
-                {"id": "bar", "hash_sha256": "6c0bf0ef0125de8874197d25e9e5cb04fd07f70917060b40025eb3ef8b7369cf"},
+                {"id": "bar", "hash": "6c0bf0ef0125de8874197d25e9e5cb04fd07f70917060b40025eb3ef8b7369cf"},
             ],
             result,
         )
@@ -78,7 +81,7 @@ class TestPropellaProcessor(unittest.TestCase):
             "id": "id",
             "text": "text",
             "annotations": {
-                "propella-4b": {"id-hash": {"algorithm": "sha256", "length": "32"}},
+                "propella-4b": {"hash": "sha256-32", "hash-id": "hash_id"},
             },
         }
         lookup_data = {
@@ -94,10 +97,13 @@ class TestPropellaProcessor(unittest.TestCase):
             [
                 {
                     "id": "foo",
-                    "hash_sha256": "0422bdf3f65ea9ebda3004d0b4e39290",
-                    "data": "foo_data",
+                    "hash_id": "0422bdf3f65ea9ebda3004d0b4e39290",
+                    "propella-4b": {
+                        "id": "0422bdf3f65ea9ebda3004d0b4e39290",
+                        "data": "foo_data",
+                    },
                 },
-                {"id": "bar", "hash_sha256": "6c0bf0ef0125de8874197d25e9e5cb04"},
+                {"id": "bar", "hash_id": "6c0bf0ef0125de8874197d25e9e5cb04"},
             ],
             result,
         )

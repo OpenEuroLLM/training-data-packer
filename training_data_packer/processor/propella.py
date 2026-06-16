@@ -33,15 +33,12 @@ class SourceToPropellaMapper:
         self._lookup_fn = lookup_fn
         self._id_field = metadata["id"]
         self._text_field = metadata["text"]
-        id_hash = get_metadata_value(metadata, "annotations.propella-4b.id-hash.algorithm", None)
-        hash_length = get_metadata_value(metadata, "annotations.propella-4b.id-hash.length", None)
+        self._hash_field = get_metadata_value(metadata, "annotations.propella-4b.hash-id", "hash")
+        id_hash = get_metadata_value(metadata, "annotations.propella-4b.hash", None)
         if id_hash is not None:
             self._id_hash_fn = training_data_packer.utils.misc.hash_factory(id_hash)
         else:
             self._id_hash_fn = None
-        if hash_length is not None:
-            hash_fn = self._id_hash_fn
-            self._id_hash_fn = lambda x: hash_fn(x)[: int(hash_length)]
 
     def get_metrics(self):
         """
@@ -74,14 +71,14 @@ class SourceToPropellaMapper:
             if propella_record is None:
                 self._unmatched_records += 1
                 if self._id_hash_fn is not None:
-                    return {"id": doc.get(self._id_field), "hash_sha256": id}
+                    return {"id": doc.get(self._id_field), self._hash_field: id}
                 else:
                     return {"id": id}
             else:
+                result_doc = {"id": doc.get(self._id_field), "propella-4b": propella_record}
                 if self._id_hash_fn:
-                    propella_record["hash_sha256"] = propella_record["id"]
-                    propella_record["id"] = doc.get(self._id_field)
-                return propella_record
+                    result_doc[self._hash_field] = propella_record["id"]
+                return result_doc
 
         return mapper
 
