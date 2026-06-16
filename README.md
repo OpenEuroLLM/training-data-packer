@@ -50,13 +50,13 @@ if it fails, then run it again, and it will take of where it left.
 
 To package the data in `tests/resources/integration/non_partitioned` run:
 ```shell
-uv run oellm-package-data --input_dir tests/resources/integration/flat_release --output_dir tmp
+uv run oellm-package-data --collection-dir tests/resources/integration/flat_release
 ```
 The program checks if output files exist, if they exist new data is not regenerated.
 
 It can also run via slurm:
 ```shell
-sbatch --array=0-10 ./package.sh input-dir  output-dir
+sbatch --array=0-10 ./package.sh collection-dir
 ```
 
 When using Slurm, data sharding is handled automatically across the task array.
@@ -64,13 +64,12 @@ When using Slurm, data sharding is handled automatically across the task array.
 Here is a full example running on Lumi:
 ```shell
 sbatch --array=0-49 ./package.sh \
-    /scratch/project_465002530/training/collection/baby/nemotron-cc-opus-1.1 \
-    /scratch/project_465002530/training/collection/baby/nemotron-cc-opus-1.1/release_raw
+    /scratch/project_465002530/training/collection/baby/nemotron-cc-opus-1.1
 ```
 
 ### Merger: oellm-package-merge
 The merger reduces the number of files but still keeps semantics in paths, like language or quality.
-The merger uses the `metadata.yaml` in provided collection-directory. As input it use the subdirectory `release_raw` and
+The merger uses the `metadata.yaml` in provided collection-directory. As input it use the subdirectory `release-raw` and
 write the merged files to `release` subdirectory.
 
 The merger run after `oellm-package-data`.

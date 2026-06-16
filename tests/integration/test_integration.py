@@ -1,4 +1,5 @@
 import json
+import shutil
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -11,10 +12,12 @@ class IntegrationTests(unittest.TestCase):
     def test_flat_release(self):
         test_data = Path("tests/resources/integration/flat_release")
         with TemporaryDirectory() as tmpdir:
-            out_dir = Path(tmpdir).joinpath("output")
-            process(test_data, out_dir)
+            workdir = Path(tmpdir).joinpath("workdir")
+            shutil.copytree(test_data, workdir)
+            out_dir = Path(workdir).joinpath("release-raw")
+            process(workdir)
 
-            source_file = list(GenericJsonlReader(test_data.joinpath("source/shard01/file_01.jsonl.zst")).read())
+            source_file = list(GenericJsonlReader(workdir.joinpath("source/shard01/file_01.jsonl.zst")).read())
             result = list(GenericJsonlReader(out_dir.joinpath("shard01/file_01.jsonl.zst")).read())
 
             self.assertEqual(3, len(result))
@@ -44,10 +47,12 @@ class IntegrationTests(unittest.TestCase):
     def test_block_list(self):
         test_data = Path("tests/resources/integration/block_list")
         with TemporaryDirectory() as tmpdir:
-            out_dir = Path(tmpdir).joinpath("output")
-            process(test_data, out_dir)
+            workdir = Path(tmpdir).joinpath("workdir")
+            shutil.copytree(test_data, workdir)
+            out_dir = Path(workdir).joinpath("release-raw")
+            process(test_data)
 
-            source_file = list(GenericJsonlReader(test_data.joinpath("source/shard01/file_01.jsonl.zst")).read())
+            source_file = list(GenericJsonlReader(workdir.joinpath("source/shard01/file_01.jsonl.zst")).read())
             result = list(GenericJsonlReader(out_dir.joinpath("shard01/file_01.jsonl.zst")).read())
 
             self.assertEqual(3, len(result))
