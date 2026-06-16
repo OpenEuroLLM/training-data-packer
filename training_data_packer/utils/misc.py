@@ -8,6 +8,8 @@ def hash_factory(hash_algo: str) -> Callable[str, str]:
     match hash_algo.lower():
         case "sha256":
             return lambda x: hashlib.sha256(x.encode("utf-8")).hexdigest()
+        case "sha256-32":
+            return lambda x: hashlib.sha256(x.encode("utf-8")).hexdigest()[:32]
         case _:
             logger.error(f"Unknown hash algorithm {hash_algo}")
             raise ValueError(f"Unknown hash algorithm {hash_algo}")
