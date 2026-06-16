@@ -77,11 +77,15 @@ def sampler_factory(
         case "wds+register":
             return itertools.chain.from_iterable(map(sample_register.process_record, data_iterator))
         case "sampler_fn":
-            filename = get_metadata_value(
-                metadata,
-                f"release.{part_name}.sample_fn_file",
-                get_metadata_value(metadata, "release.default.sample_fn_file", None),
+            filename = Path(
+                get_metadata_value(
+                    metadata,
+                    f"release.{part_name}.sample_fn_file",
+                    get_metadata_value(metadata, "release.default.sample_fn_file", None),
+                )
             )
+            if not filename.is_absolute():
+                filename = Path(get_metadata_value(metadata, "_internal.collection_dir", None)).joinpath(filename)
             sampler = DynamicSampler(filename)
             return itertools.chain.from_iterable(map(sampler.get_mapper(), data_iterator))
         case _:
