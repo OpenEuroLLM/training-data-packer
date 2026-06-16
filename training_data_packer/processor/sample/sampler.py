@@ -20,7 +20,7 @@ def sampler_factory(
         case "full":
             return data_iterator
         case "random":
-            fraction = (float(release["budget"].strip("%")) + float(release["rubber"].strip("%"))) / 100
+            fraction = max(float(release["budget"].strip("%")) / 100 * float(release["rubber"]), 1.0)
             return itertools.filterfalse(lambda x: random.random() > fraction, data_iterator)
         case "wds+register":
             return itertools.chain.from_iterable(map(sample_register.process_record, data_iterator))
