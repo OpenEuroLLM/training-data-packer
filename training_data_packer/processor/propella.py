@@ -33,11 +33,15 @@ class SourceToPropellaMapper:
         self._lookup_fn = lookup_fn
         self._id_field = metadata["id"]
         self._text_field = metadata["text"]
-        id_hash = get_metadata_value(metadata, "annotations.propella-4b.id-hash", None)
+        id_hash = get_metadata_value(metadata, "annotations.propella-4b.id-hash.algorithm", None)
+        hash_length = get_metadata_value(metadata, "annotations.propella-4b.id-hash.length", None)
         if id_hash is not None:
             self._id_hash_fn = training_data_packer.utils.misc.hash_factory(id_hash)
         else:
             self._id_hash_fn = None
+        if hash_length is not None:
+            hash_fn = self._id_hash_fn
+            self._id_hash_fn = lambda x: hash_fn(x)[: int(hash_length)]
 
     def get_metrics(self):
         """

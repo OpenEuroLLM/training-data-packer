@@ -33,7 +33,7 @@ class TestPropellaProcessor(unittest.TestCase):
         self.assertEqual(2, result_metrics["propella_matching"]["processed_records"])
         self.assertEqual(1, result_metrics["propella_matching"]["unmatched_records"])
 
-    def test_mappe_with_id_hash(self):
+    def test_mapper_with_id_hash(self):
         source_data = [
             {"id": "foo", "text": "this is my document"},
             {"id": "bar", "text": "this is my second document"},
@@ -42,7 +42,7 @@ class TestPropellaProcessor(unittest.TestCase):
             "id": "id",
             "text": "text",
             "annotations": {
-                "propella-4b": {"id-hash": "sha256"},
+                "propella-4b": {"id-hash": {"algorithm": "sha256"}},
             },
         }
         lookup_data = {
@@ -62,6 +62,42 @@ class TestPropellaProcessor(unittest.TestCase):
                     "data": "foo_data",
                 },
                 {"id": "bar", "hash_sha256": "6c0bf0ef0125de8874197d25e9e5cb04fd07f70917060b40025eb3ef8b7369cf"},
+            ],
+            result,
+        )
+        result_metrics = source_to_propella_mapper.get_metrics()
+        self.assertEqual(2, result_metrics["propella_matching"]["processed_records"])
+        self.assertEqual(1, result_metrics["propella_matching"]["unmatched_records"])
+
+    def test_mapper_with_id_hash_and_length(self):
+        source_data = [
+            {"id": "foo", "text": "this is my document"},
+            {"id": "bar", "text": "this is my second document"},
+        ]
+        metadata = {
+            "id": "id",
+            "text": "text",
+            "annotations": {
+                "propella-4b": {"id-hash": {"algorithm": "sha256", "length": "32"}},
+            },
+        }
+        lookup_data = {
+            "0422bdf3f65ea9ebda3004d0b4e39290": {
+                "id": "0422bdf3f65ea9ebda3004d0b4e39290",
+                "data": "foo_data",
+            },
+            "6c0bf0ef0125de8874197d25e9e5cb04": None,  # Emulating not found.
+        }
+        source_to_propella_mapper = SourceToPropellaMapper(metadata, lambda x: lookup_data[x])
+        result = list(map(source_to_propella_mapper.get_mapper(), source_data))
+        self.assertEqual(
+            [
+                {
+                    "id": "foo",
+                    "hash_sha256": "0422bdf3f65ea9ebda3004d0b4e39290",
+                    "data": "foo_data",
+                },
+                {"id": "bar", "hash_sha256": "6c0bf0ef0125de8874197d25e9e5cb04"},
             ],
             result,
         )
