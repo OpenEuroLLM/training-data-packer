@@ -1,7 +1,8 @@
+import importlib
 import itertools
 import random
+import sys
 from collections.abc import Callable, Iterable
-from importlib.machinery import SourceFileLoader
 from pathlib import Path
 from typing import Any
 
@@ -14,9 +15,11 @@ from training_data_packer.utils.metadata import get_matching_part, get_metadata_
 def read_sampler_fn(filename: Path | None) -> Callable[dict[str, Any], list[dict[str, Any]]]:
     if filename is None:
         return lambda x: x
-    loader = SourceFileLoader("dynamicsampler", filename)
-    sampler_module = loader.load_module()
-    return sampler_module.sample
+    spec = importlib.util.spec_from_file_location("dynamicsampler", filename)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["dynamicsampler"] = module
+    spec.loader.exec_module(module)
+    return module.sample
 
 
 class DynamicSampler:
