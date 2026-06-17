@@ -65,7 +65,7 @@ def package_file(
     if "wds+register" in metadata:
         logger.info("WDS+register files")
         filtered = itertools.chain.from_iterable(map(sample_register.process_record, filtered))
-    sampled = sampler_factory(filtered, metadata, src_file)
+    sampled = sampler_factory(filtered, metadata, src_file, part_name)
 
     writer = JsonlZstWriter(tmp_out_file)
     writer.write(sampled)
