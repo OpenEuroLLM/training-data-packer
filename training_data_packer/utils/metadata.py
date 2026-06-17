@@ -81,4 +81,5 @@ def read_metadata(file_path: Path) -> dict[str, Any]:
     with open(file_path) as file:
         # BaseLoader to guarantee that the YAML parser will return unicode strings
         metadata = yaml.load(file, Loader=yaml.BaseLoader)
+        metadata["_internal"] = {"collection_dir": file_path.parent}
         return metadata

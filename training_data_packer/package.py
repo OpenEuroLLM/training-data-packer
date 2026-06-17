@@ -39,10 +39,16 @@ def process(
                             src_file, source_dir, contamination_dir, pii_dir, propella_dir, output_dir, metadata
                         )
                         job = executor.submit(
-                            package_file, src_file, metadata, contamination_file, pii_file, propella_file, out_file
+                            package_file,
+                            src_file,
+                            metadata,
+                            contamination_file,
+                            pii_file,
+                            propella_file,
+                            out_file,
                         )
                     case _:
-                        raise ValueError(f"Unknown mode: {mode}")
+                        raise ValueError(f"Undefined mode {mode}")
                 jobs.append(job)
             executor.shutdown()
             for n, job in enumerate(jobs):
@@ -58,7 +64,7 @@ def process(
                     )
                     package_file(src_file, metadata, contamination_file, pii_file, propella_file, out_file)
                 case _:
-                    raise ValueError(f"Unknown mode: {mode}")
+                    raise ValueError(f"Undefined mode {mode}")
 
 
 def _calculate_file_paths(
@@ -103,7 +109,13 @@ def main():
     parser.add_argument("-p", "--part", help="Part to process, default is all")
     parser.add_argument("-m", "--mode", help="Mode to run packager in", default="release", choices=["release"])
     args = parser.parse_args()
-    process(Path(args.collection_dir), workers=args.workers, slurm=args.slurm, part=args.part, mode=args.mode)
+    process(
+        Path(args.collection_dir),
+        workers=args.workers,
+        slurm=args.slurm,
+        part=args.part,
+        mode=args.mode,
+    )
 
 
 if __name__ == "__main__":
