@@ -131,7 +131,7 @@ class MergePropellaRecords:
             for d in docs:
                 if d[self._id_field] != id_value:
                     raise ValueError("Files not aligned")
-                if len(d) > 1:
+                if "propella-4b" in d:
                     if candidate is None:
                         candidate = d
                     else:
@@ -139,10 +139,16 @@ class MergePropellaRecords:
                         self._duplicates += 1
                         break
             if duplicate:
-                return {self._id_field: id_value}
+                result = {self._id_field: id_value}
+                if "hash" in docs[0]:
+                    result["hash"] = docs[0]["hash"]
+                return result
             if candidate is None:
                 self._no_match += 1
-                return {self._id_field: id_value}
+                result = {self._id_field: id_value}
+                if "hash" in docs[0]:
+                    result["hash"] = docs[0]["hash"]
+                return result
             return candidate
 
         return mapper
