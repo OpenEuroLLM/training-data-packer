@@ -10,7 +10,7 @@ from training_data_packer.processor.propella import SourceToPropellaMapper
 from training_data_packer.storage.propella import get_lookup_fn
 from training_data_packer.utils import metrics
 from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, change_suffix, find_files
-from training_data_packer.utils.metadata import get_metadata_value, read_metadata
+from training_data_packer.utils.metadata import read_metadata
 from training_data_packer.utils.slurm import get_my_slurm_tasks
 
 
@@ -46,7 +46,7 @@ def _compute_output_filename(output_dir: Path, rel_path: Path, metadata: dict[st
     output_file = change_suffix(
         output_dir.joinpath(rel_path),
         metadata["suffix"],
-        get_metadata_value(metadata, "annotations.propella-4b.suffix", metadata["suffix"]),
+        ".jsonl.zst",
     )
     return output_file
 

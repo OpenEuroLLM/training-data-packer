@@ -28,7 +28,7 @@ class TestComputeOutputFilename(unittest.TestCase):
                 "/foo/bar/propella-4b",
                 "shard01/000.jsonl.gz",
                 {"suffix": ".jsonl.gz"},
-                "/foo/bar/propella-4b/shard01/000.jsonl.gz",
+                "/foo/bar/propella-4b/shard01/000.jsonl.zst",
             ],
         ]
     )
