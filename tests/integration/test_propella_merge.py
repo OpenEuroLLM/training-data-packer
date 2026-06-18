@@ -44,8 +44,8 @@ class TestProcessFileIntegration(unittest.TestCase):
             result = list(GenericJsonlReader(workdir.joinpath("propella-4b/part01/file_01.jsonl.zst")).read())
             self.assertEqual(4, len(result))
             self.assertEqual({"id": "id1"}, result[0])
-            self.assertEqual({"id": "id2", "propella": "bar"}, result[1])
-            self.assertEqual({"id": "id3", "propella": "foo"}, result[2])
+            self.assertEqual({"id": "id2", "propella-4b": "bar"}, result[1])
+            self.assertEqual({"id": "id3", "propella-4b": "foo"}, result[2])
             self.assertEqual({"id": "id4"}, result[3])
 
             metrics = read_metrics_from_file(workdir.joinpath("propella-4b/part01/.file_01.jsonl.zst.metrics.json"))
