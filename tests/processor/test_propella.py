@@ -116,9 +116,9 @@ class TestMergePropellaRecords(unittest.TestCase):
     def test_single_record_with_data(self):
         merger = MergePropellaRecords("id")
         mapper = merger.get_mapper()
-        docs = [{"id": "123", "name": "John"}]
+        docs = [{"id": "123", "propella-4b": {"name": "John"}}]
         result = mapper(docs)
-        self.assertEqual({"id": "123", "name": "John"}, result)
+        self.assertEqual({"id": "123", "propella-4b": {"name": "John"}}, result)
         metrics = merger.get_metrics()
         self.assertEqual(1, metrics["propella_merge"]["processed_rows"])
         self.assertEqual(0, metrics["propella_merge"]["rows_with_duplicates"])
@@ -127,9 +127,9 @@ class TestMergePropellaRecords(unittest.TestCase):
     def test_multiple_records_one_with_data(self):
         merger = MergePropellaRecords("id")
         mapper = merger.get_mapper()
-        docs = [{"id": "123"}, {"id": "123", "name": "John"}, {"id": "123"}]
+        docs = [{"id": "123"}, {"id": "123", "propella-4b": {"name": "John"}}, {"id": "123"}]
         result = mapper(docs)
-        self.assertEqual({"id": "123", "name": "John"}, result)
+        self.assertEqual({"id": "123", "propella-4b": {"name": "John"}}, result)
         metrics = merger.get_metrics()
         self.assertEqual(1, metrics["propella_merge"]["processed_rows"])
         self.assertEqual(0, metrics["propella_merge"]["rows_with_duplicates"])
@@ -138,7 +138,7 @@ class TestMergePropellaRecords(unittest.TestCase):
     def test_multiple_records_with_duplicate_data(self):
         merger = MergePropellaRecords("id")
         mapper = merger.get_mapper()
-        docs = [{"id": "123", "name": "John"}, {"id": "123", "age": 30}]
+        docs = [{"id": "123", "propella-4b": {"name": "John"}}, {"id": "123", "propella-4b": {"age": 30}}]
         result = mapper(docs)
         self.assertEqual({"id": "123"}, result)
         metrics = merger.get_metrics()
@@ -157,6 +157,17 @@ class TestMergePropellaRecords(unittest.TestCase):
         self.assertEqual(0, metrics["propella_merge"]["rows_with_duplicates"])
         self.assertEqual(1, metrics["propella_merge"]["rows_with_only_id"])
 
+    def test_all_records_only_id_and_hash(self):
+        merger = MergePropellaRecords("id")
+        mapper = merger.get_mapper()
+        docs = [{"id": "123", "hash": "#1"}, {"id": "123", "hash": "#1"}, {"id": "123", "hash": "#1"}]
+        result = mapper(docs)
+        self.assertEqual({"id": "123", "hash": "#1"}, result)
+        metrics = merger.get_metrics()
+        self.assertEqual(1, metrics["propella_merge"]["processed_rows"])
+        self.assertEqual(0, metrics["propella_merge"]["rows_with_duplicates"])
+        self.assertEqual(1, metrics["propella_merge"]["rows_with_only_id"])
+
     def test_misaligned_ids_raises_error(self):
         merger = MergePropellaRecords("id")
         mapper = merger.get_mapper()
@@ -168,16 +179,23 @@ class TestMergePropellaRecords(unittest.TestCase):
     def test_custom_id_field(self):
         merger = MergePropellaRecords("custom_id")
         mapper = merger.get_mapper()
-        docs = [{"custom_id": "123", "name": "John"}]
+        docs = [{"custom_id": "123", "propella-4b": {"name": "John"}}]
         result = mapper(docs)
-        self.assertEqual({"custom_id": "123", "name": "John"}, result)
+        self.assertEqual({"custom_id": "123", "propella-4b": {"name": "John"}}, result)
+
+    def test_hash_field(self):
+        merger = MergePropellaRecords("id")
+        mapper = merger.get_mapper()
+        docs = [{"id": "123", "hash": "###", "propella-4b": {"name": "John"}}]
+        result = mapper(docs)
+        self.assertEqual({"id": "123", "hash": "###", "propella-4b": {"name": "John"}}, result)
 
     def test_custom_metric_name(self):
         merger = MergePropellaRecords("id", metric_name="custom_metric")
         mapper = merger.get_mapper()
-        docs = [{"id": "123", "name": "John"}]
+        docs = [{"id": "123", "propella-4b": {"name": "John"}}]
         result = mapper(docs)
-        self.assertEqual({"id": "123", "name": "John"}, result)
+        self.assertEqual({"id": "123", "propella-4b": {"name": "John"}}, result)
         metrics = merger.get_metrics()
         self.assertIn("custom_metric", metrics)
 
@@ -185,9 +203,9 @@ class TestMergePropellaRecords(unittest.TestCase):
         merger = MergePropellaRecords("id")
         mapper = merger.get_mapper()
 
-        mapper([{"id": "123", "name": "John"}])
+        mapper([{"id": "123", "propella-4b": {"name": "John"}}])
         mapper([{"id": "456"}])
-        mapper([{"id": "789", "age": 30}, {"id": "789", "city": "NYC"}])
+        mapper([{"id": "789", "propella-4b": {"age": 30}}, {"id": "789", "propella-4b": {"city": "NYC"}}])
 
         metrics = merger.get_metrics()
         self.assertEqual(3, metrics["propella_merge"]["processed_rows"])
