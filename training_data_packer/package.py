@@ -20,7 +20,8 @@ def process(
     propella_dir = collection_dir.joinpath("propella-4b")
     output_dir = collection_dir.joinpath("release-raw")
 
-    all_files = find_files(source_dir, metadata, part)
+    suffix = get_metadata_value(metadata, "source.default.suffix", metadata["suffix"])
+    all_files = find_files(source_dir, suffix, part)
     logger.info(f"Found {len(all_files)} files")
 
     if slurm:

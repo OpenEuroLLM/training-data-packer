@@ -85,7 +85,7 @@ def process(collection_dir: Path, workers: int = 1, slurm: bool = False):
                 logger.info(f"Processing part {part_name} with config {part_config}")
                 flat_output = part_config["pack"] == "flat"
                 metadata["suffix"] = ".jsonl.zst"
-                files = find_files(input_dir.joinpath(part_name), metadata)
+                files = find_files(input_dir.joinpath(part_name), metadata["suffix"])
                 logger.info(f"Processing part {part_name} with {len(files)} files")
                 docs_per_shard = get_shard_size_documents(part_config)
                 job = executor.submit(
@@ -103,7 +103,7 @@ def process(collection_dir: Path, workers: int = 1, slurm: bool = False):
     else:
         if parts == ["default"]:
             metadata["suffix"] = ".jsonl.zst"
-            files = find_files(input_dir, metadata)
+            files = find_files(input_dir, metadata["suffix"])
             docs_per_shard = get_shard_size_documents(part_config)
             merge(
                 files,
@@ -117,7 +117,7 @@ def process(collection_dir: Path, workers: int = 1, slurm: bool = False):
                 logger.info(f"Processing part {part_name} with config {part_config}")
                 flat_output = part_config["pack"] == "flat"
                 metadata["suffix"] = ".jsonl.zst"
-                files = find_files(input_dir.joinpath(part_name), metadata)
+                files = find_files(input_dir.joinpath(part_name), metadata["suffix"])
                 logger.info(f"Processing part {part_name} with {len(files)} files")
                 docs_per_shard = get_shard_size_documents(part_config)
                 merge(

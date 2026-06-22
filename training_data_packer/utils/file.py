@@ -9,18 +9,15 @@ import orjson as json
 import zstandard as zstd
 from loguru import logger
 
-from training_data_packer.utils.metadata import get_metadata_value
 
-
-def find_files(source_dir: Path, metadata: dict, part: str = None) -> list[Path]:
+def find_files(source_dir: Path, suffix: dict, part: str = None) -> list[Path]:
     """
     Returns all files, not hidden, under source_dir, following symlinks
     :param source_dir: Dir to find files in
-    :param metadata: Metadata information to get expected file suffix.
+    :param suffix: expected file suffix.
     :param part: Optional part if only parts of source_dir are needed.
     :return: List of Path objects to files. Sorted.
     """
-    suffix = get_metadata_value(metadata, "source.default.suffix", metadata["suffix"])
     if part is None:
         return sorted(Path(source_dir).glob("**/[A-Za-z0-9]*" + suffix, recurse_symlinks=True))
     else:
