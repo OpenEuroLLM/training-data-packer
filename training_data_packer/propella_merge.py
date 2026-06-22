@@ -26,7 +26,8 @@ def process(collection_dir: Path, part: str = "", workers=1, slurm: bool = False
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
 
     # Find all source file and take their names
-    all_names = list(map(lambda x: x.name, find_files(source_dir, metadata)))
+    suffix = get_metadata_value(metadata, "source.default.suffix", metadata["suffix"])
+    all_names = list(map(lambda x: x.name, find_files(source_dir, suffix)))
 
     for f in all_names:
         process_file(metadata, f, output_dir)
@@ -74,7 +75,7 @@ def process_file(metadata: dict[str, Any], source_name: str, propella_dir: Path)
     """
     new_name = change_suffix(
         source_name,
-        metadata["suffix"],
+        get_metadata_value(metadata, "source.default.suffix", metadata["suffix"]),
         get_metadata_value(metadata, "annotations.propella-4b.suffix", metadata["suffix"]),
     )
     out_file_name = propella_dir.joinpath(new_name)

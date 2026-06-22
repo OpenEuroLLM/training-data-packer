@@ -10,7 +10,7 @@ from training_data_packer.processor.propella import SourceToPropellaMapper
 from training_data_packer.storage.propella import get_lookup_fn
 from training_data_packer.utils import metrics
 from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, change_suffix, find_files
-from training_data_packer.utils.metadata import read_metadata
+from training_data_packer.utils.metadata import get_metadata_value, read_metadata
 from training_data_packer.utils.slurm import get_my_slurm_tasks
 
 
@@ -24,7 +24,8 @@ def process(collection_dir: Path, propella_dir: Path, part: str = "", slurm: boo
     source_dir = collection_dir.joinpath("source").joinpath(part)
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
 
-    all_files = find_files(source_dir, metadata)
+    suffix = get_metadata_value(metadata, "source.default.suffix", metadata["suffix"])
+    all_files = find_files(source_dir, suffix)
     if slurm:
         task_files = get_my_slurm_tasks(all_files)
     else:
