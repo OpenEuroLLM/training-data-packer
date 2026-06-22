@@ -46,7 +46,7 @@ def process(collection_dir: Path, propella_dir: Path, part: str = "", slurm: boo
 def _compute_output_filename(output_dir: Path, rel_path: Path, metadata: dict[str, Any]) -> Path:
     output_file = change_suffix(
         output_dir.joinpath(rel_path),
-        metadata["suffix"],
+        get_metadata_value(metadata, "source.default.suffix", metadata["suffix"]),
         ".jsonl.zst",
     )
     return output_file
