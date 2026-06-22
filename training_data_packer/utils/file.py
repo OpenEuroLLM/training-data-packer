@@ -9,6 +9,8 @@ import orjson as json
 import zstandard as zstd
 from loguru import logger
 
+from training_data_packer.utils.metadata import get_metadata_value
+
 
 def find_files(source_dir: Path, metadata: dict, part: str = None) -> list[Path]:
     """
@@ -18,7 +20,7 @@ def find_files(source_dir: Path, metadata: dict, part: str = None) -> list[Path]
     :param part: Optional part if only parts of source_dir are needed.
     :return: List of Path objects to files. Sorted.
     """
-    suffix = metadata["suffix"]
+    suffix = get_metadata_value(metadata, "source.default.suffix", metadata["suffix"])
     if part is None:
         return sorted(Path(source_dir).glob("**/[A-Za-z0-9]*" + suffix, recurse_symlinks=True))
     else:
