@@ -5,6 +5,7 @@ from pathlib import Path
 from loguru import logger
 
 from training_data_packer.mode.release import package_file
+from training_data_packer.mode.sample import sample_file
 from training_data_packer.utils.file import change_suffix, find_files
 from training_data_packer.utils.metadata import get_metadata_value, read_metadata
 from training_data_packer.utils.slurm import get_my_slurm_tasks
@@ -18,7 +19,13 @@ def process(
     contamination_dir = collection_dir.joinpath("nemo-curator")
     pii_dir = collection_dir.joinpath("openai-privacy-filter")
     propella_dir = collection_dir.joinpath("propella-4b")
-    output_dir = collection_dir.joinpath("release-raw")
+    match mode:
+        case "release":
+            output_dir = collection_dir.joinpath("release-raw")
+        case "sample":
+            output_dir = collection_dir.joinpath("sample")
+        case _:
+            raise ValueError(f"Undefined mode {mode}")
 
     suffix = get_metadata_value(metadata, "source.default.suffix", metadata["suffix"])
     all_files = find_files(source_dir, suffix, part)
@@ -34,11 +41,11 @@ def process(
         jobs = []
         with ProcessPoolExecutor(max_workers=workers) as executor:
             for src_file in task_files:
+                contamination_file, pii_file, propella_file, out_file = _calculate_file_paths(
+                    src_file, source_dir, contamination_dir, pii_dir, propella_dir, output_dir, metadata
+                )
                 match mode:
                     case "release":
-                        contamination_file, pii_file, propella_file, out_file = _calculate_file_paths(
-                            src_file, source_dir, contamination_dir, pii_dir, propella_dir, output_dir, metadata
-                        )
                         job = executor.submit(
                             package_file,
                             src_file,
@@ -48,6 +55,8 @@ def process(
                             propella_file,
                             out_file,
                         )
+                    case "sample":
+                        job = executor.submit(sample_file, src_file, metadata, propella_file, out_file)
                     case _:
                         raise ValueError(f"Undefined mode {mode}")
                 jobs.append(job)
@@ -58,12 +67,14 @@ def process(
     else:
         for src_file in task_files:
             logger.debug(f"Processing file {src_file}")
+            contamination_file, pii_file, propella_file, out_file = _calculate_file_paths(
+                src_file, source_dir, contamination_dir, pii_dir, propella_dir, output_dir, metadata
+            )
             match mode:
                 case "release":
-                    contamination_file, pii_file, propella_file, out_file = _calculate_file_paths(
-                        src_file, source_dir, contamination_dir, pii_dir, propella_dir, output_dir, metadata
-                    )
                     package_file(src_file, metadata, contamination_file, pii_file, propella_file, out_file)
+                case "sample":
+                    sample_file(src_file, metadata, propella_file, out_file)
                 case _:
                     raise ValueError(f"Undefined mode {mode}")
 
@@ -108,7 +119,9 @@ def main():
         action="store_true",
     )
     parser.add_argument("-p", "--part", help="Part to process, default is all")
-    parser.add_argument("-m", "--mode", help="Mode to run packager in", default="release", choices=["release"])
+    parser.add_argument(
+        "-m", "--mode", help="Mode to run packager in", default="release", choices=["release", "sample"]
+    )
     args = parser.parse_args()
     process(
         Path(args.collection_dir),

@@ -28,7 +28,7 @@ def get_all_part_names(metadata: dict[str, Any]) -> list[str]:
     :param metadata: Metadata dictionary.
     :return: List of part names.
     """
-    return sorted(filter(lambda x: x != "default", metadata["release"].keys()))
+    return sorted(filter(lambda x: x != "default", metadata["source"].keys()))
 
 
 def get_shard_size_documents(part_config: dict[str, Any]) -> int:
@@ -48,23 +48,24 @@ def get_shard_size_documents(part_config: dict[str, Any]) -> int:
     raise ValueError(f"Invalid shard prefix {shard_size}")
 
 
-def get_matching_part(metadata: dict[str, Any], src_file_name: Path) -> tuple[dict, str]:
+def get_matching_part(metadata: dict[str, Any], src_file_name: Path, section_name: str = "release") -> tuple[dict, str]:
     """
     Returns matching part config and part name from metadata for given source file name.
     :param metadata: Metadata dictionary.
     :param src_file_name: Source file name.
+    :param section_name: Name of section to looks for parts information. Defult is release.
     :return: Tuple of part config and part name.
     """
-    release = metadata["release"]
-    if "default" in release:
-        default_part = release["default"]
+    section = metadata[section_name]
+    if "default" in section:
+        default_part = section["default"]
     else:
         default_part = {}
-    for part in release:
+    for part in section:
         if part in str(src_file_name):
-            if release[part] is None or release[part] == "":
-                release[part] = {}
-            part_settings = default_part | release[part]
+            if section[part] is None or section[part] == "":
+                section[part] = {}
+            part_settings = default_part | section[part]
             logger.debug(f"Using part {part} for file {src_file_name} with settings {part_settings}")
             return part_settings, part
     logger.error(f"No part for file {src_file_name}")
