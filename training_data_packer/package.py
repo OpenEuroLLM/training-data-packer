@@ -24,12 +24,12 @@ def process(
         case "release":
             output_dir = collection_dir.joinpath("release-raw")
         case "sample":
-            output_dir = collection_dir.joinpath("sample")
+            output_dir = collection_dir.joinpath(mode)
         case _:
             raise ValueError(f"Undefined mode {mode}")
 
-    suffix = get_metadata_value(metadata, f"{mode}.default.suffix", metadata["suffix"])
-    all_files = find_files(source_dir, suffix, part)
+    src_suffix = _get_in_suffix(metadata, mode)
+    all_files = find_files(source_dir, src_suffix, part)
     logger.info(f"Found {len(all_files)} files")
 
     if slurm:
@@ -83,10 +83,15 @@ def process(
                     raise ValueError(f"Undefined mode {mode}")
 
 
+def _get_in_suffix(metadata: dict[str, Any], mode: str) -> str:
+    input_dir = get_metadata_value(metadata, f"{mode}.default.input", None)
+    return get_metadata_value(metadata, f"{input_dir}.default.suffix", metadata["suffix"])
+
+
 def _calculate_file_path(src_file: Path, metadata: dict[str, Any], mode: str, process_dir: Path) -> Path:
     collection_dir = Path(get_metadata_value(metadata, "_internal.collection_dir", None))
     input_dir = get_metadata_value(metadata, f"{mode}.default.input", None)
-    input_suffix = get_metadata_value(metadata, f"{input_dir}.default.suffix", metadata["suffix"])
+    input_suffix = _get_in_suffix(metadata, mode)
     source_dir = collection_dir.joinpath(Path(input_dir))
     rel_file_path = src_file.relative_to(source_dir)
     out_suffix = ".jsonl.zst"
