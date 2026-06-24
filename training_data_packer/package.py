@@ -15,7 +15,7 @@ def process(
     collection_dir: Path, workers=1, slurm: bool = False, part: str | None = None, mode: str = "release"
 ) -> None:
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
-    source_dir = collection_dir.joinpath(metadata["release"]["default"]["input"])
+    source_dir = collection_dir.joinpath(metadata[mode]["default"]["input"])
     contamination_dir = collection_dir.joinpath("nemo-curator")
     pii_dir = collection_dir.joinpath("openai-privacy-filter")
     propella_dir = collection_dir.joinpath("propella-4b")
