@@ -44,8 +44,7 @@ Tip is to do an `uv sync` evry time pulling from the repository.
 
 ### The packager: oellm-package-data
 
-The packager takes source files and applies decontamination, PII-masking, and sampling. Each file
-in source directory gets a correspondent file in `output_dir` with processed data. The tool is idempotent,
+The packager takes source files and applies decontamination, PII-masking, and sampling. The tool is idempotent,
 if it fails, then run it again, and it will take of where it left.
 
 To package the data in `tests/resources/integration/non_partitioned` run:
@@ -53,6 +52,10 @@ To package the data in `tests/resources/integration/non_partitioned` run:
 uv run oellm-package-data --collection-dir tests/resources/integration/flat_release
 ```
 The program checks if output files exist, if they exist new data is not regenerated.
+`oellm-package-data` can run in different modes, `--mode`. This controls what
+part of the process will happen. Default is `release` mode packaging the final
+result and output into `release-raw`. The mode `sample` do just a sampling according
+to the `sample` section in `metadata.yaml`, and output into `sample`directory.
 
 It can also run via slurm:
 ```shell

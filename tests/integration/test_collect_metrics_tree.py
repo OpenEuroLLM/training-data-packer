@@ -16,7 +16,10 @@ class TestCollectMetricsTree(unittest.TestCase):
             tmp_path = Path(tmp_dir)
 
             # Create metadata.yaml
-            metadata = {"release": {"default": {"pack": "tree"}, "part1": {}, "part2": {}}}
+            metadata = {
+                "release": {"default": {"pack": "tree"}, "part1": {}, "part2": {}},
+                "source": {"part1": {}, "part2": {}},
+            }
             with open(tmp_path / "metadata.yaml", "w") as f:
                 yaml.dump(metadata, f)
 

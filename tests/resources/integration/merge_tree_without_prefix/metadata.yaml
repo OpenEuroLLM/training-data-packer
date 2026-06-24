@@ -9,6 +9,10 @@ annotations:
   pii:
     owner: Department B
     status: complete
+source:
+  default:
+  shard01:
+  shard02:
 release:
   default:
     input: source
