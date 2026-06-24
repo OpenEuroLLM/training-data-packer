@@ -1,6 +1,7 @@
 import argparse
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
+from typing import Any
 
 from loguru import logger
 
@@ -27,7 +28,7 @@ def process(
         case _:
             raise ValueError(f"Undefined mode {mode}")
 
-    suffix = get_metadata_value(metadata, "source.default.suffix", metadata["suffix"])
+    suffix = get_metadata_value(metadata, f"{mode}.default.suffix", metadata["suffix"])
     all_files = find_files(source_dir, suffix, part)
     logger.info(f"Found {len(all_files)} files")
 
@@ -41,9 +42,11 @@ def process(
         jobs = []
         with ProcessPoolExecutor(max_workers=workers) as executor:
             for src_file in task_files:
-                contamination_file, pii_file, propella_file, out_file = _calculate_file_paths(
-                    src_file, source_dir, contamination_dir, pii_dir, propella_dir, output_dir, metadata
-                )
+                contamination_file = _calculate_file_path(src_file, metadata, mode, contamination_dir)
+                pii_file = _calculate_file_path(src_file, metadata, mode, pii_dir)
+                propella_file = _calculate_file_path(src_file, metadata, mode, propella_dir)
+                output_file = _calculate_file_path(src_file, metadata, mode, output_dir)
+
                 match mode:
                     case "release":
                         job = executor.submit(
@@ -53,10 +56,10 @@ def process(
                             contamination_file,
                             pii_file,
                             propella_file,
-                            out_file,
+                            output_file,
                         )
                     case "sample":
-                        job = executor.submit(sample_file, src_file, metadata, propella_file, out_file)
+                        job = executor.submit(sample_file, src_file, metadata, propella_file, output_file)
                     case _:
                         raise ValueError(f"Undefined mode {mode}")
                 jobs.append(job)
@@ -67,42 +70,27 @@ def process(
     else:
         for src_file in task_files:
             logger.debug(f"Processing file {src_file}")
-            contamination_file, pii_file, propella_file, out_file = _calculate_file_paths(
-                src_file, source_dir, contamination_dir, pii_dir, propella_dir, output_dir, metadata
-            )
+            contamination_file = _calculate_file_path(src_file, metadata, mode, contamination_dir)
+            pii_file = _calculate_file_path(src_file, metadata, mode, pii_dir)
+            propella_file = _calculate_file_path(src_file, metadata, mode, propella_dir)
+            output_file = _calculate_file_path(src_file, metadata, mode, output_dir)
             match mode:
                 case "release":
-                    package_file(src_file, metadata, contamination_file, pii_file, propella_file, out_file)
+                    package_file(src_file, metadata, contamination_file, pii_file, propella_file, output_file)
                 case "sample":
-                    sample_file(src_file, metadata, propella_file, out_file)
+                    sample_file(src_file, metadata, propella_file, output_file)
                 case _:
                     raise ValueError(f"Undefined mode {mode}")
 
 
-def _calculate_file_paths(
-    src_file: Path,
-    source_dir: Path,
-    contamination_dir: Path,
-    pii_dir: Path,
-    propella_dir: Path,
-    output_dir: Path,
-    metadata: dict,
-) -> tuple[Path, Path, Path, Path]:
-    rel_file_path = Path(str(src_file)[len(str(source_dir)) + 1 :])
-
-    contamination_suffix = get_metadata_value(metadata, "annotations.contamination.suffix", default=metadata["suffix"])
-    contamination_file = change_suffix(
-        contamination_dir.joinpath(rel_file_path), metadata["suffix"], contamination_suffix
-    )
-
-    pii_suffix = get_metadata_value(metadata, "annotations.pii.suffix", default=metadata["suffix"])
-    pii_file = change_suffix(pii_dir.joinpath(rel_file_path), metadata["suffix"], pii_suffix)
-
-    propella_suffix = get_metadata_value(metadata, "annotations.pii.propella-4b", default=metadata["suffix"])
-    propella_file = change_suffix(propella_dir.joinpath(rel_file_path), metadata["suffix"], propella_suffix)
-
-    out_file = output_dir.joinpath(change_suffix(rel_file_path, metadata["suffix"], ".jsonl.zst"))
-    return contamination_file, pii_file, propella_file, out_file
+def _calculate_file_path(src_file: Path, metadata: dict[str, Any], mode: str, process_dir: Path) -> Path:
+    collection_dir = Path(get_metadata_value(metadata, "_internal.collection_dir", None))
+    input_dir = get_metadata_value(metadata, f"{mode}.default.input", None)
+    input_suffix = get_metadata_value(metadata, f"{input_dir}.default.suffix", metadata["suffix"])
+    source_dir = collection_dir.joinpath(Path(input_dir))
+    rel_file_path = src_file.relative_to(source_dir)
+    out_suffix = ".jsonl.zst"
+    return change_suffix(process_dir.joinpath(rel_file_path), input_suffix, out_suffix)
 
 
 def main():
