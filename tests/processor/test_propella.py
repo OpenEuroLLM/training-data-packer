@@ -219,7 +219,7 @@ class TestPropellaAnnotateFactory(unittest.TestCase):
             [
                 "merge",
                 [{"id": "1234", "text": "Happy"}],
-                [{"id": "1234", "sample": "full"}],
+                [{"id": "1234", "propella-4b": {"id": "1234", "sample": "full"}}],
                 [{"id": "1234", "text": "Happy", "propella-4b": {"sample": "full"}}],
             ],
             [

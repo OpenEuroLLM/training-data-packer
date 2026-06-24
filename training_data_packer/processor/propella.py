@@ -175,9 +175,8 @@ def propella_annotate_factory(
         def mapper(x):
             if len(x[1]) == 1:
                 return x[0]
-            del x[1]["id"]
-            x[0]["propella-4b"] = x[1]
-            return x[0]
+            del x[1]["propella-4b"]["id"]
+            return x[0] | x[1]
 
         return map(mapper, zip(in_iter, propella_data_iter, strict=True))
     return in_iter
