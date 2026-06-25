@@ -173,7 +173,7 @@ def propella_annotate_factory(
     if propella_data_iter is not None:
 
         def mapper(x):
-            if len(x[1]) == 1:
+            if "propella-4b" not in x[1]:
                 return x[0]
             del x[1]["propella-4b"]["id"]
             return x[0] | x[1]
