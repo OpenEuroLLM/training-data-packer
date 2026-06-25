@@ -48,6 +48,23 @@ def get_shard_size_documents(part_config: dict[str, Any]) -> int:
     raise ValueError(f"Invalid shard prefix {shard_size}")
 
 
+def _get_pre_section_part(
+    metadata: dict[str, Any], src_file_name: Path, default_part_config, section_name: str
+) -> None | tuple[dict, str]:
+    pre_section = metadata[section_name]
+    for part in pre_section:
+        if part in str(src_file_name):
+            part_settings = default_part_config
+            logger.debug(f"Using part {part} for file {src_file_name} with default, part identified in {section_name}")
+            return part_settings, part
+
+    if "default" in pre_section and section_name != "source":
+        next_section = pre_section["default"]["input"]
+        return _get_pre_section_part(metadata, src_file_name, default_part_config, next_section)
+    logger.error(f"No part for file {src_file_name}")
+    raise ValueError(f"No part for file {src_file_name}")
+
+
 def get_matching_part(metadata: dict[str, Any], src_file_name: Path, section_name: str = "release") -> tuple[dict, str]:
     """
     Returns matching part config and part name from metadata for given source file name.
@@ -58,16 +75,20 @@ def get_matching_part(metadata: dict[str, Any], src_file_name: Path, section_nam
     """
     section = metadata[section_name]
     if "default" in section:
-        default_part = section["default"]
+        default_part_config = section["default"]
     else:
-        default_part = {}
+        default_part_config = {}
     for part in section:
         if part in str(src_file_name):
             if section[part] is None or section[part] == "":
                 section[part] = {}
-            part_settings = default_part | section[part]
+            part_settings = default_part_config | section[part]
             logger.debug(f"Using part {part} for file {src_file_name} with settings {part_settings}")
             return part_settings, part
+
+    if section_name != "source":
+        next_section = default_part_config["input"]
+        return _get_pre_section_part(metadata, src_file_name, default_part_config, next_section)
     logger.error(f"No part for file {src_file_name}")
     raise ValueError(f"No part for file {src_file_name}")
 
