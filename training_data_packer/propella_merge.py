@@ -29,8 +29,6 @@ def process(collection_dir: Path, part: str = "", workers=1, slurm: bool = False
     suffix = get_metadata_value(metadata, "source.default.suffix", metadata["suffix"])
     all_names = list(map(lambda x: x.name, find_files(source_dir, suffix)))
 
-    for f in all_names:
-        process_file(metadata, f, output_dir)
     if slurm:
         task_names = get_my_slurm_tasks(all_names)
     else:
