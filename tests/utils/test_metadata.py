@@ -14,6 +14,58 @@ class TestMetadata(unittest.TestCase):
         indata = {"release": {"default": {"pack": "tree"}, "foo": {"sample": "full"}, "bar": {"sample": "full"}}}
         self.assertEqual(get_matching_part(indata, "bla/foo/shard01"), ({"sample": "full", "pack": "tree"}, "foo"))
 
+    def test_metadata_use_defaults(self):
+        indata = {
+            "release": {
+                "default": {
+                    "pack": "tree",
+                    "sample": "wds",
+                },
+                "foo": {},
+                "bar": {
+                    "sample": "full",
+                },
+            }
+        }
+        self.assertEqual(get_matching_part(indata, "bla/foo/shard01"), ({"sample": "wds", "pack": "tree"}, "foo"))
+
+    def test_metadata_use_defaults_look_in_hierarchy(self):
+        indata = {
+            "source": {
+                "foo": {"value": "do not use"},
+            },
+            "release": {
+                "default": {
+                    "input": "source",
+                    "pack": "tree",
+                    "sample": "wds",
+                },
+                "bar": {
+                    "sample": "full",
+                },
+            },
+        }
+        self.assertEqual(
+            get_matching_part(indata, "bla/foo/shard01"), ({"input": "source", "sample": "wds", "pack": "tree"}, "foo")
+        )
+
+    def test_metadata_fail_find_in_hierarchy(self):
+        indata = {
+            "source": {},
+            "release": {
+                "default": {
+                    "input": "source",
+                    "pack": "tree",
+                    "sample": "wds",
+                },
+                "bar": {
+                    "sample": "full",
+                },
+            },
+        }
+        with self.assertRaises(ValueError):
+            get_matching_part(indata, "bla/foo/shard01")
+
     def test_metadata_override_defaults(self):
         indata = {
             "release": {
@@ -33,7 +85,7 @@ class TestMetadata(unittest.TestCase):
 
     def test_no_matching_part(self):
         indata = {
-            "release": {
+            "source": {
                 "default": {
                     "pack": "tree",
                     "sample": "wds",
@@ -44,7 +96,7 @@ class TestMetadata(unittest.TestCase):
             }
         }
         with self.assertRaises(ValueError):
-            get_matching_part(indata, "bla/foo/shard01")
+            get_matching_part(indata, "bla/foo/shard01", "source")
 
     def test_get_shard_size_documents(self):
         self.assertEqual(10_000_000_000, get_shard_size_documents({"shard": "10bd"}))
