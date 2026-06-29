@@ -213,7 +213,7 @@ def _mask_ip_address(document: dict[str, Any], pii_record: dict[str, Any]) -> di
     return document
 
 
-def mask_document(document: dict[str, Any], pii_records: list[dict[str, Any]]) -> dict[str, Any]:
+def multilingual_mask_document(document: dict[str, Any], pii_records: list[dict[str, Any]]) -> dict[str, Any]:
     """
     Masking a complete document. Masking pii records in document by replacing them with scrambled values.
     :param document: Document to mask.
@@ -257,10 +257,11 @@ class PIIMasker:
     Masker for PII records in documents. Masks PII records in documents by replacing them with scrambled values.
     """
 
-    def __init__(self, metric_name: str = "pii_masker") -> None:
+    def __init__(self, masker_fn=multilingual_mask_document, metric_name: str = "pii_masker") -> None:
         self._metric_name = metric_name
         self._masked_documents = 0
         self._pii_documents = 0
+        self._masker_fn = masker_fn
 
     def get_metrics(self):
         """
@@ -297,7 +298,7 @@ class PIIMasker:
         def masker(document):
             if "id" in document and document["id"] in pii:
                 self._masked_documents += 1
-                return mask_document(document, pii[document["id"]])
+                return self._masker_fn(document, pii[document["id"]])
             else:
                 return document
 

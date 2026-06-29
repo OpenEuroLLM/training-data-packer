@@ -422,7 +422,7 @@ class TestMaskRecords(unittest.TestCase):
         ]
     )
     def test_mask_document_has_changed_docs(self, name, text, pii_records, expected, unknown_pii):
-        masked_doc = pii_masking.mask_document({"id": "1234", "text": text}, pii_records)
+        masked_doc = pii_masking.multilingual_mask_document({"id": "1234", "text": text}, pii_records)
         self.assertEqual(expected, masked_doc["pii_masks"])
         if unknown_pii:
             self.assertTrue(masked_doc["pii_unknown"])
