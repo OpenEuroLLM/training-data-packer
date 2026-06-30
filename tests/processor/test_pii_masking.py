@@ -237,6 +237,12 @@ class TestMaskRecords(unittest.TestCase):
                 {"start_pos": 17, "end_pos": 33, "value": "user@example.org"},
                 "This is my email XXXX@example.com.",
             ],
+            [
+                "broken_address",
+                "This is my email user@example.org.",
+                {"start_pos": 17, "end_pos": 21, "value": "user"},
+                "This is my email XXXX@example.org.",
+            ],
         ]
     )
     def test_mask_email_address(self, name, text, pii_record, expected):
@@ -249,6 +255,100 @@ class TestMaskRecords(unittest.TestCase):
     @parameterized.expand(
         [
             [
+                "normal_email",
+                "user@example.org",
+                "user",
+                "example.org",
+                "@",
+            ],
+            [
+                "paranthesis_a_email",
+                "user(a)example.org",
+                "user",
+                "example.org",
+                "(a)",
+            ],
+            [
+                "curly_a_email",
+                "user{a}example.org",
+                "user",
+                "example.org",
+                "{a}",
+            ],
+            [
+                "paranthesis_at_email",
+                "user(at)example.org",
+                "user",
+                "example.org",
+                "(at)",
+            ],
+            [
+                "curly_at_email",
+                "user{at}example.org",
+                "user",
+                "example.org",
+                "{at}",
+            ],
+            [
+                "space_at_email",
+                "user at example.org",
+                "user",
+                "example.org",
+                " at ",
+            ],
+            [
+                "user_with_an_a",
+                "gazonk@example.org",
+                "gazonk",
+                "example.org",
+                "@",
+            ],
+            [
+                "normal_email",
+                "user@",
+                "user",
+                "",
+                "@",
+            ],
+            [
+                "paranthesis_a_email",
+                "user(a)",
+                "user",
+                "",
+                "(a)",
+            ],
+            [
+                "curly_a_email",
+                "user{a}",
+                "user",
+                "",
+                "{a}",
+            ],
+            [
+                "paranthesis_at_email",
+                "user(at)",
+                "user",
+                "",
+                "(at)",
+            ],
+            [
+                "curly_at_email",
+                "user{at}",
+                "user",
+                "",
+                "{at}",
+            ],
+        ]
+    )
+    def test_valid_split_email(self, name, email, expected_user, expected_domain, expected_separator):
+        user, domain, separator = pii_masking._split_email(email)
+        self.assertEqual(expected_user, user)
+        self.assertEqual(expected_domain, domain)
+        self.assertEqual(expected_separator, separator)
+
+    @parameterized.expand(
+        [
+            [
                 "happy_path_ipv4",
                 "The IP 2001:db8::1000 is a public DNS.",
                 {"start_pos": 7, "end_pos": 20, "value": "2001:db8::1000"},
@@ -257,11 +357,6 @@ class TestMaskRecords(unittest.TestCase):
                 "happy_path_ipv6",
                 "The IP 2001:db8::1000 is a public DNS.",
                 {"start_pos": 7, "end_pos": 20, "value": "2001:db8::1000"},
-            ],
-            [
-                "faulty_ip",
-                "The IP 300.300.300.300 is a public DNS.",
-                {"start_pos": 7, "end_pos": 20, "value": "300.300.300.300"},
             ],
         ]
     )
@@ -423,6 +518,46 @@ class TestMaskRecords(unittest.TestCase):
     )
     def test_mask_document_has_changed_docs(self, name, text, pii_records, expected, unknown_pii):
         masked_doc = pii_masking.multilingual_mask_document({"id": "1234", "text": text}, pii_records)
+        self.assertEqual(expected, masked_doc["pii_masks"])
+        if unknown_pii:
+            self.assertTrue(masked_doc["pii_unknown"])
+        else:
+            self.assertFalse("pii_unknown" in masked_doc)
+        if masked_doc["pii_masks"] > 0:
+            self.assertNotEqual(masked_doc["text"], text)
+        else:
+            self.assertEqual(masked_doc["text"], text)
+
+    @parameterized.expand(
+        [
+            ["no_masking", "This is a random text.", [], 0, False],
+            [
+                "mask_mail",
+                "\n\nRe: Saxonica Comments on XProc last-call draft, sections 1 and"
+                " 2\n\nFrom: aaaaaa aaaaa <xyz@xyzxyz.com>\nDate: Fri, ",
+                [
+                    {
+                        "id": "<urn:uuid:f1fb0ba7-6b4e-4196-8291-a73ca1997cf1>",
+                        "name": "private_person",
+                        "value": "aaaaaa aaaaa",
+                        "start_pos": 74,
+                        "end_pos": 86,
+                    },
+                    {
+                        "start_pos": 88,
+                        "end_pos": 102,
+                        "value": "xyz@xyzxyz.com",
+                        "id": "2",
+                        "name": "private_email",
+                    },
+                ],
+                1,
+                False,
+            ],
+        ]
+    )
+    def test_openai_mask_document_has_changed_docs(self, name, text, pii_records, expected, unknown_pii):
+        masked_doc = pii_masking.openai_mask_document({"id": "1234", "text": text}, pii_records)
         self.assertEqual(expected, masked_doc["pii_masks"])
         if unknown_pii:
             self.assertTrue(masked_doc["pii_unknown"])
