@@ -41,9 +41,7 @@ class TestPropellaProcessor(unittest.TestCase):
         metadata = {
             "id": "id",
             "text": "text",
-            "annotations": {
-                "propella-4b": {"hash": "sha256"},
-            },
+            "propella-4b": {"hash": "sha256"},
         }
         lookup_data = {
             "0422bdf3f65ea9ebda3004d0b4e392906c10f5591a32034eeb41f86b78919d4d": {
@@ -80,9 +78,7 @@ class TestPropellaProcessor(unittest.TestCase):
         metadata = {
             "id": "id",
             "text": "text",
-            "annotations": {
-                "propella-4b": {"hash": "sha256-32", "hash-id": "hash_id"},
-            },
+            "propella-4b": {"hash": "sha256-32", "hash-id": "hash_id"},
         }
         lookup_data = {
             "0422bdf3f65ea9ebda3004d0b4e39290": {
