@@ -120,7 +120,7 @@ def sampler_factory(
         case "full":
             return data_iterator, None
         case "random":
-            fraction = max(float(part_config["budget"].strip("%")) / 100 * float(part_config["rubber"]), 1.0)
+            fraction = min(float(part_config["budget"].strip("%")) / 100 * float(part_config["rubber"]), 1.0)
             return itertools.filterfalse(lambda x: random.random() > fraction, data_iterator), None
         case "wds+register":
             return itertools.chain.from_iterable(map(sample_register.process_record, data_iterator)), None
@@ -135,3 +135,4 @@ def sampler_factory(
             return itertools.chain.from_iterable(map(sampler.get_mapper(), data_iterator)), sampler
         case _:
             logger.error(f"Unknown sampling rule {part_config['sample']} in {part_name}")
+            raise ValueError(f"Unknown sampling rule {part_config['sample']} in {part_name}")

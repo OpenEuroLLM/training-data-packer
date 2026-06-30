@@ -1,4 +1,3 @@
-import itertools
 import os
 from pathlib import Path
 
@@ -6,9 +5,8 @@ from loguru import logger
 
 from training_data_packer.processor.clean import AlignFieldNames, field_scrubber_factory
 from training_data_packer.processor.filters import FilterOnBlocklist
-from training_data_packer.processor.pii_masking import PIIMasker
+from training_data_packer.processor.pii_masking import PIIMasker, openai_mask_document
 from training_data_packer.processor.propella import propella_annotate_factory
-from training_data_packer.processor.sample import sample_register
 from training_data_packer.processor.sample.sampler import sampler_factory
 from training_data_packer.utils import metrics
 from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter
@@ -45,8 +43,8 @@ def package_file(
 
     # After this comment are actual records removed. Processing cannot require zipping of dataset works.
     if "id" in metadata:
-        pii_iter = AlignFieldNames(GenericJsonlReader(pii_file).read(), metadata, no_key_hierarchy=True)
-        pii_masker = PIIMasker()
+        pii_iter = GenericJsonlReader(pii_file).read()
+        pii_masker = PIIMasker(masker_fn=openai_mask_document)
         pii_masked_iter = map(pii_masker.get_masker(pii_iter), propella_iter)
 
         contamination_ids = [x["id"] for x in AlignFieldNames(GenericJsonlReader(contamination_file).read(), metadata)]
@@ -59,10 +57,8 @@ def package_file(
     else:
         logger.info("No id field in metadata, skipping pii, decontamination and blocklist")
         filtered = scrub_iter
-    if "wds+register" in metadata:
-        logger.info("WDS+register files")
-        filtered = itertools.chain.from_iterable(map(sample_register.process_record, filtered))
-    sampled = sampler_factory(filtered, metadata, src_file)
+
+    sampled, sampled_metrics = sampler_factory(filtered, metadata, src_file)
 
     writer = JsonlZstWriter(tmp_out_file)
     writer.write(sampled)

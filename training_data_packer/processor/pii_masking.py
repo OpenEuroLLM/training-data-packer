@@ -1,6 +1,7 @@
 import ipaddress
 import itertools
 import random
+import re
 import string
 from collections.abc import Callable, Iterable
 from typing import Any
@@ -100,8 +101,10 @@ def _scramble_string(text: str) -> str:
     :param text: Input string to be scrambled
     :return: Scrambled string
     """
+    count = 0
     while True:
-        # This loop ensure input text and scrambled string is not the same.
+        # This loop ensures input text and scrambled string are different.
+        count += 1
         result = []
 
         for char in text:
@@ -115,7 +118,7 @@ def _scramble_string(text: str) -> str:
             else:
                 result.append(char)
         result_str = "".join(result)
-        if result_str != text:
+        if result_str != text or count > 3:
             return result_str
 
 
@@ -145,6 +148,21 @@ def _scramble_ip_address(text: str) -> str:
         raise ValueError("Invalid IP Address") from e
 
 
+def _split_email(email):
+    pattern = r"(_at_| at |\(a[t]?\)|{a[t]?}|@)"
+
+    # Split the email string at the pattern, maximum of 1 split
+    parts = re.split(pattern, email, maxsplit=1, flags=re.IGNORECASE)
+
+    if len(parts) == 3:
+        username = parts[0].strip()
+        separator = parts[1]
+        domain = parts[2].strip()
+        return username, domain, separator
+    else:
+        raise ValueError("Invalid email {email}")
+
+
 def _mask_email_address(document: dict[str, Any], pii_record: dict[str, Any]) -> dict[str, Any]:
     """
     Masking an email address by replacing it with a random email address.
@@ -152,8 +170,18 @@ def _mask_email_address(document: dict[str, Any], pii_record: dict[str, Any]) ->
     :param pii_record: Pii record containing position of email address in document.
     :return: Masked document.
     """
-    user_name, domain = pii_record["value"].split("@")
-    email_mask = f"{_scramble_string(user_name)}@example.com"
+    try:
+        user_name, domain, separator = _split_email(pii_record["value"])
+        if user_name != "" and domain != "":
+            email_mask = f"{_scramble_string(user_name)}{separator}example.com"
+        elif domain == "":
+            email_mask = f"{_scramble_string(user_name)}{separator}"
+        else:
+            logger.warning(f"PII record {pii_record} has not a valid email. Scrambling as string.")
+            email_mask = _scramble_string(pii_record["value"])
+    except ValueError:
+        logger.warning(f"PII record {pii_record} has not a valid email. Scrambling as string.")
+        email_mask = _scramble_string(pii_record["value"])
     document["text"] = _replace_segment(document["text"], pii_record["start_pos"], pii_record["end_pos"], email_mask)
     return document
 
@@ -207,13 +235,16 @@ def _mask_ip_address(document: dict[str, Any], pii_record: dict[str, Any]) -> di
     """
     try:
         scrambled_ip = _scramble_ip_address(pii_record["value"])
+        document["text"] = _replace_segment(
+            document["text"], pii_record["start_pos"], pii_record["end_pos"], scrambled_ip
+        )
     except ValueError:
-        scrambled_ip = _scramble_string(pii_record["value"])
-    document["text"] = _replace_segment(document["text"], pii_record["start_pos"], pii_record["end_pos"], scrambled_ip)
+        logger.warning(f'"{pii_record["value"]}" not a valid ip address')
+
     return document
 
 
-def mask_document(document: dict[str, Any], pii_records: list[dict[str, Any]]) -> dict[str, Any]:
+def multilingual_mask_document(document: dict[str, Any], pii_records: list[dict[str, Any]]) -> dict[str, Any]:
     """
     Masking a complete document. Masking pii records in document by replacing them with scrambled values.
     :param document: Document to mask.
@@ -252,15 +283,60 @@ def mask_document(document: dict[str, Any], pii_records: list[dict[str, Any]]) -
     return document
 
 
+def openai_mask_document(document: dict[str, Any], pii_records: list[dict[str, Any]]) -> dict[str, Any]:
+    """
+    Masking a complete document. Masking pii records are produced py OpenAIPrivacy tool and wrapper.
+    Masking pii records in document by replacing them with scrambled values.
+    :param document: Document to mask.
+    :param pii_records: List of pii records to mask.
+    :return: Masked document.
+    """
+    try:
+        masked_occations = 0
+        for pii_record in pii_records:
+            match pii_record["name"]:
+                case "private_phone" | "secret":
+                    document = _mask_with_scrambled_string(document, pii_record)
+                    masked_occations += 1
+                case "private_email":
+                    document = _mask_email_address(document, pii_record)
+                    masked_occations += 1
+                case "private_url":
+                    if not pii_record["value"].startswith("http"):
+                        document = _mask_ip_address(document, pii_record)
+                        masked_occations += 1
+                case (
+                    "private_person"
+                    | "private_address"
+                    | "private_date"
+                    | "account_number"  # If possible only for english, otherwise none.
+                ):
+                    # Catch labels not to mask.
+                    pass
+                case _:
+                    logger.warning(
+                        f"Unknown pii record type {pii_record['name']} in document {document['id']},"
+                        f" masked as scrambled string"
+                    )
+                    document = _mask_with_scrambled_string(document, pii_record)
+                    document["pii_unknown"] = True
+    except ValueError as e:
+        logger.warning(f"Document {document['id']} has pii issues {e}")
+    document["pii_masks"] = masked_occations
+    document["pii_masks_ignored"] = len(pii_records) - masked_occations
+    return document
+
+
 class PIIMasker:
     """
     Masker for PII records in documents. Masks PII records in documents by replacing them with scrambled values.
     """
 
-    def __init__(self, metric_name: str = "pii_masker") -> None:
+    def __init__(self, masker_fn=multilingual_mask_document, metric_name: str = "pii_masker") -> None:
         self._metric_name = metric_name
         self._masked_documents = 0
         self._pii_documents = 0
+        self._masker_fn = masker_fn
 
     def get_metrics(self):
         """
@@ -297,7 +373,7 @@ class PIIMasker:
         def masker(document):
             if "id" in document and document["id"] in pii:
                 self._masked_documents += 1
-                return mask_document(document, pii[document["id"]])
+                return self._masker_fn(document, pii[document["id"]])
             else:
                 return document
 
