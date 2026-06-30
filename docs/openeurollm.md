@@ -27,7 +27,7 @@ graph TD;
     T3.3["T3.3 Training Data Enrichment"]-- Contamination data -->T3.5
     T3.4["T3.4 Training Data Regulatory Compliance"]-- PII data -->T3.5
 
-    T4.3["T3.4 Task Dataset composition and processing"]-- Budgets -->T3.5
+    T4.3["T4.3 Task Dataset composition and processing"]-- Budgets -->T3.5
     T3.5-- Tokenized data -->T4.4["T4.4 Large-scale foundation model training"]
     T3.5-->D3.2([D3.2 Initial dataset release])
     T3.5-->D3.3([D3.3 Final dataset release])
