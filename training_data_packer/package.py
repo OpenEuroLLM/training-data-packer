@@ -30,6 +30,9 @@ def process(
 
     src_suffix = _get_in_suffix(metadata, mode)
     all_files = find_files(source_dir, src_suffix, part)
+    if len(all_files) == 0:
+        logger.error("No files detected, probably error in metadata.yaml")
+        raise ValueError("No files detected")
     logger.info(f"Found {len(all_files)} files")
 
     if slurm:
