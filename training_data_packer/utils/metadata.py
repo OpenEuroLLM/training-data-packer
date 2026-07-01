@@ -5,6 +5,8 @@ import glom
 import yaml
 from loguru import logger
 
+from training_data_packer.utils.file import change_suffix
+
 
 def get_metadata_value(metadata: dict[str, Any], key: str, default: Any = None) -> Any:
     """
@@ -53,7 +55,9 @@ def _get_pre_section_part(
 ) -> None | tuple[dict, str]:
     pre_section = metadata[section_name]
     for part in pre_section:
-        if part in str(src_file_name):
+        if part in ["source", "target", "default"]:
+            continue
+        if f"/{part}/" in str(src_file_name):
             part_settings = default_part_config
             logger.debug(f"Using part {part} for file {src_file_name} with default, part identified in {section_name}")
             return part_settings, part
@@ -105,3 +109,26 @@ def read_metadata(file_path: Path) -> dict[str, Any]:
         metadata = yaml.load(file, Loader=yaml.BaseLoader)
         metadata["_internal"] = {"collection_dir": file_path.parent}
         return metadata
+
+
+def get_source_dir(metadata):
+    mode = metadata["_internal"]["mode"]
+    input_src = metadata[mode]["default"]["input"]
+    if mode == "release" and input_src == "parallel":
+        input_src = metadata["parallel"]["default"]["input"]
+        metadata["_internal"]["parallel"] = True
+    else:
+        metadata["_internal"]["parallel"] = False
+    return metadata["_internal"]["collection_dir"].joinpath(input_src)
+
+
+def get_in_suffix(metadata: dict[str, Any], mode: str) -> str:
+    input_dir = get_metadata_value(metadata, f"{mode}.default.input", None)
+    return get_metadata_value(metadata, f"{input_dir}.default.suffix", metadata["suffix"])
+
+
+def calculate_file_path(src_file: Path, metadata: dict[str, Any], mode: str, process_dir: Path) -> Path:
+    input_suffix = get_in_suffix(metadata, mode)
+    rel_file_path = src_file.relative_to(get_source_dir(metadata))
+    out_suffix = ".jsonl.zst"
+    return change_suffix(process_dir.joinpath(rel_file_path), input_suffix, out_suffix)

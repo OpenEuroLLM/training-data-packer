@@ -1,14 +1,13 @@
 import argparse
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
-from typing import Any
 
 from loguru import logger
 
 from training_data_packer.mode.release import package_file
 from training_data_packer.mode.sample import sample_file
-from training_data_packer.utils.file import change_suffix, find_files
-from training_data_packer.utils.metadata import get_metadata_value, read_metadata
+from training_data_packer.utils.file import find_files
+from training_data_packer.utils.metadata import calculate_file_path, get_in_suffix, get_source_dir, read_metadata
 from training_data_packer.utils.slurm import get_my_slurm_tasks
 
 
@@ -16,7 +15,8 @@ def process(
     collection_dir: Path, workers=1, slurm: bool = False, part: str | None = None, mode: str = "release"
 ) -> None:
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
-    source_dir = collection_dir.joinpath(metadata[mode]["default"]["input"])
+    metadata["_internal"]["mode"] = mode
+    source_dir = get_source_dir(metadata)
     contamination_dir = collection_dir.joinpath("nemo-curator")
     pii_dir = collection_dir.joinpath("openai-privacy-filter")
     propella_dir = collection_dir.joinpath("propella-4b")
@@ -28,7 +28,7 @@ def process(
         case _:
             raise ValueError(f"Undefined mode {mode}")
 
-    src_suffix = _get_in_suffix(metadata, mode)
+    src_suffix = get_in_suffix(metadata, mode)
     all_files = find_files(source_dir, src_suffix, part)
     if len(all_files) == 0:
         logger.error("No files detected, probably error in metadata.yaml")
@@ -45,10 +45,10 @@ def process(
         jobs = []
         with ProcessPoolExecutor(max_workers=workers) as executor:
             for src_file in task_files:
-                contamination_file = _calculate_file_path(src_file, metadata, mode, contamination_dir)
-                pii_file = _calculate_file_path(src_file, metadata, mode, pii_dir)
-                propella_file = _calculate_file_path(src_file, metadata, mode, propella_dir)
-                output_file = _calculate_file_path(src_file, metadata, mode, output_dir)
+                contamination_file = calculate_file_path(src_file, metadata, mode, contamination_dir)
+                pii_file = calculate_file_path(src_file, metadata, mode, pii_dir)
+                propella_file = calculate_file_path(src_file, metadata, mode, propella_dir)
+                output_file = calculate_file_path(src_file, metadata, mode, output_dir)
 
                 match mode:
                     case "release":
@@ -73,10 +73,10 @@ def process(
     else:
         for src_file in task_files:
             logger.debug(f"Processing file {src_file}")
-            contamination_file = _calculate_file_path(src_file, metadata, mode, contamination_dir)
-            pii_file = _calculate_file_path(src_file, metadata, mode, pii_dir)
-            propella_file = _calculate_file_path(src_file, metadata, mode, propella_dir)
-            output_file = _calculate_file_path(src_file, metadata, mode, output_dir)
+            contamination_file = calculate_file_path(src_file, metadata, mode, contamination_dir)
+            pii_file = calculate_file_path(src_file, metadata, mode, pii_dir)
+            propella_file = calculate_file_path(src_file, metadata, mode, propella_dir)
+            output_file = calculate_file_path(src_file, metadata, mode, output_dir)
             match mode:
                 case "release":
                     package_file(src_file, metadata, contamination_file, pii_file, propella_file, output_file)
@@ -84,21 +84,6 @@ def process(
                     sample_file(src_file, metadata, propella_file, output_file)
                 case _:
                     raise ValueError(f"Undefined mode {mode}")
-
-
-def _get_in_suffix(metadata: dict[str, Any], mode: str) -> str:
-    input_dir = get_metadata_value(metadata, f"{mode}.default.input", None)
-    return get_metadata_value(metadata, f"{input_dir}.default.suffix", metadata["suffix"])
-
-
-def _calculate_file_path(src_file: Path, metadata: dict[str, Any], mode: str, process_dir: Path) -> Path:
-    collection_dir = Path(get_metadata_value(metadata, "_internal.collection_dir", None))
-    input_dir = get_metadata_value(metadata, f"{mode}.default.input", None)
-    input_suffix = _get_in_suffix(metadata, mode)
-    source_dir = collection_dir.joinpath(Path(input_dir))
-    rel_file_path = src_file.relative_to(source_dir)
-    out_suffix = ".jsonl.zst"
-    return change_suffix(process_dir.joinpath(rel_file_path), input_suffix, out_suffix)
 
 
 def main():

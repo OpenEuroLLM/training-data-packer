@@ -1,8 +1,14 @@
 import unittest
+from pathlib import Path
 
 from parameterized import parameterized
 
-from training_data_packer.utils.metadata import get_matching_part, get_metadata_value, get_shard_size_documents
+from training_data_packer.utils.metadata import (
+    calculate_file_path,
+    get_matching_part,
+    get_metadata_value,
+    get_shard_size_documents,
+)
 
 
 class TestMetadata(unittest.TestCase):
@@ -125,3 +131,67 @@ class TestMetadata(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestCalculateFilePath(unittest.TestCase):
+    src_dir = Path("/srv/data/gazonk/source")
+    contamination_dir = Path("/srv/data/gazonk/contamination")
+    pii_dir = Path("/srv/data/gazonk/pii")
+    propella_dir = Path("/srv/data/gazonk/propella-4b")
+    output_dir = Path("/srv/data/gazonk/release_raw")
+
+    def test_calculate_file_paths_default(self):
+        src_file = self.src_dir.joinpath("shard01/file01.jsonl.zst")
+        metadata = {
+            "_internal": {"collection_dir": Path("/srv/data/gazonk"), "mode": "release"},
+            "release": {"default": {"input": "source"}},
+            "suffix": ".jsonl.zstd",
+        }
+        contamination_file = calculate_file_path(src_file, metadata, "release", self.contamination_dir)
+        pii_file = calculate_file_path(src_file, metadata, "release", self.pii_dir)
+        propella_file = calculate_file_path(src_file, metadata, "release", self.propella_dir)
+        out_file = calculate_file_path(src_file, metadata, "release", self.output_dir)
+
+        self.assertEqual(self.contamination_dir.joinpath("shard01/file01.jsonl.zst"), contamination_file)
+        self.assertEqual(self.pii_dir.joinpath("shard01/file01.jsonl.zst"), pii_file)
+        self.assertEqual(self.propella_dir.joinpath("shard01/file01.jsonl.zst"), propella_file)
+        self.assertEqual(self.output_dir.joinpath("shard01/file01.jsonl.zst"), out_file)
+
+    def test_calculate_file_paths_source_suffix(self):
+        src_file = self.src_dir.joinpath("shard01/file01.jsonl.gz")
+        metadata = {
+            "_internal": {"collection_dir": Path("/srv/data/gazonk"), "mode": "release"},
+            "release": {"default": {"input": "source"}},
+            "source": {"default": {"suffix": ".jsonl.gz"}},
+            "suffix": ".jsonl.zst",
+        }
+
+        contamination_file = calculate_file_path(src_file, metadata, "release", self.contamination_dir)
+        pii_file = calculate_file_path(src_file, metadata, "release", self.pii_dir)
+        propella_file = calculate_file_path(src_file, metadata, "release", self.propella_dir)
+        out_file = calculate_file_path(src_file, metadata, "release", self.output_dir)
+
+        self.assertEqual(self.contamination_dir.joinpath("shard01/file01.jsonl.zst"), contamination_file)
+        self.assertEqual(self.pii_dir.joinpath("shard01/file01.jsonl.zst"), pii_file)
+        self.assertEqual(self.propella_dir.joinpath("shard01/file01.jsonl.zst"), propella_file)
+        self.assertEqual(self.output_dir.joinpath("shard01/file01.jsonl.zst"), out_file)
+
+    def test_calculate_file_paths_sample_source_suffix(self):
+        src_file = self.src_dir.joinpath("shard01/file01.jsonl.gz")
+        output_dir = Path("/srv/data/gazonk/sample")
+        metadata = {
+            "_internal": {"collection_dir": Path("/srv/data/gazonk"), "mode": "sample"},
+            "sample": {"default": {"input": "source"}},
+            "source": {"default": {"suffix": ".jsonl.gz"}},
+            "suffix": ".jsonl.zst",
+        }
+
+        contamination_file = calculate_file_path(src_file, metadata, "sample", self.contamination_dir)
+        pii_file = calculate_file_path(src_file, metadata, "sample", self.pii_dir)
+        propella_file = calculate_file_path(src_file, metadata, "sample", self.propella_dir)
+        out_file = calculate_file_path(src_file, metadata, "sample", output_dir)
+
+        self.assertEqual(self.contamination_dir.joinpath("shard01/file01.jsonl.zst"), contamination_file)
+        self.assertEqual(self.pii_dir.joinpath("shard01/file01.jsonl.zst"), pii_file)
+        self.assertEqual(self.propella_dir.joinpath("shard01/file01.jsonl.zst"), propella_file)
+        self.assertEqual(output_dir.joinpath("shard01/file01.jsonl.zst"), out_file)
