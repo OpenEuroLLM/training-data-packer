@@ -23,6 +23,12 @@ def parallel_package_pipeline(
     piis: Iterable[dict[str, Any]],
     contaminations: Iterable[dict[str, Any]],
 ) -> Iterable[dict[str, Any]]:
+    """
+    Executes a parallel package processing pipeline that generates synthetic
+    identifiers if required, applies filters based on PII and contamination
+    blocklists, merges parallel language data components into documents, and
+    collects performance metrics
+    """
     if id not in metadata:
         parallel_synthetic_id = ParallelSyntheticId(metadata)
         synthetic_id_iter = parallel_synthetic_id.get_iterator(src_iter)
@@ -38,8 +44,7 @@ def parallel_package_pipeline(
     filtered_iter = contamination_filter.filter(pii_filter.filter(synthetic_id_iter))
 
     parallel_merger = ParallelLanguageMerger(metadata, part_config)
-    metrics_collection = metrics.collect_metrics(pii_filter, contamination_filter, parallel_merger)
-    return parallel_merger.get_merge_iterator(filtered_iter), metrics_collection
+    return parallel_merger.get_merge_iterator(filtered_iter), [pii_filter, contamination_filter, parallel_merger]
 
 
 def package_file(
@@ -58,7 +63,7 @@ def package_file(
     contamination_filter = None
     block_filter = None
     pii_masker = None
-    parallel_metrics = {}
+    parallel_metrics = []
 
     part_config, part_name = get_matching_part(metadata, src_file, section_name="release")
 
@@ -116,7 +121,7 @@ def package_file(
         pii_masker,
         contamination_filter,
         block_filter,
-        parallel_metrics,
+        *parallel_metrics,
         writer,
     )
     metrics_filename = out_file.parent.joinpath("." + out_file.name + ".metrics.json")

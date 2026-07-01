@@ -8,6 +8,17 @@ from training_data_packer.utils.misc import hash_factory, lang_to_name
 
 
 class ParallelLanguageMerger:
+    """
+    Facilitates the merging of parallel language documents into a unified text
+    format with unique identification.
+
+    This class is responsible for taking batches of parallel data, formatting
+    the source and target language pairs, and optionally randomizing the order
+    of these pairs within the text. It calculates a unique ID for the merged
+    content using a hash function. Additionally, it tracks processing metrics
+    such as the count of processed and written records.
+    """
+
     def __init__(
         self,
         metadata: dict[str, Any],
@@ -66,9 +77,11 @@ class ParallelLanguageMerger:
                         f"{target_lang_name}: {doc[self._target_text_col]}"
                     )
                 formatted_pairs.append(pair)
+                self._processed_records += 1
             final_text = "\n\n".join(formatted_pairs)
             identity = self._hash_fn(final_text)
             doc = {"id": identity, "text": final_text}
+            self._written_records += 1
             return doc
 
         return mapper
@@ -78,6 +91,10 @@ class ParallelLanguageMerger:
 
 
 class ParallelSyntheticId:
+    """
+    Creaate a synthetic ID of the a language pair.
+    """
+
     def __init__(
         self,
         metadata: dict[str, Any],
