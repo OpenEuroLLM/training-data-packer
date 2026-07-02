@@ -122,7 +122,8 @@ def sampler_factory(
         case "full":
             return data_iterator, None
         case "random":
-            fraction = min(float(part_config["budget"].strip("%")) / 100 * float(part_config["rubber"]), 1.0)
+            rubber = float(part_config.get("rubber", "1.0"))
+            fraction = min(float(part_config["budget"].strip("%")) / 100 * rubber, 1.0)
             return itertools.filterfalse(lambda x: random.random() > fraction, data_iterator), None
         case "wds+register":
             return itertools.chain.from_iterable(map(sample_register.process_record, data_iterator)), None
