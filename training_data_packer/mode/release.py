@@ -9,7 +9,6 @@ from training_data_packer.processor.clean import AlignFieldNames, field_scrubber
 from training_data_packer.processor.filters import FilterOnBlocklist
 from training_data_packer.processor.parallel_merger import ParallelLanguageMerger, ParallelSyntheticId
 from training_data_packer.processor.pii_masking import PIIMasker, openai_mask_document
-from training_data_packer.processor.propella import propella_annotate_factory
 from training_data_packer.processor.sample.sampler import sampler_factory
 from training_data_packer.utils import metrics
 from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter
@@ -85,17 +84,12 @@ def package_file(
 
     scrub_iter = field_scrubber_factory(align_iter, part_config)
 
-    propella_data_iter = None
-    if propella_file.exists():
-        propella_data_iter = GenericJsonlReader(propella_file).read()
-    propella_iter = propella_annotate_factory(scrub_iter, propella_data_iter)
-
     # After this comment are actual records removed. Processing cannot require zipping of dataset works.
     if "id" in metadata:
         if not is_parallel_text:
             pii_iter = GenericJsonlReader(pii_file).read()
             pii_masker = PIIMasker(masker_fn=openai_mask_document, part_config=part_config)
-            pii_masked_iter = map(pii_masker.get_masker(pii_iter), propella_iter)
+            pii_masked_iter = map(pii_masker.get_masker(pii_iter), scrub_iter)
 
             contamination_ids = {
                 x["id"] for x in AlignFieldNames(GenericJsonlReader(contamination_file).read(), metadata)
@@ -103,7 +97,7 @@ def package_file(
             contamination_filter = FilterOnBlocklist("contamination", contamination_ids)
             filtered_iter = contamination_filter.filter(pii_masked_iter)
         else:
-            filtered_iter = propella_iter
+            filtered_iter = scrub_iter
 
         if "block" in part_config:
             block_filter = FilterOnBlocklist("block_list", part_config["block"])
