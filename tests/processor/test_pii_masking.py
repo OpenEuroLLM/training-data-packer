@@ -530,9 +530,9 @@ class TestMaskRecords(unittest.TestCase):
 
     @parameterized.expand(
         [
-            ["no_masking", "This is a random text.", [], 0, False],
+            ["no_masking", "This is a random text.", [], None, 0, False],
             [
-                "mask_mail",
+                "mask_mail_using_default_labels",
                 "\n\nRe: Saxonica Comments on XProc last-call draft, sections 1 and"
                 " 2\n\nFrom: aaaaaa aaaaa <xyz@xyzxyz.com>\nDate: Fri, ",
                 [
@@ -551,14 +551,65 @@ class TestMaskRecords(unittest.TestCase):
                         "name": "private_email",
                     },
                 ],
+                None,
                 1,
+                False,
+            ],
+            [
+                "mask_mail_private_person_using_default_labels",
+                "\n\nRe: Saxonica Comments on XProc last-call draft, sections 1 and"
+                " 2\n\nFrom: aaaaaa aaaaa <xyz@xyzxyz.com>\nDate: Fri, ",
+                [
+                    {
+                        "id": "<urn:uuid:f1fb0ba7-6b4e-4196-8291-a73ca1997cf1>",
+                        "name": "private_person",
+                        "value": "aaaaaa aaaaa",
+                        "start_pos": 74,
+                        "end_pos": 86,
+                    },
+                    {
+                        "start_pos": 88,
+                        "end_pos": 102,
+                        "value": "xyz@xyzxyz.com",
+                        "id": "2",
+                        "name": "private_email",
+                    },
+                ],
+                ["private_email", "private_person"],
+                2,
+                False,
+            ],
+            [
+                "mask_mail_private_person_using_default_labels",
+                "\n\nRe: Saxonica Comments on XProc last-call draft, sections 1 and"
+                " 2\n\nFrom: aaaaaa aaaaa <xyz@xyzxyz.com>\nDate: Fri, ",
+                [
+                    {
+                        "id": "<urn:uuid:f1fb0ba7-6b4e-4196-8291-a73ca1997cf1>",
+                        "name": "private_person",
+                        "value": "aaaaaa aaaaa",
+                        "start_pos": 74,
+                        "end_pos": 86,
+                    },
+                    {
+                        "start_pos": 88,
+                        "end_pos": 102,
+                        "value": "xyz@xyzxyz.com",
+                        "id": "2",
+                        "name": "private_email",
+                    },
+                ],
+                [],
+                0,
                 False,
             ],
         ]
     )
-    def test_openai_mask_document_has_changed_docs(self, name, text, pii_records, expected, unknown_pii):
-        masked_doc = pii_masking.openai_mask_document({"id": "1234", "text": text}, pii_records)
-        self.assertEqual(expected, masked_doc["pii_masks"])
+    def test_openai_mask_document_has_changed_docs(
+        self, name, text, pii_records, mask_labels, expected_maske_count, unknown_pii
+    ):
+        masked_doc = pii_masking.openai_mask_document({"id": "1234", "text": text}, pii_records, mask_labels)
+        self.assertEqual(expected_maske_count, masked_doc["pii_masks"])
         if unknown_pii:
             self.assertTrue(masked_doc["pii_unknown"])
         else:
