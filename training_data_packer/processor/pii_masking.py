@@ -244,11 +244,15 @@ def _mask_ip_address(document: dict[str, Any], pii_record: dict[str, Any]) -> di
     return document
 
 
-def multilingual_mask_document(document: dict[str, Any], pii_records: list[dict[str, Any]]) -> dict[str, Any]:
+def multilingual_mask_document(
+    document: dict[str, Any], pii_records: list[dict[str, Any]], mask_fields: list[str] = None
+) -> dict[str, Any]:
     """
     Masking a complete document. Masking pii records in document by replacing them with scrambled values.
     :param document: Document to mask.
     :param pii_records: List of pii records to mask.
+    :param mask_fields: Not used!!! List of fields/labels to mask. Case-sensitive. None means a
+    default list of labels. Empty list means no masking.
     :return: Masked document.
     """
     try:
@@ -283,19 +287,35 @@ def multilingual_mask_document(document: dict[str, Any], pii_records: list[dict[
     return document
 
 
-def openai_mask_document(document: dict[str, Any], pii_records: list[dict[str, Any]]) -> dict[str, Any]:
+def openai_mask_document(
+    document: dict[str, Any], pii_records: list[dict[str, Any]], mask_fields: list[str] = None
+) -> dict[str, Any]:
     """
     Masking a complete document. Masking pii records are produced py OpenAIPrivacy tool and wrapper.
     Masking pii records in document by replacing them with scrambled values.
     :param document: Document to mask.
     :param pii_records: List of pii records to mask.
+    :param mask_fields: List of fields/labels to mask. Case-sensitive. None means a default list
+     of labels. Empty list means no masking.
     :return: Masked document.
     """
     try:
         masked_occations = 0
+        if mask_fields is None:
+            logger.info("Using default labels for PII filtering.")
+            mask_fields = ["private_email", "private_phone", "private_url", "secret"]
         for pii_record in pii_records:
+            if pii_record["name"] not in mask_fields:
+                continue
             match pii_record["name"]:
-                case "private_phone" | "secret":
+                case (
+                    "private_phone"
+                    | "secret"
+                    | "private_person"
+                    | "private_address"
+                    | "private_date"
+                    | "account_number"
+                ):
                     document = _mask_with_scrambled_string(document, pii_record)
                     masked_occations += 1
                 case "private_email":
@@ -305,14 +325,6 @@ def openai_mask_document(document: dict[str, Any], pii_records: list[dict[str, A
                     if not pii_record["value"].startswith("http"):
                         document = _mask_ip_address(document, pii_record)
                         masked_occations += 1
-                case (
-                    "private_person"
-                    | "private_address"
-                    | "private_date"
-                    | "account_number"  # If possible only for english, otherwise none.
-                ):
-                    # Catch labels not to mask.
-                    pass
                 case _:
                     logger.warning(
                         f"Unknown pii record type {pii_record['name']} in document {document['id']},"
@@ -332,11 +344,23 @@ class PIIMasker:
     Masker for PII records in documents. Masks PII records in documents by replacing them with scrambled values.
     """
 
-    def __init__(self, masker_fn=multilingual_mask_document, metric_name: str = "pii_masker") -> None:
+    def __init__(
+        self,
+        masker_fn=multilingual_mask_document,
+        part_config: dict[str, Any] = None,
+        metric_name: str = "pii_masker",
+    ) -> None:
         self._metric_name = metric_name
         self._masked_documents = 0
         self._pii_documents = 0
         self._masker_fn = masker_fn
+        if part_config is None:
+            part_config = {}
+        self._mask_fields = part_config.get("mask", None)
+        if self._mask_fields is None:
+            logger.info("Using default labels for masking")
+        else:
+            logger.info(f"Metadata declare following labels for masking: {', '.join(self._mask_fields)}")
 
     def get_metrics(self):
         """
@@ -353,7 +377,7 @@ class PIIMasker:
     def get_masker(self, pii_iter: Iterable[dict[str, Any]]) -> Callable[[dict[str, Any]], dict[str, Any]]:
         """
         Takes an iterator of PII records. Prepare them into a dict of document id to list of pii records for
-        the document. Preparation merge overlapping PII records and remove duplicates.
+        the document. Preparation to merge overlapping PII records and remove duplicates.
         :param pii_iter: Iterator of PII records.
         :return: Function that masks a provided document.
         """
@@ -373,7 +397,7 @@ class PIIMasker:
         def masker(document):
             if "id" in document and document["id"] in pii:
                 self._masked_documents += 1
-                return self._masker_fn(document, pii[document["id"]])
+                return self._masker_fn(document, pii[document["id"]], self._mask_fields)
             else:
                 return document
 

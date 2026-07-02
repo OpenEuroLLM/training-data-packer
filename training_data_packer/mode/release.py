@@ -94,7 +94,7 @@ def package_file(
     if "id" in metadata:
         if not is_parallel_text:
             pii_iter = GenericJsonlReader(pii_file).read()
-            pii_masker = PIIMasker(masker_fn=openai_mask_document)
+            pii_masker = PIIMasker(masker_fn=openai_mask_document, part_config=part_config)
             pii_masked_iter = map(pii_masker.get_masker(pii_iter), propella_iter)
 
             contamination_ids = {
