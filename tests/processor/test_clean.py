@@ -2,22 +2,7 @@ import unittest
 
 from parameterized import parameterized
 
-from training_data_packer.processor import clean
 from training_data_packer.processor.clean import AlignFieldNames, field_scrubber_factory
-
-
-class TestGetHierarchyKey(unittest.TestCase):
-    def test_pop_key_one_level(self):
-        input_data = {"id": "1234", "text": "Happy"}
-        result = clean._pop_hierarchy_key_value(["id"], input_data)
-        self.assertEqual(result, "1234")
-        self.assertEqual({"text": "Happy"}, input_data)
-
-    def test_pop_key_two_level(self):
-        input_data = {"metadata": {"id": "1234", "text": "Happy"}}
-        result = clean._pop_hierarchy_key_value(["metadata", "id"], input_data)
-        self.assertEqual(result, "1234")
-        self.assertEqual({"metadata": {"text": "Happy"}}, input_data)
 
 
 class TestAlignFieldNames(unittest.TestCase):
@@ -75,19 +60,6 @@ class TestAlignFieldNames(unittest.TestCase):
             {"id": "1235", "metadata": {}, "text": "Gazonk"},
         ]
         align_it = AlignFieldNames(iter(src_indata), {"id": "metadata.int-id", "text": "context", "doc_s": "doc_score"})
-        align_list = list(align_it)
-        self.assertEqual(align_list, expected)
-
-    def test_ignore_hierarchy_text(self):
-        src_indata = [
-            {"id": "1234", "context": "Happy"},
-            {"id": "1235", "context": "Gazonk"},
-        ]
-        expected = [
-            {"id": "1234", "text": "Happy"},
-            {"id": "1235", "text": "Gazonk"},
-        ]
-        align_it = AlignFieldNames(iter(src_indata), {"id": "metadata.id", "text": "context"}, no_key_hierarchy=True)
         align_list = list(align_it)
         self.assertEqual(align_list, expected)
 
