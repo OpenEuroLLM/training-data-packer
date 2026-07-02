@@ -17,6 +17,26 @@ The packer consists of the following tools:
 
 Both tools read a file `metadata.yaml` containing metadata about the structure and processing of the data.
 
+## TL;DR; I just want to run!
+Here are steps to run packaging and reduce the number of files.
+1. Install `uv` if not already don. Run: `curl -LsSf https://astral.sh/uv/install.sh | sh`, it will be
+installed in `~/.local/bin/uv`
+2. Check out `https://github.com/OpenEuroLLM/training-data-packer`
+3. Go down in training-data-packar and create uv-environment with `uv sync`
+4. Start a packaging job `sbatch --array=0-4 ./package.sh  /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0`
+Change path to the dataset you want to process. Adjust the array size to size of data. If it times
+out. Just rerun again, you can even change array size on re-runs.
+5. Check data in `release-raw` directory under the provided path. There are also hidden metric files.
+6. Move logs from `logs` directory within the directory where you checked out the code into
+`/scratch/project_465002530/training/collection/flag/log/release`
+7. Start the merge step to reduce number of files:
+`sbatch --array=0-9 ./merge.sh /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0`
+8. Check data in `release` directory under the provided path.
+9. Move logs from `logs` directory within the directory where you checked out the code into
+`/scratch/project_465002530/training/collection/flag/log/release`
+
+The three first steps are a one time operation or when you update the packager.
+
 
 ## Related projects
 This project uses data produced from several other projects:
