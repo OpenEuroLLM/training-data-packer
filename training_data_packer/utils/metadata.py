@@ -30,7 +30,17 @@ def get_all_part_names(metadata: dict[str, Any]) -> list[str]:
     :param metadata: Metadata dictionary.
     :return: List of part names.
     """
-    return sorted(filter(lambda x: x != "default", metadata["source"].keys()))
+    reserved_part_names = ["default", "source", "target"]
+
+    def _get_section_parts(section):
+        section_keys = metadata[section].keys()
+        section_parts = set(filter(lambda x: x not in reserved_part_names, section_keys))
+        input_src = get_metadata_value(metadata, f"{section}.default.input")
+        if input_src is not None:
+            return section_parts.union(_get_section_parts(input_src))
+        return section_parts
+
+    return sorted(_get_section_parts(get_metadata_value(metadata, "_internal.mode", "source")))
 
 
 def get_shard_size_documents(part_config: dict[str, Any]) -> int:

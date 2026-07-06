@@ -3,6 +3,7 @@ from pathlib import Path
 
 from parameterized import parameterized
 
+import training_data_packer
 from training_data_packer.utils.metadata import (
     calculate_file_path,
     get_matching_part,
@@ -103,6 +104,43 @@ class TestMetadata(unittest.TestCase):
         }
         with self.assertRaises(ValueError):
             get_matching_part(indata, "bla/foo/shard01", "source")
+
+    @parameterized.expand(
+        [
+            [
+                "flat",
+                {
+                    "_internal": {"mode": "release"},
+                    "release": {
+                        "default": {
+                            "unimportant": 5,
+                        },
+                        "part2": {},
+                        "part1": {},
+                    },
+                },
+                ["part1", "part2"],
+            ],
+            [
+                "hierarchy",
+                {
+                    "_internal": {"mode": "release"},
+                    "release": {
+                        "default": {"unimportant": 5, "input": "another"},
+                        "part2": {},
+                        "part1": {},
+                    },
+                    "another": {
+                        "part3": {},
+                        "part1": {},
+                    },
+                },
+                ["part1", "part2", "part3"],
+            ],
+        ]
+    )
+    def test_get_all_part_names(self, name, metadata, expected):
+        self.assertEqual(expected, training_data_packer.utils.metadata.get_all_part_names(metadata))
 
     def test_get_shard_size_documents(self):
         self.assertEqual(10_000_000_000, get_shard_size_documents({"shard": "10bd"}))
