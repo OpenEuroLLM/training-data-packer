@@ -12,6 +12,7 @@ from training_data_packer.utils.file import find_files
 from training_data_packer.utils.metadata import (
     get_all_part_names,
     get_matching_part,
+    get_metadata_value,
     get_shard_size_documents,
     read_metadata,
 )
@@ -58,14 +59,15 @@ def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: in
 
 def process(collection_dir: Path, workers: int = 1, slurm: bool = False):
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
+    metadata["_internal"]["mode"] = "release"
     input_dir = collection_dir.joinpath("release-raw")
     output_dir = collection_dir.joinpath("release")
 
     parts = get_all_part_names(metadata)
     logger.info(f"Found {len(parts)} parts")
 
-    part_config, _ = get_matching_part(metadata, parts[0])
-    if "pack" in part_config and part_config["pack"] == "flat" and "prefix" not in part_config:
+    pack_method = get_metadata_value(metadata, "release.default.pack")
+    if pack_method == "flat" and get_metadata_value(metadata, f"release.{parts[0]}.prefix", None) is None:
         # This config requires single threaded
         workers = 1
         parts = ["default"]
@@ -104,7 +106,7 @@ def process(collection_dir: Path, workers: int = 1, slurm: bool = False):
         if parts == ["default"]:
             metadata["suffix"] = ".jsonl.zst"
             files = find_files(input_dir, metadata["suffix"])
-            docs_per_shard = get_shard_size_documents(part_config)
+            docs_per_shard = get_shard_size_documents(get_metadata_value(metadata, "release.default"))
             merge(
                 files,
                 output_dir,
