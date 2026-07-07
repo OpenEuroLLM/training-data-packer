@@ -331,6 +331,7 @@ def openai_mask_document(
                         f" masked as scrambled string"
                     )
                     document = _mask_with_scrambled_string(document, pii_record)
+                    masked_occations += 1
                     document["pii_unknown"] = True
     except ValueError as e:
         logger.warning(f"Document {document['id']} has pii issues {e}")

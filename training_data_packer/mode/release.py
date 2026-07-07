@@ -28,7 +28,7 @@ def parallel_package_pipeline(
     blocklists, merges parallel language data components into documents, and
     collects performance metrics
     """
-    if id not in metadata:
+    if "id" not in metadata:
         parallel_synthetic_id = ParallelSyntheticId(metadata)
         synthetic_id_iter = parallel_synthetic_id.get_iterator(src_iter)
         pii_ids = {x["hash"] for x in piis}
