@@ -599,17 +599,51 @@ class TestMaskRecords(unittest.TestCase):
                         "name": "private_email",
                     },
                 ],
-                [],
-                0,
+                None,
+                1,
                 False,
+            ],
+            [
+                "mask_ip_using_default_labels",
+                "\n\nRe: Saxonica Comments on XProc last-call draft, sections 1 and"
+                " 2\n\nFrom: aaaaaa aaaaa 127.0.0.1\nDate: Fri, ",
+                [
+                    {
+                        "start_pos": 87,
+                        "end_pos": 95,
+                        "value": "127.0.0.1",
+                        "id": "2",
+                        "name": "private_url",
+                    },
+                ],
+                None,
+                1,
+                False,
+            ],
+            [
+                "mask_unknown_explicit_mask",
+                "\n\nRe: Saxonica Comments on XProc last-call draft, sections 1 and"
+                " 2\n\nFrom: aaaaaa aaaaa 127.0.0.1\nDate: Fri, ",
+                [
+                    {
+                        "start_pos": 87,
+                        "end_pos": 95,
+                        "value": "127.0.0.1",
+                        "id": "2",
+                        "name": "private_xxx",
+                    },
+                ],
+                ["private_xxx"],
+                1,
+                True,
             ],
         ]
     )
     def test_openai_mask_document_has_changed_docs(
-        self, name, text, pii_records, mask_labels, expected_maske_count, unknown_pii
+        self, name, text, pii_records, mask_labels, expected_mask_count, unknown_pii
     ):
         masked_doc = pii_masking.openai_mask_document({"id": "1234", "text": text}, pii_records, mask_labels)
-        self.assertEqual(expected_maske_count, masked_doc["pii_masks"])
+        self.assertEqual(expected_mask_count, masked_doc["pii_masks"])
         if unknown_pii:
             self.assertTrue(masked_doc["pii_unknown"])
         else:
