@@ -1,3 +1,4 @@
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -107,17 +108,23 @@ def get_matching_part(metadata: dict[str, Any], src_file_name: Path, section_nam
     raise ValueError(f"No part for file {src_file_name}")
 
 
-def read_metadata(file_path: Path) -> dict[str, Any]:
+def read_metadata(file_path: Path, log_content: bool = True) -> dict[str, Any]:
     """
     Reads metadata from file and returns it as dictionary.
     All field values are strings.
     :param file_path: Path to metadata file.
+    :param log_content: Log metadata read.
     :return: Metadata dictionary.
     """
     with open(file_path) as file:
+        data = file.read()
+        sha256_data = hashlib.sha256(data.encode("utf-8")).hexdigest()
+        logger.info(f"Metadata sha256:{sha256_data}")
+        if log_content:
+            logger.info(f"Metadata content {file_path}:\n{data}\n")
         # BaseLoader to guarantee that the YAML parser will return unicode strings
-        metadata = yaml.load(file, Loader=yaml.BaseLoader)
-        metadata["_internal"] = {"collection_dir": file_path.parent}
+        metadata = yaml.load(data, Loader=yaml.BaseLoader)
+        metadata["_internal"] = {"collection_dir": file_path.parent, "sha256": sha256_data}
         return metadata
 
 
