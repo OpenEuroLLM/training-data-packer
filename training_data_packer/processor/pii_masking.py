@@ -302,7 +302,6 @@ def openai_mask_document(
     try:
         masked_occations = 0
         if mask_fields is None:
-            logger.info("Using default labels for PII filtering.")
             mask_fields = ["private_email", "private_phone", "private_url", "secret"]
         for pii_record in pii_records:
             if pii_record["name"] not in mask_fields:
@@ -358,9 +357,7 @@ class PIIMasker:
         if part_config is None:
             part_config = {}
         self._mask_fields = part_config.get("mask", None)
-        if self._mask_fields is None:
-            logger.info("Using default labels for masking")
-        else:
+        if self._mask_fields is not None:
             logger.info(f"Metadata declare following labels for masking: {', '.join(self._mask_fields)}")
 
     def get_metrics(self):
