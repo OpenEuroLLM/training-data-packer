@@ -44,7 +44,7 @@ This project uses data produced from several other projects:
   metadata for OpenEuroLLM models
 * [Decontamination](https://github.com/OpenEuroLLM/pretraining-decontamination)
 * PII detection for [baby cycle](https://github.com/OpenEuroLLM/pii-masking-oellm)
-  and [flag cucle](https://github.com/yann-ufal/pii-detection-solo)
+  and [flag cycle](https://github.com/yann-ufal/pii-detection-solo)
 
 After packaging is happening tokenization must happen before the training. This is
 done according to the description [here](https://github.com/OpenEuroLLM/tokenizer/tree/main/baby-tokenization).
