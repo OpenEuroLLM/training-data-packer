@@ -66,7 +66,7 @@ def _get_pre_section_part(
 ) -> None | tuple[dict, str]:
     pre_section = metadata[section_name]
     for part in pre_section:
-        if part in ["source", "target", "default"]:
+        if part in ["default"]:
             continue
         if f"/{part}/" in str(src_file_name):
             part_settings = default_part_config
@@ -131,8 +131,7 @@ def read_metadata(file_path: Path, log_content: bool = True) -> dict[str, Any]:
 def get_source_dir(metadata):
     mode = metadata["_internal"]["mode"]
     input_src = metadata[mode]["default"]["input"]
-    if mode == "release" and input_src == "parallel":
-        input_src = metadata["parallel"]["default"]["input"]
+    if mode == "release" and "parallel" in metadata[mode]["default"]:
         metadata["_internal"]["parallel"] = True
     else:
         metadata["_internal"]["parallel"] = False
