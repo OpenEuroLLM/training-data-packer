@@ -19,8 +19,12 @@ class AlignFieldNames:
     def __next__(self):
         src_doc = next(self._src_data)
         for field in self._mapper:
-            src_doc[field] = glom.glom(src_doc, self._mapper[field])
-            glom.delete(src_doc, self._mapper[field])
+            try:
+                src_doc[field] = glom.glom(src_doc, self._mapper[field])
+                glom.delete(src_doc, self._mapper[field])
+            except glom.PathAccessError as e:
+                if field not in src_doc:
+                    raise e
         return src_doc
 
 
