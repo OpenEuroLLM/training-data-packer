@@ -43,6 +43,9 @@ def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: in
                                 out_f.close()
 
                             output_path = destination_dir.joinpath(f"{file_prefix}_{file_idx:04d}.jsonl.zst")
+                            if output_path.exists():
+                                logger.warning(f"File {output_path} already exists, aborting part merge")
+                                return
                             out_f = open(output_path, "wb")
                             writer = cctx.stream_writer(out_f)
 
