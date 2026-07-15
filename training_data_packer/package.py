@@ -43,6 +43,7 @@ def process(
 
     if workers > 1:
         jobs = []
+        fail = True
         with ProcessPoolExecutor(max_workers=workers) as executor:
             for src_file in task_files:
                 contamination_file = calculate_file_path(src_file, metadata, mode, contamination_dir)
@@ -70,6 +71,9 @@ def process(
             for n, job in enumerate(jobs):
                 if job.exception() is not None:
                     logger.error(f"There were an exception thrown for file {task_files[n]}: {job.exception()}")
+                    fail = True
+            if fail:
+                raise RuntimeError("One or more workers failed")
     else:
         for src_file in task_files:
             logger.debug(f"Processing file {src_file}")
