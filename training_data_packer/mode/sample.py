@@ -24,6 +24,9 @@ def sample_file(src_file: Path, metadata: dict, propella_file: Path, out_file: P
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
     part_config, part_name = get_matching_part(metadata, src_file, section_name="sample")
+    if part_config is None:
+        logger.info(f"Skipping {src_file}, does not match a release part")
+        return
 
     src_reader = GenericJsonlReader(src_file)
     align_iter = AlignFieldNames(src_reader.read(), metadata)

@@ -87,6 +87,9 @@ def process(collection_dir: Path, workers: int = 1, slurm: bool = False):
         with ProcessPoolExecutor(max_workers=workers) as executor:
             for part_name in task_parts:
                 part_config, _ = get_matching_part(metadata, part_name)
+                if part_config is None:
+                    logger.error(f"Could not find config for part {part_name}")
+                    raise ValueError(f"Could not find config for part {part_name}")
                 logger.info(f"Processing part {part_name} with config {part_config}")
                 flat_output = part_config["pack"] == "flat"
                 metadata["suffix"] = ".jsonl.zst"
@@ -119,6 +122,9 @@ def process(collection_dir: Path, workers: int = 1, slurm: bool = False):
         else:
             for part_name in task_parts:
                 part_config, _ = get_matching_part(metadata, part_name)
+                if part_config is None:
+                    logger.error(f"Could not find config for part {part_name}")
+                    raise ValueError(f"Could not find config for part {part_name}")
                 logger.info(f"Processing part {part_name} with config {part_config}")
                 flat_output = part_config["pack"] == "flat"
                 metadata["suffix"] = ".jsonl.zst"
