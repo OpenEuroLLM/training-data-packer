@@ -43,7 +43,7 @@ def process(
 
     if workers > 1:
         jobs = []
-        fail = True
+        fail = False
         with ProcessPoolExecutor(max_workers=workers) as executor:
             for src_file in task_files:
                 contamination_file = calculate_file_path(src_file, metadata, mode, contamination_dir)
