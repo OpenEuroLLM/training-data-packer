@@ -70,8 +70,7 @@ class TestMetadata(unittest.TestCase):
                 },
             },
         }
-        with self.assertRaises(ValueError):
-            get_matching_part(indata, "bla/foo/shard01")
+        self.assertEqual((None, None), get_matching_part(indata, "bla/foo/shard01"))
 
     def test_metadata_override_defaults(self):
         indata = {
@@ -102,8 +101,7 @@ class TestMetadata(unittest.TestCase):
                 },
             }
         }
-        with self.assertRaises(ValueError):
-            get_matching_part(indata, "bla/foo/shard01", "source")
+        self.assertEqual((None, None), get_matching_part(indata, "bla/foo/shard01", "source"))
 
     @parameterized.expand(
         [

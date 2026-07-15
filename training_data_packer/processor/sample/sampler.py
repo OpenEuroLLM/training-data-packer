@@ -116,7 +116,7 @@ def sampler_factory(
     data_iterator: Iterable[dict[str, Any]], metadata: dict, src_file_name: Path, section_name: str = "release"
 ) -> tuple[Iterable[dict[str, Any]], Any]:
     part_config, part_name = get_matching_part(metadata, src_file_name, section_name)
-    if "sample" not in part_config:
+    if part_config is None or "sample" not in part_config:
         return data_iterator, None
     match part_config["sample"]:
         case "full":

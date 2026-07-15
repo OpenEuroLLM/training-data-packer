@@ -65,6 +65,9 @@ def package_file(
     parallel_metrics = []
 
     part_config, part_name = get_matching_part(metadata, src_file, section_name="release")
+    if part_config is None:
+        logger.info(f"Skipping {src_file}, does not match a release part")
+        return
 
     is_parallel_text = get_metadata_value(metadata, "_internal.parallel", False)
 

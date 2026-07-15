@@ -63,7 +63,7 @@ def get_shard_size_documents(part_config: dict[str, Any]) -> int:
 
 def _get_pre_section_part(
     metadata: dict[str, Any], src_file_name: Path, default_part_config, section_name: str
-) -> None | tuple[dict, str]:
+) -> tuple[None, None] | tuple[dict, str]:
     pre_section = metadata[section_name]
     for part in pre_section:
         if part in ["default"]:
@@ -76,11 +76,13 @@ def _get_pre_section_part(
     if "default" in pre_section and section_name != "source":
         next_section = pre_section["default"]["input"]
         return _get_pre_section_part(metadata, src_file_name, default_part_config, next_section)
-    logger.error(f"No part for file {src_file_name}")
-    raise ValueError(f"No part for file {src_file_name}")
+    logger.warning(f"No part for file {src_file_name}")
+    return None, None
 
 
-def get_matching_part(metadata: dict[str, Any], src_file_name: Path, section_name: str = "release") -> tuple[dict, str]:
+def get_matching_part(
+    metadata: dict[str, Any], src_file_name: Path, section_name: str = "release"
+) -> tuple[None, None] | tuple[dict, str]:
     """
     Returns matching part config and part name from metadata for given source file name.
     :param metadata: Metadata dictionary.
@@ -104,8 +106,8 @@ def get_matching_part(metadata: dict[str, Any], src_file_name: Path, section_nam
     if section_name != "source":
         next_section = default_part_config["input"]
         return _get_pre_section_part(metadata, src_file_name, default_part_config, next_section)
-    logger.error(f"No part for file {src_file_name}")
-    raise ValueError(f"No part for file {src_file_name}")
+    logger.warning(f"No part for file {src_file_name}")
+    return None, None
 
 
 def read_metadata(file_path: Path, log_content: bool = True) -> dict[str, Any]:
