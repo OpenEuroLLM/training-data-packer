@@ -31,7 +31,7 @@ def get_all_part_names(metadata: dict[str, Any]) -> list[str]:
     :param metadata: Metadata dictionary.
     :return: List of part names.
     """
-    reserved_part_names = ["default", "source", "target"]
+    reserved_part_names = ["default"]
 
     def _get_section_parts(section):
         section_keys = metadata[section].keys()
