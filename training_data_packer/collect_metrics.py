@@ -45,7 +45,7 @@ def main():
 
     collection_dir = Path(args.collection_dir)
     metadata_path = collection_dir.joinpath("metadata.yaml")
-    release_raw_dir = collection_dir.joinpath("release_raw")
+    release_raw_dir = collection_dir.joinpath("release-raw")
 
     if metadata_path.exists():
         metadata = read_metadata(metadata_path)

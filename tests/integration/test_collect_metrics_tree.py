@@ -24,7 +24,7 @@ class TestCollectMetricsTree(unittest.TestCase):
                 yaml.dump(metadata, f)
 
             # Create release_raw structure
-            release_raw = tmp_path / "release_raw"
+            release_raw = tmp_path / "release-raw"
             release_raw.mkdir()
 
             part1_dir = release_raw / "part1"
