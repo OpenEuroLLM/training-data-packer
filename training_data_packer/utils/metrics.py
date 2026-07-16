@@ -32,4 +32,12 @@ def aggregate_metrics(metrics_list: list[dict[str, Any]]) -> dict[str, Any]:
             for key, value in section_values.items():
                 if isinstance(value, (int, float)):
                     summary[section_name][key] = summary[section_name].get(key, 0) + value
+                if isinstance(value, str):
+                    if key in summary[section_name] and summary[section_name][key] != value:
+                        summary[section_name][key] = {value, summary[section_name][key]}
+                if isinstance(value, list):
+                    if key in summary[section_name]:
+                        summary[section_name][key] = set(value).union(summary[section_name][key])
+                    else:
+                        summary[section_name][key] = set(value)
     return summary
