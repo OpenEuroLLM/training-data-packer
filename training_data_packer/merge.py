@@ -60,13 +60,16 @@ def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: in
             out_f.close()
 
 
-def process(collection_dir: Path, workers: int = 1, slurm: bool = False):
+def process(collection_dir: Path, part: None | str = None, workers: int = 1, slurm: bool = False):
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
     metadata["_internal"]["mode"] = "release"
     input_dir = collection_dir.joinpath("release-raw")
     output_dir = collection_dir.joinpath("release")
 
-    parts = get_all_part_names(metadata)
+    if part is not None:
+        parts = [part]
+    else:
+        parts = get_all_part_names(metadata)
     logger.info(f"Found {len(parts)} parts")
 
     pack_method = get_metadata_value(metadata, "release.default.pack")
@@ -145,6 +148,7 @@ def main():
         description="Pack training data from input directory to output directory.",
     )
     parser.add_argument("--collection-dir", help="Collection directory containing data", required=True)
+    parser.add_argument("-p", "--part", help="Part to process, default is all")
     parser.add_argument("-w", "--workers", help="Number of workers, default is 1", type=int, default=1)
     parser.add_argument(
         "-s",
@@ -155,6 +159,7 @@ def main():
     args = parser.parse_args()
     process(
         Path(args.collection_dir),
+        args.part,
         args.workers,
         args.slurm,
     )
