@@ -158,6 +158,20 @@ class TestMetadata(unittest.TestCase):
                 17,
                 42,
             ],
+            [
+                "array_square_bracket",
+                {"a": [{"b": 5}, {"b": 7}]},
+                "a[0].b",
+                17,
+                5,
+            ],
+            [
+                "array_glom",
+                {"a": [{"b": 5}, {"b": 7}]},
+                "a.0.b",
+                17,
+                5,
+            ],
         ]
     )
     def test_get_metadata_value(self, name, metadata, key, default_value, expected):

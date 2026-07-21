@@ -20,8 +20,10 @@ class AlignFieldNames:
         src_doc = next(self._src_data)
         for field in self._mapper:
             try:
-                src_doc[field] = glom.glom(src_doc, self._mapper[field])
-                glom.delete(src_doc, self._mapper[field])
+                key = self._mapper[field]
+                key = key.replace("[", ".").replace("]", "")
+                src_doc[field] = glom.glom(src_doc, key)
+                glom.delete(src_doc, key)
             except glom.PathAccessError as e:
                 if field not in src_doc:
                     raise e

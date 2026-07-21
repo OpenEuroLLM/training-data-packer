@@ -22,6 +22,7 @@ def get_metadata_value(metadata: dict[str, Any], key: str, default: Any = None) 
     :return: The value extracted from the metadata corresponding to the given
              key, or the default value if the key is not resolved.
     """
+    key = key.replace("[", ".").replace("]", "")
     return glom.glom(metadata, key, default=default)
 
 
