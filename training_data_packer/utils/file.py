@@ -10,7 +10,7 @@ import zstandard as zstd
 from loguru import logger
 
 
-def find_files(source_dir: Path, suffix: dict, part: str = None) -> list[Path]:
+def find_files(source_dir: Path, suffix: str, part: None | str = None) -> list[Path]:
     """
     Returns all files, not hidden, under source_dir, following symlinks
     :param source_dir: Dir to find files in

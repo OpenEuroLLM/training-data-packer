@@ -1,16 +1,19 @@
 import unittest
 
 from training_data_packer.processor.parallel_merger import ParallelLanguageMerger, ParallelSyntheticId
+from training_data_packer.utils.metadata import Metadata
 
 
 class TestParallelLanguageMerger(unittest.TestCase):
     def setUp(self):
-        self.metadata = {
-            "parallel": {
-                "source": {"language": "src_lang", "text": "source_text"},
-                "target": {"language": "tgt_lang", "text": "target_text"},
+        self.metadata = Metadata(
+            {
+                "parallel": {
+                    "source": {"language": "src_lang", "text": "source_text"},
+                    "target": {"language": "tgt_lang", "text": "target_text"},
+                }
             }
-        }
+        )
         self.part_config = {"parallel": {"count": "40"}}
 
     def test_initialization_default_values(self):
@@ -30,7 +33,7 @@ class TestParallelLanguageMerger(unittest.TestCase):
         self.assertEqual(merger._metric_name, custom_metric)
 
     def test_initialization_with_missing_metadata_uses_defaults(self):
-        metadata = {}
+        metadata = Metadata({})
         merger = ParallelLanguageMerger(metadata, {})
         self.assertEqual(merger._src_lang, "src_lang")
         self.assertEqual(merger._source_text_col, "source_text")
@@ -94,12 +97,14 @@ class TestParallelLanguageMerger(unittest.TestCase):
         self.assertIn(expected_text, result["text"])
 
     def test_initialization_custom_metadata_fields(self):
-        custom_metadata = {
-            "parallel": {
-                "source": {"language": "source_language", "text": "src_text"},
-                "target": {"language": "target_language", "text": "tgt_text"},
+        custom_metadata = Metadata(
+            {
+                "parallel": {
+                    "source": {"language": "source_language", "text": "src_text"},
+                    "target": {"language": "target_language", "text": "tgt_text"},
+                }
             }
-        }
+        )
         custom_part_config = {"parallel": {"count": "3"}}
 
         mapper = ParallelLanguageMerger(custom_metadata, custom_part_config)
@@ -110,12 +115,14 @@ class TestParallelLanguageMerger(unittest.TestCase):
         self.assertEqual(mapper._documents_per_batch, 3)
 
     def test_mapper_with_custom_fields(self):
-        custom_metadata = {
-            "parallel": {
-                "source": {"language": "source_language", "text": "src_text"},
-                "target": {"language": "target_language", "text": "tgt_text"},
+        custom_metadata = Metadata(
+            {
+                "parallel": {
+                    "source": {"language": "source_language", "text": "src_text"},
+                    "target": {"language": "target_language", "text": "tgt_text"},
+                }
             }
-        }
+        )
 
         mapper = ParallelLanguageMerger(custom_metadata, self.part_config).get_mapper()
         docs = [{"source_language": "eng", "src_text": "Hello", "target_language": "fra", "tgt_text": "Bonjour"}]
@@ -158,23 +165,25 @@ class TestParallelLanguageMerger(unittest.TestCase):
 class TestParallelSyntheticId(unittest.TestCase):
     def test_create_synthetic_id_mapper_default_config(self):
         doc = {"source_text": "foo bar", "target_text": "gazonk"}
-        to_test = ParallelSyntheticId({})
+        to_test = ParallelSyntheticId(Metadata({}))
         result = to_test.get_mapper()(doc)
         self.assertEqual("ecefffc59192dd7f300f750650a3d21e7a2ea1c9854552ab2f83c7fb4986a08b", result["id"])
         self.assertEqual({"parallel_synthetic_id": {"processed_records": 1}}, to_test.get_metrics())
 
     def test_create_synthetic_id_mapper_alternativ_fields(self):
         doc = {"field1": "foo bar", "field2": "gazonk"}
-        metadata = {
-            "parallel": {
-                "source": {
-                    "text": "field1",
-                },
-                "target": {
-                    "text": "field2",
-                },
+        metadata = Metadata(
+            {
+                "parallel": {
+                    "source": {
+                        "text": "field1",
+                    },
+                    "target": {
+                        "text": "field2",
+                    },
+                }
             }
-        }
+        )
         to_test = ParallelSyntheticId(metadata)
         result = to_test.get_mapper()(doc)
         self.assertEqual("ecefffc59192dd7f300f750650a3d21e7a2ea1c9854552ab2f83c7fb4986a08b", result["id"])

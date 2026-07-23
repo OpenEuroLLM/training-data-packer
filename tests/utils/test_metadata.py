@@ -5,6 +5,7 @@ from parameterized import parameterized
 
 import training_data_packer
 from training_data_packer.utils.metadata import (
+    Metadata,
     calculate_file_path,
     get_matching_part,
     get_metadata_value,
@@ -14,125 +15,146 @@ from training_data_packer.utils.metadata import (
 
 class TestMetadata(unittest.TestCase):
     def test_metadata_without_defaults(self):
-        indata = {"release": {"foo": {"sample": "full"}, "bar": {"sample": "full"}}}
-        self.assertEqual(get_matching_part(indata, "bla/foo/shard01"), ({"sample": "full"}, "foo"))
+        indata = Metadata({"release": {"foo": {"sample": "full"}, "bar": {"sample": "full"}}})
+        self.assertEqual(get_matching_part(indata, Path("bla/foo/shard01")), ({"sample": "full"}, "foo"))
 
     def test_metadata_merge_defaults(self):
-        indata = {"release": {"default": {"pack": "tree"}, "foo": {"sample": "full"}, "bar": {"sample": "full"}}}
-        self.assertEqual(get_matching_part(indata, "bla/foo/shard01"), ({"sample": "full", "pack": "tree"}, "foo"))
+        indata = Metadata(
+            {"release": {"default": {"pack": "tree"}, "foo": {"sample": "full"}, "bar": {"sample": "full"}}}
+        )
+        self.assertEqual(
+            get_matching_part(indata, Path("bla/foo/shard01")), ({"sample": "full", "pack": "tree"}, "foo")
+        )
 
     def test_metadata_use_defaults(self):
-        indata = {
-            "release": {
-                "default": {
-                    "pack": "tree",
-                    "sample": "wds",
-                },
-                "foo": {},
-                "bar": {
-                    "sample": "full",
-                },
+        indata = Metadata(
+            {
+                "release": {
+                    "default": {
+                        "pack": "tree",
+                        "sample": "wds",
+                    },
+                    "foo": {},
+                    "bar": {
+                        "sample": "full",
+                    },
+                }
             }
-        }
-        self.assertEqual(get_matching_part(indata, "bla/foo/shard01"), ({"sample": "wds", "pack": "tree"}, "foo"))
+        )
+        self.assertEqual(get_matching_part(indata, Path("bla/foo/shard01")), ({"sample": "wds", "pack": "tree"}, "foo"))
 
     def test_metadata_use_defaults_look_in_hierarchy(self):
-        indata = {
-            "source": {
-                "foo": {"value": "do not use"},
-            },
-            "release": {
-                "default": {
-                    "input": "source",
-                    "pack": "tree",
-                    "sample": "wds",
+        indata = Metadata(
+            {
+                "source": {
+                    "foo": {"value": "do not use"},
                 },
-                "bar": {
-                    "sample": "full",
+                "release": {
+                    "default": {
+                        "input": "source",
+                        "pack": "tree",
+                        "sample": "wds",
+                    },
+                    "bar": {
+                        "sample": "full",
+                    },
                 },
-            },
-        }
+            }
+        )
         self.assertEqual(
-            get_matching_part(indata, "bla/foo/shard01"), ({"input": "source", "sample": "wds", "pack": "tree"}, "foo")
+            get_matching_part(indata, Path("bla/foo/shard01")),
+            ({"input": "source", "sample": "wds", "pack": "tree"}, "foo"),
         )
 
     def test_metadata_fail_find_in_hierarchy(self):
-        indata = {
-            "source": {},
-            "release": {
-                "default": {
-                    "input": "source",
-                    "pack": "tree",
-                    "sample": "wds",
+        indata = Metadata(
+            {
+                "source": {},
+                "release": {
+                    "default": {
+                        "input": "source",
+                        "pack": "tree",
+                        "sample": "wds",
+                    },
+                    "bar": {
+                        "sample": "full",
+                    },
                 },
-                "bar": {
-                    "sample": "full",
-                },
-            },
-        }
-        self.assertEqual((None, None), get_matching_part(indata, "bla/foo/shard01"))
+            }
+        )
+        self.assertEqual((None, None), get_matching_part(indata, Path("bla/foo/shard01")))
 
     def test_metadata_override_defaults(self):
-        indata = {
-            "release": {
-                "default": {
-                    "pack": "tree",
-                    "sample": "wds",
-                },
-                "foo": {
-                    "sample": "full",
-                },
-                "bar": {
-                    "sample": "full",
-                },
+        indata = Metadata(
+            {
+                "release": {
+                    "default": {
+                        "pack": "tree",
+                        "sample": "wds",
+                    },
+                    "foo": {
+                        "sample": "full",
+                    },
+                    "bar": {
+                        "sample": "full",
+                    },
+                }
             }
-        }
-        self.assertEqual(get_matching_part(indata, "bla/foo/shard01"), ({"sample": "full", "pack": "tree"}, "foo"))
+        )
+        self.assertEqual(
+            get_matching_part(indata, Path("bla/foo/shard01")), ({"sample": "full", "pack": "tree"}, "foo")
+        )
 
     def test_no_matching_part(self):
-        indata = {
-            "source": {
-                "default": {
-                    "pack": "tree",
-                    "sample": "wds",
-                },
-                "bar": {
-                    "sample": "full",
-                },
+        indata = Metadata(
+            {
+                "source": {
+                    "default": {
+                        "pack": "tree",
+                        "sample": "wds",
+                    },
+                    "bar": {
+                        "sample": "full",
+                    },
+                }
             }
-        }
-        self.assertEqual((None, None), get_matching_part(indata, "bla/foo/shard01", "source"))
+        )
+        self.assertEqual((None, None), get_matching_part(indata, Path("bla/foo/shard01"), "source"))
 
     @parameterized.expand(
         [
             [
                 "flat",
-                {
-                    "_internal": {"mode": "release"},
-                    "release": {
-                        "default": {
-                            "unimportant": 5,
+                Metadata(
+                    {
+                        "_internal": {"mode": "release"},
+                        "release": {
+                            "default": {
+                                "unimportant": 5,
+                            },
+                            "part2": {},
+                            "part1": {},
                         },
-                        "part2": {},
-                        "part1": {},
-                    },
-                },
+                    }
+                ),
                 ["part1", "part2"],
             ],
             [
                 "hierarchy",
-                {
-                    "_internal": {"mode": "release"},
-                    "release": {
-                        "default": {"unimportant": 5, "input": "another"},
-                        "part2": {},
-                        "part1": {},
-                    },
-                    "another": {
-                        "part3": {},
-                        "part1": {},
-                    },
-                },
+                Metadata(
+                    {
+                        "_internal": {"mode": "release"},
+                        "release": {
+                            "default": {"unimportant": 5, "input": "another"},
+                            "part2": {},
+                            "part1": {},
+                        },
+                        "another": {
+                            "part3": {},
+                            "part1": {},
+                        },
+                    }
+                ),
                 ["part1", "part2", "part3"],
             ],
         ]
@@ -149,14 +171,28 @@ class TestMetadata(unittest.TestCase):
 
     @parameterized.expand(
         [
-            ["Value_set", {"foo": "bar"}, "foo", "gazsonk", "bar"],
+            ["Value_set", Metadata({"foo": "bar"}), "foo", "gazsonk", "bar"],
             ["default", {"foo": "bar"}, "key", "gazonk", "gazonk"],
             [
                 "hierarchy",
-                {"foo": {"bar": 42}},
+                Metadata({"foo": {"bar": 42}}),
                 "foo.bar",
                 17,
                 42,
+            ],
+            [
+                "array_square_bracket",
+                Metadata({"a": [{"b": 5}, {"b": 7}]}),
+                "a[0].b",
+                17,
+                5,
+            ],
+            [
+                "array_glom",
+                Metadata({"a": [{"b": 5}, {"b": 7}]}),
+                "a.0.b",
+                17,
+                5,
             ],
         ]
     )
@@ -178,11 +214,13 @@ class TestCalculateFilePath(unittest.TestCase):
 
     def test_calculate_file_paths_default(self):
         src_file = self.src_dir.joinpath("shard01/file01.jsonl.zst")
-        metadata = {
-            "_internal": {"collection_dir": Path("/srv/data/gazonk"), "mode": "release"},
-            "release": {"default": {"input": "source"}},
-            "suffix": ".jsonl.zstd",
-        }
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": Path("/srv/data/gazonk"), "mode": "release"},
+                "release": {"default": {"input": "source"}},
+                "suffix": ".jsonl.zstd",
+            }
+        )
         contamination_file = calculate_file_path(src_file, metadata, "release", self.contamination_dir)
         pii_file = calculate_file_path(src_file, metadata, "release", self.pii_dir)
         propella_file = calculate_file_path(src_file, metadata, "release", self.propella_dir)
@@ -195,12 +233,14 @@ class TestCalculateFilePath(unittest.TestCase):
 
     def test_calculate_file_paths_source_suffix(self):
         src_file = self.src_dir.joinpath("shard01/file01.jsonl.gz")
-        metadata = {
-            "_internal": {"collection_dir": Path("/srv/data/gazonk"), "mode": "release"},
-            "release": {"default": {"input": "source"}},
-            "source": {"default": {"suffix": ".jsonl.gz"}},
-            "suffix": ".jsonl.zst",
-        }
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": Path("/srv/data/gazonk"), "mode": "release"},
+                "release": {"default": {"input": "source"}},
+                "source": {"default": {"suffix": ".jsonl.gz"}},
+                "suffix": ".jsonl.zst",
+            }
+        )
 
         contamination_file = calculate_file_path(src_file, metadata, "release", self.contamination_dir)
         pii_file = calculate_file_path(src_file, metadata, "release", self.pii_dir)
@@ -215,12 +255,14 @@ class TestCalculateFilePath(unittest.TestCase):
     def test_calculate_file_paths_sample_source_suffix(self):
         src_file = self.src_dir.joinpath("shard01/file01.jsonl.gz")
         output_dir = Path("/srv/data/gazonk/sample")
-        metadata = {
-            "_internal": {"collection_dir": Path("/srv/data/gazonk"), "mode": "sample"},
-            "sample": {"default": {"input": "source"}},
-            "source": {"default": {"suffix": ".jsonl.gz"}},
-            "suffix": ".jsonl.zst",
-        }
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": Path("/srv/data/gazonk"), "mode": "sample"},
+                "sample": {"default": {"input": "source"}},
+                "source": {"default": {"suffix": ".jsonl.gz"}},
+                "suffix": ".jsonl.zst",
+            }
+        )
 
         contamination_file = calculate_file_path(src_file, metadata, "sample", self.contamination_dir)
         pii_file = calculate_file_path(src_file, metadata, "sample", self.pii_dir)

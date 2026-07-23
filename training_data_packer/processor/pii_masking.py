@@ -245,7 +245,7 @@ def _mask_ip_address(document: dict[str, Any], pii_record: dict[str, Any]) -> di
 
 
 def multilingual_mask_document(
-    document: dict[str, Any], pii_records: list[dict[str, Any]], mask_fields: list[str] = None
+    document: dict[str, Any], pii_records: list[dict[str, Any]], mask_fields: None | list[str] = None
 ) -> dict[str, Any]:
     """
     Masking a complete document. Masking pii records in document by replacing them with scrambled values.
@@ -288,7 +288,7 @@ def multilingual_mask_document(
 
 
 def openai_mask_document(
-    document: dict[str, Any], pii_records: list[dict[str, Any]], mask_fields: list[str] = None
+    document: dict[str, Any], pii_records: list[dict[str, Any]], mask_fields: None | list[str] = None
 ) -> dict[str, Any]:
     """
     Masking a complete document. Masking pii records are produced py OpenAIPrivacy tool and wrapper.
@@ -347,7 +347,7 @@ class PIIMasker:
     def __init__(
         self,
         masker_fn=multilingual_mask_document,
-        part_config: dict[str, Any] = None,
+        part_config: None | dict[str, Any] = None,
         metric_name: str = "pii_masker",
     ) -> None:
         self._metric_name = metric_name

@@ -3,6 +3,7 @@ import unittest
 from parameterized import parameterized
 
 from training_data_packer.processor.clean import AlignFieldNames, field_scrubber_factory
+from training_data_packer.utils.metadata import Metadata
 
 
 class TestAlignFieldNames(unittest.TestCase):
@@ -11,7 +12,7 @@ class TestAlignFieldNames(unittest.TestCase):
             {"id": "1234", "text": "Happy"},
             {"id": "1235", "text": "Gazonk"},
         ]
-        align_it = AlignFieldNames(iter(src_indata), {"id": "id", "text": "text"})
+        align_it = AlignFieldNames(iter(src_indata), Metadata({"id": "id", "text": "text"}))
         align_list = list(align_it)
         self.assertEqual(align_list, src_indata)
 
@@ -20,7 +21,7 @@ class TestAlignFieldNames(unittest.TestCase):
             {"id": "1234", "text": "Happy"},
             {"id": "1235", "text": "Gazonk"},
         ]
-        align_it = AlignFieldNames(iter(src_indata), {})
+        align_it = AlignFieldNames(iter(src_indata), Metadata({}))
         align_list = list(align_it)
         self.assertEqual(align_list, src_indata)
 
@@ -33,7 +34,7 @@ class TestAlignFieldNames(unittest.TestCase):
             {"id": "1234", "text": "Happy"},
             {"id": "1235", "text": "Gazonk"},
         ]
-        align_it = AlignFieldNames(iter(src_indata), {"id": "warcid", "text": "text"})
+        align_it = AlignFieldNames(iter(src_indata), Metadata({"id": "warcid", "text": "text"}))
         align_list = list(align_it)
         self.assertEqual(align_list, expected)
 
@@ -46,7 +47,7 @@ class TestAlignFieldNames(unittest.TestCase):
             {"id": "1234", "text": "Happy"},
             {"id": "1235", "text": "Gazonk"},
         ]
-        align_it = AlignFieldNames(iter(src_indata), {"id": "id", "text": "context"})
+        align_it = AlignFieldNames(iter(src_indata), Metadata({"id": "id", "text": "context"}))
         align_list = list(align_it)
         self.assertEqual(align_list, expected)
 
@@ -59,7 +60,9 @@ class TestAlignFieldNames(unittest.TestCase):
             {"id": "1234", "metadata": {}, "text": "Happy"},
             {"id": "1235", "metadata": {}, "text": "Gazonk"},
         ]
-        align_it = AlignFieldNames(iter(src_indata), {"id": "metadata.int-id", "text": "context", "doc_s": "doc_score"})
+        align_it = AlignFieldNames(
+            iter(src_indata), Metadata({"id": "metadata.int-id", "text": "context", "doc_s": "doc_score"})
+        )
         align_list = list(align_it)
         self.assertEqual(align_list, expected)
 
