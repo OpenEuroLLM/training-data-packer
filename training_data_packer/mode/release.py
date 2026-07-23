@@ -12,12 +12,12 @@ from training_data_packer.processor.pii_masking import PIIMasker, openai_mask_do
 from training_data_packer.processor.sample.sampler import sampler_factory
 from training_data_packer.utils import metrics
 from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter
-from training_data_packer.utils.metadata import get_matching_part, get_metadata_value
+from training_data_packer.utils.metadata import Metadata, get_matching_part, get_metadata_value
 
 
 def parallel_package_pipeline(
     src_iter: Iterable[dict[str, Any]],
-    metadata: dict[str, Any],
+    metadata: Metadata,
     part_config: dict[str, Any],
     piis: Iterable[dict[str, Any]],
     contaminations: Iterable[dict[str, Any]],
@@ -47,7 +47,7 @@ def parallel_package_pipeline(
 
 
 def package_file(
-    src_file: Path, metadata: dict, contamination_file: Path, pii_file: Path, propella_file: Path, out_file: Path
+    src_file: Path, metadata: Metadata, contamination_file: Path, pii_file: Path, propella_file: Path, out_file: Path
 ) -> None:
     tmp_out_file = out_file.parent.joinpath("." + out_file.name)
     if out_file.exists():

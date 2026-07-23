@@ -2,7 +2,6 @@ import argparse
 import os
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
-from typing import Any
 
 from loguru import logger
 
@@ -15,7 +14,7 @@ from training_data_packer.utils.file import (
     find_files,
     get_subdirectories,
 )
-from training_data_packer.utils.metadata import get_metadata_value, read_metadata
+from training_data_packer.utils.metadata import Metadata, get_metadata_value, read_metadata
 from training_data_packer.utils.metrics import read_metrics_from_file
 from training_data_packer.utils.slurm import get_my_slurm_tasks
 
@@ -51,7 +50,7 @@ def process(collection_dir: Path, part: str = "", workers=1, slurm: bool = False
             process_file(metadata, src_name, output_dir)
 
 
-def process_file(metadata: dict[str, Any], source_name: str, propella_dir: Path):
+def process_file(metadata: Metadata, source_name: str, propella_dir: Path):
     """
     Processes and merges JSONL files from subdirectories within the specified
     propella directory. The function constructs the output path and checks for
@@ -73,8 +72,8 @@ def process_file(metadata: dict[str, Any], source_name: str, propella_dir: Path)
     """
     new_name = change_suffix(
         source_name,
-        get_metadata_value(metadata, "source.default.suffix", metadata["suffix"]),
-        get_metadata_value(metadata, "annotations.propella-4b.suffix", metadata["suffix"]),
+        metadata.get("source.default.suffix", metadata["suffix"]),
+        metadata.get("annotations.propella-4b.suffix", metadata["suffix"]),
     )
     out_file_name = propella_dir.joinpath(new_name)
 

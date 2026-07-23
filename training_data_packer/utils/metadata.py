@@ -1,4 +1,5 @@
 import hashlib
+from collections import UserDict
 from pathlib import Path
 from typing import Any
 
@@ -9,7 +10,25 @@ from loguru import logger
 from training_data_packer.utils.file import change_suffix
 
 
-def get_metadata_value(metadata: dict[str, Any], key: str, default: Any = None) -> Any:
+class Metadata(UserDict):
+    def __getitem__(self, key) -> Any:
+        key = key.replace("[", ".").replace("]", "")
+        return glom.glom(self.data, key)
+
+    def __setitem__(self, key, value) -> None:
+        key = key.replace("[", ".").replace("]", "")
+        return glom.assign(self.data, key, value)
+
+    def __delitem__(self, key):
+        key = key.replace("[", ".").replace("]", "")
+        return glom.delete(self.data, key)
+
+    def get(self, key, default=None):
+        key = key.replace("[", ".").replace("]", "")
+        return glom.glom(self.data, key, default=default)
+
+
+def get_metadata_value(metadata: Metadata, key: str, default: Any = None) -> Any:
     """
     Retrieve a specific value from the provided metadata structure using a
     dot-notation key for deep access.
@@ -22,10 +41,10 @@ def get_metadata_value(metadata: dict[str, Any], key: str, default: Any = None) 
     :return: The value extracted from the metadata corresponding to the given
              key, or the default value if the key is not resolved.
     """
-    return glom.glom(metadata, key, default=default)
+    return metadata.get(key, default)
 
 
-def get_all_part_names(metadata: dict[str, Any]) -> list[str]:
+def get_all_part_names(metadata: Metadata) -> list[str]:
     """
     Returns all part names from metadata.
     :param metadata: Metadata dictionary.
@@ -36,12 +55,12 @@ def get_all_part_names(metadata: dict[str, Any]) -> list[str]:
     def _get_section_parts(section):
         section_keys = metadata[section].keys()
         section_parts = set(filter(lambda x: x not in reserved_part_names, section_keys))
-        input_src = get_metadata_value(metadata, f"{section}.default.input")
+        input_src = metadata.get(f"{section}.default.input")
         if input_src is not None:
             return section_parts.union(_get_section_parts(input_src))
         return section_parts
 
-    return sorted(_get_section_parts(get_metadata_value(metadata, "_internal.mode", "source")))
+    return sorted(_get_section_parts(metadata.get("_internal.mode", "source")))
 
 
 def get_shard_size_documents(part_config: dict[str, Any]) -> int:
@@ -62,7 +81,7 @@ def get_shard_size_documents(part_config: dict[str, Any]) -> int:
 
 
 def _get_pre_section_part(
-    metadata: dict[str, Any], src_file_name: Path, default_part_config, section_name: str
+    metadata: Metadata, src_file_name: Path, default_part_config, section_name: str
 ) -> tuple[None, None] | tuple[dict, str]:
     pre_section = metadata[section_name]
     for part in pre_section:
@@ -81,7 +100,7 @@ def _get_pre_section_part(
 
 
 def get_matching_part(
-    metadata: dict[str, Any], src_file_name: Path, section_name: str = "release"
+    metadata: Metadata, src_file_name: Path, section_name: str = "release"
 ) -> tuple[None, None] | tuple[dict, str]:
     """
     Returns matching part config and part name from metadata for given source file name.
@@ -110,7 +129,7 @@ def get_matching_part(
     return None, None
 
 
-def read_metadata(file_path: Path, log_content: bool = True) -> dict[str, Any]:
+def read_metadata(file_path: Path, log_content: bool = True) -> Metadata:
     """
     Reads metadata from file and returns it as dictionary.
     All field values are strings.
@@ -127,10 +146,10 @@ def read_metadata(file_path: Path, log_content: bool = True) -> dict[str, Any]:
         # BaseLoader to guarantee that the YAML parser will return unicode strings
         metadata = yaml.load(data, Loader=yaml.BaseLoader)
         metadata["_internal"] = {"collection_dir": file_path.parent, "sha256": sha256_data}
-        return metadata
+        return Metadata(metadata)
 
 
-def get_source_dir(metadata):
+def get_source_dir(metadata: Metadata) -> Path:
     mode = metadata["_internal"]["mode"]
     input_src = metadata[mode]["default"]["input"]
     if mode == "release" and "parallel" in metadata[mode]["default"]:
@@ -140,12 +159,12 @@ def get_source_dir(metadata):
     return metadata["_internal"]["collection_dir"].joinpath(input_src)
 
 
-def get_in_suffix(metadata: dict[str, Any], mode: str) -> str:
-    input_dir = get_metadata_value(metadata, f"{mode}.default.input", None)
-    return get_metadata_value(metadata, f"{input_dir}.default.suffix", metadata["suffix"])
+def get_in_suffix(metadata: Metadata, mode: str) -> str:
+    input_dir = metadata.get(f"{mode}.default.input", None)
+    return metadata.get(f"{input_dir}.default.suffix", metadata["suffix"])
 
 
-def calculate_file_path(src_file: Path, metadata: dict[str, Any], mode: str, process_dir: Path) -> Path:
+def calculate_file_path(src_file: Path, metadata: Metadata, mode: str, process_dir: Path) -> Path:
     input_suffix = get_in_suffix(metadata, mode)
     rel_file_path = src_file.relative_to(get_source_dir(metadata))
     out_suffix = ".jsonl.zst"

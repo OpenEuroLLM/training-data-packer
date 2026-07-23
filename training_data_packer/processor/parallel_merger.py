@@ -3,7 +3,9 @@ import random
 from collections.abc import Callable, Iterable
 from typing import Any
 
-from training_data_packer.utils.metadata import get_metadata_value
+import glom
+
+from training_data_packer.utils.metadata import Metadata, get_metadata_value
 from training_data_packer.utils.misc import hash_factory, lang_to_name
 
 
@@ -21,7 +23,7 @@ class ParallelLanguageMerger:
 
     def __init__(
         self,
-        metadata: dict[str, Any],
+        metadata: Metadata,
         part_config: dict[str, Any],
         flip_fn: callable[None, bool] = lambda: random.random() < 0.5,
         metric_name: str = "parallel_merger_matching",
@@ -35,7 +37,7 @@ class ParallelLanguageMerger:
         self._source_text_col = get_metadata_value(metadata, "parallel.source.text", "source_text")
         self._tgt_lang = get_metadata_value(metadata, "parallel.target.language", "tgt_lang")
         self._target_text_col = get_metadata_value(metadata, "parallel.target.text", "target_text")
-        self._documents_per_batch = int(get_metadata_value(part_config, "parallel.count", "40"))
+        self._documents_per_batch = int(glom.glom(part_config, "parallel.count", default="40"))
 
     def get_metrics(self):
         """
@@ -97,14 +99,14 @@ class ParallelSyntheticId:
 
     def __init__(
         self,
-        metadata: dict[str, Any],
+        metadata: Metadata,
         metric_name: str = "parallel_synthetic_id",
     ):
         self._metric_name = metric_name
         self._processed_records = 0
         hash_fn = hash_factory("sha256")
-        source_text_col = get_metadata_value(metadata, "parallel.source.text", "source_text")
-        target_text_col = get_metadata_value(metadata, "parallel.target.text", "target_text")
+        source_text_col = metadata.get("parallel.source.text", "source_text")
+        target_text_col = metadata.get("parallel.target.text", "target_text")
         self._id_fn = lambda doc: hash_fn(f"{doc[source_text_col]}{doc[target_text_col]}")
 
     def get_metrics(self):

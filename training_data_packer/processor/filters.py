@@ -8,7 +8,7 @@ class FilterOnBlocklist:
     Filter for blocklist. Filters out documents with ids in blocklist.
     """
 
-    def __init__(self, name: str, block_list: list[Any]):
+    def __init__(self, name: str, block_list: set[Any]):
         self.counter = 0
         self.name = name
         self.block_list = {str(x) for x in block_list}

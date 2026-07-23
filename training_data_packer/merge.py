@@ -115,7 +115,7 @@ def process(collection_dir: Path, part: None | str = None, workers: int = 1, slu
         if parts == ["default"]:
             metadata["suffix"] = ".jsonl.zst"
             files = find_files(input_dir, metadata["suffix"])
-            docs_per_shard = get_shard_size_documents(get_metadata_value(metadata, "release.default"))
+            docs_per_shard = get_shard_size_documents(metadata["release.default"])
             merge(
                 files,
                 output_dir,
