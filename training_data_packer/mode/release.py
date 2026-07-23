@@ -31,8 +31,8 @@ def parallel_package_pipeline(
     if "id" not in metadata:
         parallel_synthetic_id = ParallelSyntheticId(metadata)
         synthetic_id_iter = parallel_synthetic_id.get_iterator(src_iter)
-        pii_ids = {x["hash"] for x in piis}
-        contamination_ids = {x["hash"] for x in contaminations}
+        pii_ids = {x["hash"] if "hash" in x else x["id"] for x in piis}
+        contamination_ids = {x["hash"] if "hash" in x else x["id"] for x in contaminations}
     else:
         synthetic_id_iter = src_iter
         pii_ids = {x["id"] for x in piis}
