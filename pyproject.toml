@@ -20,6 +20,7 @@ dependencies = [
     "scipy>=1.17.1",
     "numpy>=2.4.6",
     "scipy-stubs~=1.17.1",
+    "transformers~=5.14.1",
 ]
 
 [project.urls]
