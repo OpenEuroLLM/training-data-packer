@@ -5,7 +5,7 @@ from typing import Any
 
 import glom
 
-from training_data_packer.utils.metadata import Metadata, get_metadata_value
+from training_data_packer.utils.metadata import Metadata
 from training_data_packer.utils.misc import hash_factory, lang_to_name
 
 
@@ -33,10 +33,10 @@ class ParallelLanguageMerger:
         self._written_records = 0
         self._flip_fn = flip_fn
         self._hash_fn = hash_factory("sha256")
-        self._src_lang = get_metadata_value(metadata, "parallel.source.language", "src_lang")
-        self._source_text_col = get_metadata_value(metadata, "parallel.source.text", "source_text")
-        self._tgt_lang = get_metadata_value(metadata, "parallel.target.language", "tgt_lang")
-        self._target_text_col = get_metadata_value(metadata, "parallel.target.text", "target_text")
+        self._src_lang = metadata.get("parallel.source.language", "src_lang")
+        self._source_text_col = metadata.get("parallel.source.text", "source_text")
+        self._tgt_lang = metadata.get("parallel.target.language", "tgt_lang")
+        self._target_text_col = metadata.get("parallel.target.text", "target_text")
         self._documents_per_batch = int(glom.glom(part_config, "parallel.count", default="40"))
 
     def get_metrics(self):

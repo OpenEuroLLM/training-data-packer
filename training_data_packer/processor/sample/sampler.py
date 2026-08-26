@@ -9,7 +9,7 @@ from typing import Any
 from loguru import logger
 
 from training_data_packer.processor.sample import sample_register
-from training_data_packer.utils.metadata import Metadata, get_matching_part, get_metadata_value
+from training_data_packer.utils.metadata import Metadata, get_matching_part
 
 
 def read_sampler_fn(filename: Path | None):
@@ -131,7 +131,7 @@ def sampler_factory(
             parameters = part_config["parameters"]
             filename = Path(part_config["filter"])
             if not filename.is_absolute():
-                collection_dir = Path(get_metadata_value(metadata, "_internal.collection_dir", None))
+                collection_dir = Path(metadata.get("_internal.collection_dir", None))
                 filename = collection_dir.joinpath(filename)
 
             sampler = DynamicSampler(filename, parameters)

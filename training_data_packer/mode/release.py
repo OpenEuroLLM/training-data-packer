@@ -12,7 +12,7 @@ from training_data_packer.processor.pii_masking import PIIMasker, openai_mask_do
 from training_data_packer.processor.sample.sampler import sampler_factory
 from training_data_packer.utils import metrics
 from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter
-from training_data_packer.utils.metadata import Metadata, get_matching_part, get_metadata_value
+from training_data_packer.utils.metadata import Metadata, get_matching_part
 
 
 def parallel_package_pipeline(
@@ -69,7 +69,7 @@ def package_file(
         logger.info(f"Skipping {src_file}, does not match a release part")
         return
 
-    is_parallel_text = get_metadata_value(metadata, "_internal.parallel", False)
+    is_parallel_text = metadata.get("_internal.parallel", False)
 
     src_reader = GenericJsonlReader(src_file)
     src_iter = src_reader.read()

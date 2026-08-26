@@ -12,7 +12,6 @@ from training_data_packer.utils.file import find_files
 from training_data_packer.utils.metadata import (
     get_all_part_names,
     get_matching_part,
-    get_metadata_value,
     get_shard_size_documents,
     read_metadata,
 )
@@ -72,8 +71,8 @@ def process(collection_dir: Path, part: None | str = None, workers: int = 1, slu
         parts = get_all_part_names(metadata)
     logger.info(f"Found {len(parts)} parts")
 
-    pack_method = get_metadata_value(metadata, "release.default.pack")
-    if pack_method == "flat" and get_metadata_value(metadata, f"release.{parts[0]}.prefix", None) is None:
+    pack_method = metadata.get("release.default.pack")
+    if pack_method == "flat" and metadata.get(f"release.{parts[0]}.prefix", None) is None:
         # This config requires single threaded
         workers = 1
         parts = ["default"]

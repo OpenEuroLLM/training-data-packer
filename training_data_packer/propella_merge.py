@@ -14,7 +14,7 @@ from training_data_packer.utils.file import (
     find_files,
     get_subdirectories,
 )
-from training_data_packer.utils.metadata import Metadata, get_metadata_value, read_metadata
+from training_data_packer.utils.metadata import Metadata, read_metadata
 from training_data_packer.utils.metrics import read_metrics_from_file
 from training_data_packer.utils.slurm import get_my_slurm_tasks
 
@@ -25,7 +25,7 @@ def process(collection_dir: Path, part: str = "", workers=1, slurm: bool = False
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
 
     # Find all source file and take their names
-    suffix = get_metadata_value(metadata, "source.default.suffix", metadata["suffix"])
+    suffix = metadata.get("source.default.suffix", metadata["suffix"])
     all_names = list(map(lambda x: x.name, find_files(source_dir, suffix)))
 
     if slurm:

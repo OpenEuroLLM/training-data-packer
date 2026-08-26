@@ -8,7 +8,6 @@ from training_data_packer.utils.metadata import (
     Metadata,
     calculate_file_path,
     get_matching_part,
-    get_metadata_value,
     get_shard_size_documents,
 )
 
@@ -197,7 +196,7 @@ class TestMetadata(unittest.TestCase):
         ]
     )
     def test_get_metadata_value(self, name, metadata, key, default_value, expected):
-        result = get_metadata_value(metadata, key, default_value)
+        result = metadata.get(key, default_value)
         self.assertEqual(expected, result)
 
 
