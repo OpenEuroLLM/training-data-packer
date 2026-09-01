@@ -6,6 +6,7 @@ from pathlib import Path
 from parameterized import parameterized
 
 from training_data_packer.processor.sample.sampler import DynamicSampler, convert_to_type, sampler_factory
+from training_data_packer.utils.metadata import Metadata
 
 
 class TestDynamicSampler(unittest.TestCase):
@@ -75,52 +76,54 @@ class TestConvertToType(unittest.TestCase):
 
 class TestSamplerFactory(unittest.TestCase):
     def test_sample_not_set(self):
-        metadata = {"release": {"foo": {}}}
-        src_file = "blabla/foo/bla"
+        metadata = Metadata({"release": {"foo": {}}})
+        src_file = Path("blabla/foo/bla")
         in_data = iter([])
         result_iter, _ = sampler_factory(in_data, metadata, src_file)
         self.assertEqual(in_data, result_iter)
 
     def test_sample_is_full(self):
-        metadata = {"release": {"foo": {"sample": "full"}}}
-        src_file = "blabla/foo/bla"
+        metadata = Metadata({"release": {"foo": {"sample": "full"}}})
+        src_file = Path("blabla/foo/bla")
         in_data = iter([])
         result_iter, _ = sampler_factory(in_data, metadata, src_file)
         self.assertEqual(in_data, result_iter)
 
     def test_sample_is_random(self):
-        metadata = {"release": {"foo": {"sample": "random", "budget": "75%"}}}
-        src_file = "blabla/foo/bla"
+        metadata = Metadata({"release": {"foo": {"sample": "random", "budget": "75%"}}})
+        src_file = Path("blabla/foo/bla")
         in_data = iter([])
         result_iter, _ = sampler_factory(in_data, metadata, src_file)
         self.assertIsInstance(result_iter, itertools.filterfalse)
 
     def test_sample_is_wds_register(self):
-        metadata = {"release": {"foo": {"sample": "wds+register"}}}
-        src_file = "blabla/foo/bla"
+        metadata = Metadata({"release": {"foo": {"sample": "wds+register"}}})
+        src_file = Path("blabla/foo/bla")
         in_data = iter([])
         result_iter, _ = sampler_factory(in_data, metadata, src_file)
         self.assertIsInstance(result_iter, itertools.chain)
 
     def test_sample_is_dynamic(self):
-        metadata = {
-            "_internal": {"collection_dir": Path(os.getcwd())},
-            "release": {
-                "foo": {
-                    "sample": "dynamic",
-                    "parameters": {"para": "5"},
-                    "filter": "tests/resources/sampler/test_sampler.py",
-                }
-            },
-        }
-        src_file = "blabla/foo/bla"
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": Path(os.getcwd())},
+                "release": {
+                    "foo": {
+                        "sample": "dynamic",
+                        "parameters": {"para": "5"},
+                        "filter": "tests/resources/sampler/test_sampler.py",
+                    }
+                },
+            }
+        )
+        src_file = Path("blabla/foo/bla")
         in_data = iter([])
         result_iter, _ = sampler_factory(in_data, metadata, src_file)
         self.assertIsInstance(result_iter, itertools.chain)
 
     def test_sample_illegall(self):
-        metadata = {"release": {"foo": {"sample": "illegal"}}}
-        src_file = "blabla/foo/bla"
+        metadata = Metadata({"release": {"foo": {"sample": "illegal"}}})
+        src_file = Path("blabla/foo/bla")
         in_data = iter([])
         with self.assertRaises(ValueError):
             sampler_factory(in_data, metadata, src_file)

@@ -5,7 +5,7 @@ from training_data_packer.processor.filters import FilterOnBlocklist
 
 class TestFilterOnBlocklist(unittest.TestCase):
     def test_filtering_with_metrics(self):
-        blocklist = ["2", "4", "7"]
+        blocklist = {"2", "4", "7"}
         input_elements = [
             {"id": "1", "name": "block1"},
             {"id": "2", "name": "block1"},

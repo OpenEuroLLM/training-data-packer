@@ -6,6 +6,7 @@ from tempfile import TemporaryDirectory
 from training_data_packer import propella_merge
 from training_data_packer.propella_merge import process_file
 from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter
+from training_data_packer.utils.metadata import Metadata
 from training_data_packer.utils.metrics import read_metrics_from_file
 
 
@@ -15,7 +16,7 @@ class TestProcessFileIntegration(unittest.TestCase):
         Test that process_file skips files that already exist in the output directory.
         """
         with TemporaryDirectory() as test_dir:
-            metadata = {"id": "id", "suffix": ".jsonl.zst"}
+            metadata = Metadata({"id": "id", "suffix": ".jsonl.zst"})
             source_name = "test_file.jsonl.zst"
             propella_dir = Path(test_dir).joinpath("propella-4b")
             propella_dir.mkdir(parents=True)

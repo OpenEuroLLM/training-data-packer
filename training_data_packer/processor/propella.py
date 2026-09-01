@@ -4,7 +4,7 @@ from typing import Any
 from loguru import logger
 
 import training_data_packer.utils.misc
-from training_data_packer.utils.metadata import get_metadata_value
+from training_data_packer.utils.metadata import Metadata
 
 
 class SourceToPropellaMapper:
@@ -22,7 +22,7 @@ class SourceToPropellaMapper:
 
     def __init__(
         self,
-        metadata: dict[str, Any],
+        metadata: Metadata,
         lookup_fn: Callable[[Any], dict[str, Any]],
         metric_name: str = "propella_matching",
     ):
@@ -33,8 +33,8 @@ class SourceToPropellaMapper:
         self._lookup_fn = lookup_fn
         self._id_field = metadata["id"]
         self._text_field = metadata["text"]
-        self._hash_field = get_metadata_value(metadata, "propella-4b.hash-id", "hash")
-        id_hash = get_metadata_value(metadata, "propella-4b.hash", None)
+        self._hash_field = metadata.get("propella-4b.hash-id", "hash")
+        id_hash = metadata.get("propella-4b.hash", None)
         if id_hash is not None:
             self._id_hash_fn = training_data_packer.utils.misc.hash_factory(id_hash)
         else:

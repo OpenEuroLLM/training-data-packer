@@ -1,6 +1,7 @@
 import unittest
 
 from training_data_packer.mode.release import parallel_package_pipeline
+from training_data_packer.utils.metadata import Metadata
 
 
 class TestParallelPackagePipeline(unittest.TestCase):
@@ -21,21 +22,23 @@ class TestParallelPackagePipeline(unittest.TestCase):
                 "tgt_lang": "als_Latn",
             }
         ]
-        metadata = {
-            "_internal": {"parallel": True},
-            "text": "text",
-            "parallel": {
-                "input": "source",
-                "source": {
-                    "text": "source_text",
-                    "language": "src_lang",
+        metadata = Metadata(
+            {
+                "_internal": {"parallel": True},
+                "text": "text",
+                "parallel": {
+                    "input": "source",
+                    "source": {
+                        "text": "source_text",
+                        "language": "src_lang",
+                    },
+                    "target": {
+                        "text": "target_text",
+                        "language": "tgt_lang",
+                    },
                 },
-                "target": {
-                    "text": "target_text",
-                    "language": "tgt_lang",
-                },
-            },
-        }
+            }
+        )
         part_config = {}
         piis = iter([])
         contaminations = iter([])
@@ -71,21 +74,23 @@ class TestParallelPackagePipeline(unittest.TestCase):
                 "tgt_lang": "als_Latn",
             },
         ]
-        metadata = {
-            "_internal": {"parallel": True},
-            "text": "text",
-            "parallel": {
-                "input": "source",
-                "source": {
-                    "text": "source_text",
-                    "language": "src_lang",
+        metadata = Metadata(
+            {
+                "_internal": {"parallel": True},
+                "text": "text",
+                "parallel": {
+                    "input": "source",
+                    "source": {
+                        "text": "source_text",
+                        "language": "src_lang",
+                    },
+                    "target": {
+                        "text": "target_text",
+                        "language": "tgt_lang",
+                    },
                 },
-                "target": {
-                    "text": "target_text",
-                    "language": "tgt_lang",
-                },
-            },
-        }
+            }
+        )
         part_config = {}
         piis = iter([{"hash": "7ea462d1386566606429b6ba9c3adfe39d742c742c835b464a8e8ccdfdf71452"}])
         contaminations = iter([])
@@ -171,22 +176,24 @@ class TestParallelPackagePipeline(unittest.TestCase):
                 "tgt_lang": "als_Latn",
             },
         ]
-        metadata = {
-            "_internal": {"parallel": True},
-            "id": "id",
-            "text": "text",
-            "parallel": {
-                "input": "source",
-                "source": {
-                    "text": "source_text",
-                    "language": "src_lang",
+        metadata = Metadata(
+            {
+                "_internal": {"parallel": True},
+                "id": "id",
+                "text": "text",
+                "parallel": {
+                    "input": "source",
+                    "source": {
+                        "text": "source_text",
+                        "language": "src_lang",
+                    },
+                    "target": {
+                        "text": "target_text",
+                        "language": "tgt_lang",
+                    },
                 },
-                "target": {
-                    "text": "target_text",
-                    "language": "tgt_lang",
-                },
-            },
-        }
+            }
+        )
         part_config = {}
         piis = iter([{"id": "2"}])
         contaminations = iter([])
@@ -221,21 +228,23 @@ class TestParallelPackagePipeline(unittest.TestCase):
                 "tgt_lang": "als_Latn",
             },
         ]
-        metadata = {
-            "_internal": {"parallel": True},
-            "text": "text",
-            "parallel": {
-                "input": "source",
-                "source": {
-                    "text": "source_text",
-                    "language": "src_lang",
+        metadata = Metadata(
+            {
+                "_internal": {"parallel": True},
+                "text": "text",
+                "parallel": {
+                    "input": "source",
+                    "source": {
+                        "text": "source_text",
+                        "language": "src_lang",
+                    },
+                    "target": {
+                        "text": "target_text",
+                        "language": "tgt_lang",
+                    },
                 },
-                "target": {
-                    "text": "target_text",
-                    "language": "tgt_lang",
-                },
-            },
-        }
+            }
+        )
         part_config = {}
         piis = iter([])
         contaminations = iter([{"hash": "7ea462d1386566606429b6ba9c3adfe39d742c742c835b464a8e8ccdfdf71452"}])
@@ -272,22 +281,24 @@ class TestParallelPackagePipeline(unittest.TestCase):
                 "tgt_lang": "als_Latn",
             },
         ]
-        metadata = {
-            "_internal": {"parallel": True},
-            "id": "id",
-            "text": "text",
-            "parallel": {
-                "input": "source",
-                "source": {
-                    "text": "source_text",
-                    "language": "src_lang",
+        metadata = Metadata(
+            {
+                "_internal": {"parallel": True},
+                "id": "id",
+                "text": "text",
+                "parallel": {
+                    "input": "source",
+                    "source": {
+                        "text": "source_text",
+                        "language": "src_lang",
+                    },
+                    "target": {
+                        "text": "target_text",
+                        "language": "tgt_lang",
+                    },
                 },
-                "target": {
-                    "text": "target_text",
-                    "language": "tgt_lang",
-                },
-            },
-        }
+            }
+        )
         part_config = {}
         piis = iter([])
         contaminations = iter([{"id": "1"}])

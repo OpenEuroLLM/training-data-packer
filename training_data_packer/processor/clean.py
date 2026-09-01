@@ -3,9 +3,11 @@ from typing import Any
 
 import glom
 
+from training_data_packer.utils.metadata import Metadata
+
 
 class AlignFieldNames:
-    def __init__(self, src_data: Iterator[Any], metadata: dict):
+    def __init__(self, src_data: Iterator[Any], metadata: Metadata):
         self._src_data = src_data
         self._mapper = {}
         if "id" in metadata and metadata["id"] != "id":

@@ -1,5 +1,4 @@
 import os
-from argparse import ArgumentError
 from pathlib import Path
 
 from loguru import logger
@@ -9,10 +8,10 @@ from training_data_packer.processor.propella import propella_annotate_factory
 from training_data_packer.processor.sample.sampler import sampler_factory
 from training_data_packer.utils import metrics
 from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter
-from training_data_packer.utils.metadata import get_matching_part
+from training_data_packer.utils.metadata import Metadata, get_matching_part
 
 
-def sample_file(src_file: Path, metadata: dict, propella_file: Path, out_file: Path) -> None:
+def sample_file(src_file: Path, metadata: Metadata, propella_file: Path, out_file: Path) -> None:
     tmp_out_file = out_file.parent.joinpath("." + out_file.name)
     if out_file.exists():
         # File is already processed. Do not process it again
@@ -40,7 +39,7 @@ def sample_file(src_file: Path, metadata: dict, propella_file: Path, out_file: P
     if "sample" in metadata:
         sampled_iter, sampler_metrics = sampler_factory(propella_iter, metadata, src_file, section_name="sample")
     else:
-        raise ArgumentError("Metadata does not contain sample section.")
+        raise ValueError("Metadata does not contain sample section.")
 
     writer = JsonlZstWriter(tmp_out_file)
     writer.write(sampled_iter)

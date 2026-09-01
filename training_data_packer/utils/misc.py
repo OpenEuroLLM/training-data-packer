@@ -5,7 +5,7 @@ from iso639 import Lang
 from loguru import logger
 
 
-def hash_factory(hash_algo: str) -> Callable[str, str]:
+def hash_factory(hash_algo: str) -> Callable[[str], str]:
     match hash_algo.lower():
         case "sha256":
             return lambda x: hashlib.sha256(x.encode("utf-8")).hexdigest()

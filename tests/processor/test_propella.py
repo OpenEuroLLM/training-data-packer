@@ -7,6 +7,7 @@ from training_data_packer.processor.propella import (
     SourceToPropellaMapper,
     propella_annotate_factory,
 )
+from training_data_packer.utils.metadata import Metadata
 
 
 class TestPropellaProcessor(unittest.TestCase):
@@ -15,7 +16,7 @@ class TestPropellaProcessor(unittest.TestCase):
             {"my_id": "foo"},
             {"my_id": "bar"},
         ]
-        metadata = {"id": "my_id", "text": "text"}
+        metadata = Metadata({"id": "my_id", "text": "text"})
         lookup_data = {
             "foo": {"id": "foo", "data": "foo_data"},
             "bar": None,  # Emulating not found.
@@ -38,11 +39,13 @@ class TestPropellaProcessor(unittest.TestCase):
             {"id": "foo", "text": "this is my document"},
             {"id": "bar", "text": "this is my second document"},
         ]
-        metadata = {
-            "id": "id",
-            "text": "text",
-            "propella-4b": {"hash": "sha256"},
-        }
+        metadata = Metadata(
+            {
+                "id": "id",
+                "text": "text",
+                "propella-4b": {"hash": "sha256"},
+            }
+        )
         lookup_data = {
             "0422bdf3f65ea9ebda3004d0b4e392906c10f5591a32034eeb41f86b78919d4d": {
                 "id": "0422bdf3f65ea9ebda3004d0b4e392906c10f5591a32034eeb41f86b78919d4d",
@@ -75,11 +78,13 @@ class TestPropellaProcessor(unittest.TestCase):
             {"id": "foo", "text": "this is my document"},
             {"id": "bar", "text": "this is my second document"},
         ]
-        metadata = {
-            "id": "id",
-            "text": "text",
-            "propella-4b": {"hash": "sha256-32", "hash-id": "hash_id"},
-        }
+        metadata = Metadata(
+            {
+                "id": "id",
+                "text": "text",
+                "propella-4b": {"hash": "sha256-32", "hash-id": "hash_id"},
+            }
+        )
         lookup_data = {
             "0422bdf3f65ea9ebda3004d0b4e39290": {
                 "id": "0422bdf3f65ea9ebda3004d0b4e39290",

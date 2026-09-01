@@ -10,7 +10,7 @@ from training_data_packer.processor.propella import SourceToPropellaMapper
 from training_data_packer.storage.propella import get_lookup_fn
 from training_data_packer.utils import metrics
 from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, change_suffix, find_files
-from training_data_packer.utils.metadata import get_metadata_value, read_metadata
+from training_data_packer.utils.metadata import Metadata, read_metadata
 from training_data_packer.utils.slurm import get_my_slurm_tasks
 
 
@@ -24,7 +24,7 @@ def process(collection_dir: Path, propella_dir: Path, part: str = "", slurm: boo
     source_dir = collection_dir.joinpath("source").joinpath(part)
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
 
-    suffix = get_metadata_value(metadata, "source.default.suffix", metadata["suffix"])
+    suffix = metadata.get("source.default.suffix", metadata["suffix"])
     all_files = find_files(source_dir, suffix)
     if slurm:
         task_files = get_my_slurm_tasks(all_files)
@@ -43,17 +43,17 @@ def process(collection_dir: Path, propella_dir: Path, part: str = "", slurm: boo
             process_file(metadata, propella_lookup_fn, source_file, output_file, propella_metrics)
 
 
-def _compute_output_filename(output_dir: Path, rel_path: Path, metadata: dict[str, Any]) -> Path:
+def _compute_output_filename(output_dir: Path, rel_path: Path, metadata: Metadata) -> Path:
     output_file = change_suffix(
         output_dir.joinpath(rel_path),
-        get_metadata_value(metadata, "source.default.suffix", metadata["suffix"]),
+        metadata.get("source.default.suffix", metadata["suffix"]),
         ".jsonl.zst",
     )
     return output_file
 
 
 def process_file(
-    metadata: dict[str, Any],
+    metadata: Metadata,
     propella_lookup_fn: Callable,
     source_file: Path,
     output_file: Path,
