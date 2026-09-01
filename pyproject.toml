@@ -22,6 +22,7 @@ dependencies = [
     "scipy-stubs~=1.17.1",
     "transformers~=5.14.1",
     "jsonschema>=4.26.0",
+    "referencing>=0.37.0",
 ]
 
 [project.urls]

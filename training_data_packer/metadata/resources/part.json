@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://https://openeurollm.eu/schemas/part.json",
+  "title": "Part",
+  "description": "Sub-schema for parts",
+  "type": "object",
+  "properties": {
+    "input": {
+      "type": "string",
+      "description": "Where to read input data from."
+    },
+    "annotations": {
+      "type": "array",
+      "descriptions": "Overlay datasets to use",
+      "items": {
+        "enum": [
+          "nemo-curator",
+          "openai-privacy-filter, propella-4b"
+        ]
+      }
+    },
+    "mask": {
+      "type": "array",
+      "descriptions": "Labels to mask for PII",
+      "items": {
+        "enum": [
+          "account_number",
+          "private_address",
+          "private_date",
+          "private_email",
+          "private_person",
+          "private_phone",
+          "private_url",
+          "secret",
+          "BANK_ACCOUNT",
+          "BITCOIN_ADDRESS",
+          "CREDIT_CARD",
+          "DRIVER_LICENSE",
+          "EMAIL_ADDRESS",
+          "GOV_ID",
+          "IP_ADDRESS",
+          "LICENSE_PLATE",
+          "MERGED",
+          "PHONE_NUMBER"
+        ]
+      }
+    },
+    "pack": {
+      "type": "string",
+      "description": "Method for structure outdata",
+      "enum": [
+        "flat",
+        "tree"
+      ]
+    },
+    "scrub": {
+      "type": "array",
+      "description": "Fields to remove from dataset",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sample": {
+      "type": "string",
+      "description": "Sampling method of documents",
+      "enum": [
+        "full",
+        "dynamic",
+        "random",
+        "wds+register"
+      ]
+    },
+    "filter": {
+      "type": "string",
+      "description": "Relative path to filter code"
+    },
+    "parameters": {
+      "type": "object",
+      "description": "Parameters to function"
+    },
+    "budget": {
+      "type": "string",
+      "description": "Percent to keep, used when random sample. E.g. 25%"
+    },
+    "shard": {
+      "type": "string",
+      "description": "Shard size of files. Unit either md (million docs), bd (billion docs)"
+    }
+  },
+  "required": ["input", "annotations", "mask", "pack", "sample", "shard"]
+}
