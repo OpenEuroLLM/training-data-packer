@@ -1,0 +1,137 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://https://openeurollm.eu/schemas/metadata.json",
+    "title": "Metadata",
+    "description": "Global schema for metadata file",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "Name of dataset"
+        },
+        "catalogue": {
+            "type": "string",
+            "description": "Catalogue of dataset"
+        },
+        "id": {
+            "type": "string",
+            "description": "Field name containing document id field."
+        },
+        "text": {
+            "type": "string",
+            "description": "Filed name containing the document text field"
+        },
+        "suffix": {
+            "type": "string",
+            "description": "Suffix for source data file names."
+        },
+        "release": {
+            "type": "object",
+            "description": "Object describing detail of how release packaging is done.",
+            "properties": {
+                "default": {
+                    "type": "object",
+                    "description": "Default values for release parts",
+                    "properties": {
+                        "input": {
+                            "type": "string",
+                            "description": "Where to read input data from."
+                        },
+                        "annotations": {
+                            "type": "array",
+                            "descriptions": "Overlay datasets to use",
+                            "items": {
+                                "enum": ["nemo-curator", "openai-privacy-filter"]
+                            }
+                        },
+                        "mask": {
+                            "type": "array",
+                            "descriptions": "Labels to mask for PII",
+                            "items": {
+                                "enum": ["private_email", "private_phone", "private_url", "secret"]
+                            }
+                        },
+                        "pack": {
+                            "type": "string",
+                            "description": "Method for structure outdata",
+                            "enum": ["flat", "tree"]
+                        },
+                        "scrub": {
+                            "type": "array",
+                            "description": "Fields to remove from dataset",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "sample": {
+                            "type": "string",
+                            "description": "Sampling method of documents",
+                            "enum": ["full", "dynamic", "random", "wds+register"]
+                        },
+                        "filter": {
+                            "type": "string",
+                            "description": "Relative path to filter code"
+                        },
+                        "parameters": {
+                            "type": "object",
+                            "description": "Parameters to function"
+                        },
+                        "budget": {
+                            "type": "string",
+                            "description": "Percent to keep. E.g. 25%",
+                        },
+                        "shard": {
+                            "type": "string",
+                            "description": "Shard size of files. Unit either md (million docs), bd (billion docs)"
+                        }
+                    },
+                    "required": ["input", "annotations", "pack"]
+                }
+            },
+            "required": ["default"]
+        },
+        "sample": {
+            "type": "object",
+            "description": "Object describing detail of how release packaging is done.",
+            "properties": {
+                "default": {
+                    "type": "object",
+                    "description": "Default values for release parts",
+                    "properties": {
+                        "input": {
+                            "type": "string",
+                            "description": "Where to read input data from."
+                        },
+                        "annotations": {
+                            "type": "array",
+                            "descriptions": "Overlay datasets to use",
+                            "items": {
+                                "enum": ["propella-4b"]
+                            }
+                        },
+                        "sample": {
+                            "type": "string",
+                            "description": "Sampling method of documents",
+                            "enum": ["full", "dynamic", "random", "wds+register"]
+                        },
+                        "filter": {
+                            "type": "string",
+                            "description": "Relative path to filter code"
+                        },
+                        "parameters": {
+                            "type": "object",
+                            "description": "Parameters to function"
+                        }
+                    },
+                    "required": ["input", "annotations", "sample"]
+                }
+            },
+            "required": ["default"]
+        },
+        "source": {
+            "type": "object",
+            "description": "Object describing details of source data."
+        }
+    },
+    "required": ["name", "id", "text", "suffix", "release", "source"]
+}
