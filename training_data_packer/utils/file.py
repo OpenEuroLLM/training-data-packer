@@ -108,6 +108,7 @@ class JsonlZstWriter:
         self._chunk_size = chunk_size
         self._counter_name = counter_name
         self._lines = 0
+        self._size = 0
 
     def write(self, iterator) -> None:
         cctx = zstd.ZstdCompressor()
@@ -118,10 +119,12 @@ class JsonlZstWriter:
                     compressor.write(json.dumps(item))
                     compressor.write(b"\n")
                     self._lines += 1
+        self._size = self._output_file_name.stat().st_size
 
     def get_metrics(self):
         return {
             self._counter_name: {
                 "lines_written": self._lines,
+                "size_bytes": self._size,
             }
         }
