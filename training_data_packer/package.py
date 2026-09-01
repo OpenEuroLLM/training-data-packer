@@ -4,11 +4,11 @@ from pathlib import Path
 
 from loguru import logger
 
+from training_data_packer.metadata import calculate_file_path, get_in_suffix, get_source_dir, read_metadata
 from training_data_packer.mode import lint
 from training_data_packer.mode.release import package_file
 from training_data_packer.mode.sample import sample_file
 from training_data_packer.utils.file import find_files
-from training_data_packer.utils.metadata import calculate_file_path, get_in_suffix, get_source_dir, read_metadata
 from training_data_packer.utils.slurm import get_my_slurm_tasks
 
 

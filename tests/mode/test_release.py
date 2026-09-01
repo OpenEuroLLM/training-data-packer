@@ -1,7 +1,7 @@
 import unittest
 
+from training_data_packer.metadata.metadata import Metadata
 from training_data_packer.mode.release import parallel_package_pipeline
-from training_data_packer.utils.metadata import Metadata
 
 
 class TestParallelPackagePipeline(unittest.TestCase):

@@ -4,7 +4,7 @@ from typing import Any
 from loguru import logger
 
 import training_data_packer.utils.misc
-from training_data_packer.utils.metadata import Metadata
+from training_data_packer.metadata import Metadata
 
 
 class SourceToPropellaMapper:

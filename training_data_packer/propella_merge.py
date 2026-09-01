@@ -5,6 +5,7 @@ from pathlib import Path
 
 from loguru import logger
 
+from training_data_packer.metadata import Metadata, read_metadata
 from training_data_packer.processor.propella import MergePropellaRecords
 from training_data_packer.utils import metrics
 from training_data_packer.utils.file import (
@@ -14,7 +15,6 @@ from training_data_packer.utils.file import (
     find_files,
     get_subdirectories,
 )
-from training_data_packer.utils.metadata import Metadata, read_metadata
 from training_data_packer.utils.metrics import read_metrics_from_file
 from training_data_packer.utils.slurm import get_my_slurm_tasks
 

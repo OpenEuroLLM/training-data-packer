@@ -4,8 +4,8 @@ from pathlib import Path
 
 from loguru import logger
 
+from training_data_packer.metadata import get_all_part_names, read_metadata
 from training_data_packer.utils import metrics
-from training_data_packer.utils.metadata import get_all_part_names, read_metadata
 
 
 def collect_metrics_for_dir(work_dir: Path, output_file: Path):

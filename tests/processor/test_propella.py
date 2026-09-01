@@ -2,12 +2,12 @@ import unittest
 
 from parameterized import parameterized
 
+from training_data_packer.metadata import Metadata
 from training_data_packer.processor.propella import (
     MergePropellaRecords,
     SourceToPropellaMapper,
     propella_annotate_factory,
 )
-from training_data_packer.utils.metadata import Metadata
 
 
 class TestPropellaProcessor(unittest.TestCase):

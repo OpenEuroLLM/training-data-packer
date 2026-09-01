@@ -3,12 +3,12 @@ from pathlib import Path
 
 from loguru import logger
 
+from training_data_packer.metadata import Metadata, get_matching_part
 from training_data_packer.processor.clean import AlignFieldNames, field_scrubber_factory
 from training_data_packer.processor.propella import propella_annotate_factory
 from training_data_packer.processor.sample.sampler import sampler_factory
 from training_data_packer.utils import metrics
 from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter
-from training_data_packer.utils.metadata import Metadata, get_matching_part
 
 
 def sample_file(src_file: Path, metadata: Metadata, propella_file: Path, out_file: Path) -> None:

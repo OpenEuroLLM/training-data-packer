@@ -5,7 +5,7 @@ from typing import Any
 
 import glom
 
-from training_data_packer.utils.metadata import Metadata
+from training_data_packer.metadata import Metadata
 from training_data_packer.utils.misc import hash_factory, lang_to_name
 
 

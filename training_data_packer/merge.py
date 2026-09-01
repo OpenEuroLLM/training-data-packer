@@ -8,13 +8,13 @@ from pathlib import Path
 import zstandard as zstd
 from loguru import logger
 
-from training_data_packer.utils.file import find_files
-from training_data_packer.utils.metadata import (
+from training_data_packer.metadata import (
     get_all_part_names,
     get_matching_part,
     get_shard_size_documents,
     read_metadata,
 )
+from training_data_packer.utils.file import find_files
 from training_data_packer.utils.slurm import get_my_slurm_tasks
 
 

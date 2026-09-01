@@ -8,7 +8,7 @@ from unittest.mock import patch
 import yaml
 
 from training_data_packer.collect_metrics import main
-from training_data_packer.utils.metadata import Metadata
+from training_data_packer.metadata.metadata import Metadata
 
 
 class TestCollectMetricsTree(unittest.TestCase):
