@@ -4,6 +4,7 @@ from pathlib import Path
 
 from loguru import logger
 
+from training_data_packer.mode import lint
 from training_data_packer.mode.release import package_file
 from training_data_packer.mode.sample import sample_file
 from training_data_packer.utils.file import find_files
@@ -105,16 +106,25 @@ def main():
     )
     parser.add_argument("-p", "--part", help="Part to process, default is all")
     parser.add_argument(
-        "-m", "--mode", help="Mode to run packager in", default="release", choices=["release", "sample"]
+        "-m", "--mode", help="Mode to run packager in", default="release", choices=["lint", "release", "sample"]
     )
     args = parser.parse_args()
-    process(
-        Path(args.collection_dir),
-        workers=args.workers,
-        slurm=args.slurm,
-        part=args.part,
-        mode=args.mode,
-    )
+
+    match args.mode:
+        case "lint":
+            if args.slurm or args.workers > 1 or args.part is not None:
+                raise ValueError("Lint mode does not support SLURM, multiple workers, or part selection")
+            lint.process(Path(args.collection_dir))
+        case "release" | "sample":
+            process(
+                Path(args.collection_dir),
+                workers=args.workers,
+                slurm=args.slurm,
+                part=args.part,
+                mode=args.mode,
+            )
+        case _:
+            raise ValueError(f"Undefined mode {args.mode}. Ude one of: lint, sample, or release")
 
 
 if __name__ == "__main__":
