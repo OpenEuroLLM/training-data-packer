@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://https://openeurollm.eu/schemas/part.json",
   "title": "Part",
-  "description": "Sub-schema for parts",
+  "description": "Sub-schema for parts of type release or sample",
   "type": "object",
   "properties": {
     "input": {
@@ -13,10 +13,7 @@
       "type": "array",
       "descriptions": "Overlay datasets to use",
       "items": {
-        "enum": [
-          "nemo-curator",
-          "openai-privacy-filter, propella-4b"
-        ]
+        "enum": ["nemo-curator", "openai-privacy-filter", "propella-4b"]
       }
     },
     "mask": {
@@ -47,11 +44,8 @@
     },
     "pack": {
       "type": "string",
-      "description": "Method for structure outdata",
-      "enum": [
-        "flat",
-        "tree"
-      ]
+      "description": "Method for structure out data",
+      "enum": ["flat", "tree"]
     },
     "scrub": {
       "type": "array",
@@ -63,12 +57,7 @@
     "sample": {
       "type": "string",
       "description": "Sampling method of documents",
-      "enum": [
-        "full",
-        "dynamic",
-        "random",
-        "wds+register"
-      ]
+      "enum": ["full", "dynamic", "random", "wds+register"]
     },
     "filter": {
       "type": "string",
@@ -80,12 +69,19 @@
     },
     "budget": {
       "type": "string",
-      "description": "Percent to keep, used when random sample. E.g. 25%"
+      "description": "Percent to keep, used when random sample. E.g. 25%",
+      "pattern": "^[0-9]+%$"
     },
     "shard": {
       "type": "string",
-      "description": "Shard size of files. Unit either md (million docs), bd (billion docs)"
+      "description": "Shard size of files. Unit either md (million docs), bd (billion docs)",
+      "pattern": "^[0-9]+(md|bd)$"
+    },
+    "rubber": {
+      "type": "string",
+      "description": "Fraction of extra amount of data over budget for safety.",
+      "pattern": "^[0-9]+(\\.[0-9]+)?$"
     }
   },
-  "required": ["input", "annotations", "mask", "pack", "sample", "shard"]
+  "unevaluatedProperties": false
 }

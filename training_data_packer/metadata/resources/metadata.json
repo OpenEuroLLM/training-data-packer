@@ -1,80 +1,235 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://https://openeurollm.eu/schemas/metadata.json",
-    "title": "Metadata",
-    "description": "Global schema for metadata file",
-    "type": "object",
-    "properties": {
-        "name": {
-            "type": "string",
-            "description": "Name of dataset"
-        },
-        "catalogue": {
-            "type": "string",
-            "description": "Catalogue of dataset"
-        },
-        "id": {
-            "type": "string",
-            "description": "Field name containing document id field."
-        },
-        "text": {
-            "type": "string",
-            "description": "Filed name containing the document text field"
-        },
-        "suffix": {
-            "type": "string",
-            "description": "Suffix for source data file names."
-        },
-        "release": {
-            "type": "object",
-            "description": "Object describing detail of how release packaging is done.",
-            "properties": {
-                "default": { "$ref": "https://https://openeurollm.eu/schemas/part.json" }
-            },
-            "required": ["default"]
-        },
-        "sample": {
-            "type": "object",
-            "description": "Object describing detail of how release packaging is done.",
-            "properties": {
-                "default": {
-                    "type": "object",
-                    "description": "Default values for release parts",
-                    "properties": {
-                        "input": {
-                            "type": "string",
-                            "description": "Where to read input data from."
-                        },
-                        "annotations": {
-                            "type": "array",
-                            "descriptions": "Overlay datasets to use",
-                            "items": {
-                                "enum": ["propella-4b"]
-                            }
-                        },
-                        "sample": {
-                            "type": "string",
-                            "description": "Sampling method of documents",
-                            "enum": ["full", "dynamic", "random", "wds+register"]
-                        },
-                        "filter": {
-                            "type": "string",
-                            "description": "Relative path to filter code"
-                        },
-                        "parameters": {
-                            "type": "object",
-                            "description": "Parameters to function"
-                        }
-                    },
-                    "required": ["input", "annotations", "sample"]
-                }
-            },
-            "required": ["default"]
-        },
-        "source": {
-            "type": "object",
-            "description": "Object describing details of source data."
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://https://openeurollm.eu/schemas/metadata.json",
+  "title": "Metadata",
+  "description": "Global schema for metadata file",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of dataset"
     },
-    "required": ["name", "id", "text", "suffix", "release", "source"]
+    "catalogue": {
+      "type": "string",
+      "description": "Catalogue of dataset"
+    },
+    "id": {
+      "type": "string",
+      "description": "Field name containing document id field."
+    },
+    "text": {
+      "type": "string",
+      "description": "Filed name containing the document text field"
+    },
+    "suffix": {
+      "type": "string",
+      "description": "Suffix for source data file names."
+    },
+    "release": {
+      "type": "object",
+      "description": "Object describing detail of how release packaging is done.",
+      "properties": {
+        "default": {
+          "$ref": "https://https://openeurollm.eu/schemas/part.json",
+          "required": ["input", "annotations", "pack"]
+        },
+        "additionalProperties": {
+          "oneOf": [
+            {
+              "type": "object",
+              "$ref": "https://https://openeurollm.eu/schemas/part.json"
+            },
+            {
+              "type": "string",
+              "maxLength": 0
+            }
+          ],
+          "description": "Parts overriding default object"
+        }
+      },
+      "required": ["default"]
+    },
+    "sample": {
+      "type": "object",
+      "description": "Object describing detail of how release packaging is done.",
+      "properties": {
+        "default": {
+          "type": "object",
+          "description": "Default values for release parts",
+          "allOf": [{ "$ref": "https://https://openeurollm.eu/schemas/part.json" }],
+          "required": ["input", "annotations", "sample"],
+          "mask": false,
+          "pack": false,
+          "scrub": false,
+          "shard": false
+        },
+        "additionalProperties": {
+          "oneOf": [
+            {
+              "type": "object",
+              "$ref": "https://https://openeurollm.eu/schemas/part.json"
+            },
+            {
+              "type": "string",
+              "maxLength": 0
+            }
+          ],
+          "description": "Parts overriding default object"
+        }
+      },
+      "required": ["default"]
+    },
+    "source": {
+      "type": "object",
+      "description": "Object describing details of source data.",
+      "properties": {
+        "default": { "$ref": "https://https://openeurollm.eu/schemas/part.json" }
+      },
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "object",
+            "$ref": "https://https://openeurollm.eu/schemas/part.json"
+          },
+          {
+            "type": "string",
+            "maxLength": 0
+          }
+        ],
+        "description": "Parts overriding default object"
+      }
+    },
+    "openeurollm": {
+      "type": "object",
+      "description": "Object describing details of source data adapted for openeurollm.",
+            "properties": {
+        "default": { "$ref": "https://https://openeurollm.eu/schemas/part.json" }
+      },
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "object",
+            "$ref": "https://https://openeurollm.eu/schemas/part.json"
+          },
+          {
+            "type": "string",
+            "maxLength": 0
+          }
+        ],
+        "description": "Parts overriding default object"
+      }
+    },
+    "uuid": {
+      "type": "object",
+      "description": "Object describing adding a UUID id field to data",
+      "properties": {
+        "default": {
+          "type": "object",
+          "properties": {
+            "description": "Default values for release parts",
+            "input": {
+              "type": "string",
+              "description": "Where to read input data from."
+            }
+          },
+          "required": ["input"]
+        },
+        "additionalProperties": {
+          "oneOf": [
+            {
+              "type": "object",
+              "$ref": "https://https://openeurollm.eu/schemas/part.json"
+            },
+            {
+              "type": "string",
+              "maxLength": 0
+            }
+          ],
+          "description": "Parts overriding default object"
+        }
+      }
+    },
+    "nemo-curator": {
+      "type": "object",
+      "description": "Object describing detect contamination using nemo-curator",
+      "properties": {
+        "default": {
+          "type": "object",
+          "description": "Default values for release parts",
+          "properties": {
+            "input": {
+              "type": "string",
+              "description": "Where to read input data from."
+            }
+          },
+          "required": ["input"]
+        },
+        "additionalProperties": {
+          "oneOf": [
+            {
+              "type": "object",
+              "$ref": "https://https://openeurollm.eu/schemas/part.json"
+            },
+            {
+              "type": "string",
+              "maxLength": 0
+            }
+          ],
+          "description": "Parts overriding default object"
+        }
+      }
+    },
+    "propella-4b": {
+      "type": "object",
+      "description": "Object describing details of propella annotation addition",
+      "properties": {
+        "hash": {
+          "type": "string",
+          "description": "Method used in propella data for calculate id",
+          "items": [
+            "sha256",
+            "sha256-32"
+          ]
+        },
+        "hash-id": {
+          "type": "string",
+          "description": "Field name used for hashed id.",
+          "default": "hash"
+        }
+      }
+    },
+    "openai-privacy-filter": {
+      "type": "object",
+      "description": "Object describing details of PII detection with openai-privacy-filter",
+      "properties": {
+        "default": {
+          "type": "object",
+          "description": "Default values for release parts",
+          "properties": {
+            "input": {
+              "type": "string",
+              "description": "Where to read input data from."
+            }
+          },
+          "required": ["input"]
+        },
+        "additionalProperties": {
+          "oneOf": [
+            {
+              "type": "object",
+              "$ref": "https://https://openeurollm.eu/schemas/part.json"
+            },
+            {
+              "type": "string",
+              "maxLength": 0
+            }
+          ],
+          "description": "Parts overriding default object"
+        }
+      }
+    }
+  },
+  "required": ["name", "id", "text", "suffix", "release", "source"],
+  "patternProperties": { "^_": {"description":  "Fields for internal use"} },
+  "additionalProperties": false
 }

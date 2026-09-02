@@ -15,9 +15,9 @@ def _load_json_resource(name: str) -> dict:
 
 
 class Validator:
-    def __init__(self, schema_name):
+    def __init__(self, schema_names: list[str]):
         self.registry = Registry()
-        for s in schema_name:
+        for s in schema_names:
             schema = _load_json_resource(s)
             self.registry = self.registry.with_resource(schema["$id"], Resource.from_contents(schema))
 

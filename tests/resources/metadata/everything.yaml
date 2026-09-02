@@ -1,0 +1,54 @@
+name: Everything
+catalogue: Everything
+id: id
+text: text
+suffix: .jsonl.zst
+release:
+  default:
+    input: sample
+    annotations: ["nemo-curator", "openai-privacy-filter", "propella-4b"]
+    mask:
+      - "account_number"
+      - "private_address"
+      - "private_date"
+      - "private_email"
+      - "private_person"
+      - "private_phone"
+      - "private_url"
+      - "secret"
+      - "BANK_ACCOUNT"
+      - "BITCOIN_ADDRESS"
+      - "CREDIT_CARD"
+      - "DRIVER_LICENSE"
+      - "EMAIL_ADDRESS"
+      - "GOV_ID"
+      - "IP_ADDRESS"
+      - "LICENSE_PLATE"
+      - "MERGED"
+      - "PHONE_NUMBER"
+    pack: tree
+    scrub: ["xml", "md"]
+    sample: random
+    filter: not/used.py
+    parameters: {}
+    budget: 15%
+    shard: 94md
+    rubber: 1.10
+  documents:
+    sample: random
+    budget: 25%
+    shard: 7md
+sample:
+  default:
+    input: source
+    annotations: [propella-4b]
+    sample: dynamic
+    filter: ../sample/propella-filter.py
+    parameters: {}
+    budget: 15%
+    rubber: 1.10
+source:
+  default: {}
+  documents: {}
+propella-4b:
+  hash: sha256-32
