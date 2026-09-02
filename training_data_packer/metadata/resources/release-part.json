@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://https://openeurollm.eu/schemas/release-part.json",
+  "title": "Release part",
+  "description": "Global schema for an expanded release part",
+  "type": "object",
+  "$ref": "https://https://openeurollm.eu/schemas/part.json",
+  "required": ["input", "annotations", "mask", "pack", "sample", "shard"]
+}

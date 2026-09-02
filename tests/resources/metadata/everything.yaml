@@ -24,7 +24,6 @@ release:
       - "GOV_ID"
       - "IP_ADDRESS"
       - "LICENSE_PLATE"
-      - "MERGED"
       - "PHONE_NUMBER"
     pack: tree
     scrub: ["xml", "md"]

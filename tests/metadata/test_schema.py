@@ -8,9 +8,9 @@ from training_data_packer.metadata import Metadata, read_metadata
 from training_data_packer.metadata.schema import Validator
 
 
-class SchemaTest(unittest.TestCase):
+class MetadataSchemaTest(unittest.TestCase):
     def setUp(self):
-        self.validator = Validator(["metadata.json", "part.json"])
+        self.validator = Validator()
         self.resource_path = resources.files(tests.resources.metadata)
 
     @parameterized.expand(
@@ -29,8 +29,19 @@ class SchemaTest(unittest.TestCase):
     def test_validator_initialization(self):
         self.assertIsNotNone(self.validator.registry)
 
-    def test_validate_release_part_valid(self):
-        part_data = {
+    def test_validator_error_message_format(self):
+        illegal_data = {"input": "source", "pack": "tree", "sample": "full"}
+
+        success, error = self.validator.validate_metadata(illegal_data)
+        self.assertFalse(success)
+        self.assertIsNotNone(error)
+        self.assertIn("https://https://openeurollm.eu/schemas/metadata.json", error)
+
+
+class ReleasePartSchemaTest(unittest.TestCase):
+    def setUp(self):
+        self.validator = Validator()
+        self.complete_record = {
             "input": "source",
             "annotations": ["nemo-curator"],
             "mask": ["private_email", "EMAIL_ADDRESS", "PHONE_NUMBER"],
@@ -39,200 +50,123 @@ class SchemaTest(unittest.TestCase):
             "shard": "10md",
         }
 
-        success, error = self.validator.validate_release_part(part_data)
+    def test_validate_release_part_valid(self):
+        success, error = self.validator.validate_release_part(self.complete_record)
         self.assertTrue(success)
-        self.assertIsNone(error)
+        self.assertEqual("", error)
 
-    @unittest.skip("Skipping until we fix separate schema for expanded part.")
-    def test_validate_release_part_missing_required_fields(self):
-        # TODO: Fix separate schema for expanded part.
-        part_data = {"annotations": ["nemo-curator"]}
+    def test_validator_error_message_format(self):
+        illegal_data = {"input": "source", "pack": "tree", "sample": "full"}
 
-        success, error = self.validator.validate_release_part(part_data)
+        success, error = self.validator.validate_release_part(illegal_data)
         self.assertFalse(success)
         self.assertIsNotNone(error)
+        self.assertIn("https://https://openeurollm.eu/schemas/release-part.json", error)
+
+    def test_validate_release_part_missing_required_fields(self):
+        del self.complete_record["shard"]
+
+        success, error = self.validator.validate_release_part(self.complete_record)
+        self.assertFalse(success)
+        self.assertNotEqual("", error)
         self.assertIn("Validation error", error)
 
-    def test_validate_release_part_invalid_sample_value(self):
-        part_data = {
-            "input": "source",
-            "annotations": ["nemo-curator"],
-            "mask": ["email"],
-            "pack": "tree",
-            "sample": "invalid_sample",
-            "shard": "10md",
-        }
+    @parameterized.expand(
+        [
+            "full",
+            "dynamic",
+            "random",
+            "wds+register",
+        ]
+    )
+    def test_validate_release_part_all_sample_values(self, sample):
+        self.complete_record["sample"] = sample
+        success, error = self.validator.validate_release_part(self.complete_record)
+        self.assertTrue(success, f"Failed for sample: {sample}\n{error}")
 
-        success, error = self.validator.validate_release_part(part_data)
+    def test_validate_release_part_invalid_sample_value(self):
+        self.complete_record["sample"] = "invalid_sample"
+        success, error = self.validator.validate_release_part(self.complete_record)
         self.assertFalse(success)
+
+    @parameterized.expand(
+        [
+            "tree",
+            "flat",
+        ]
+    )
+    def test_validate_release_part_all_pack_values(self, pack):
+        self.complete_record["pack"] = pack
+        success, error = self.validator.validate_release_part(self.complete_record)
+        self.assertTrue(success, f"Failed for sample: {pack}\n{error}")
 
     def test_validate_release_part_invalid_pack_value(self):
-        part_data = {
-            "input": "source",
-            "annotations": ["nemo-curator"],
-            "mask": ["email"],
-            "pack": "invalid_pack",
-            "sample": "full",
-            "shard": "10md",
-        }
-
-        success, error = self.validator.validate_release_part(part_data)
+        self.complete_record["pack"] = "invalid_pack"
+        success, error = self.validator.validate_release_part(self.complete_record)
         self.assertFalse(success)
 
-    def test_validate_release_part_valid_mask_values(self):
-        valid_masks = ["private_email", "EMAIL_ADDRESS", "CREDIT_CARD"]
-
-        for mask in valid_masks:
-            part_data = {
-                "input": "source",
-                "annotations": ["nemo-curator"],
-                "mask": [mask],
-                "pack": "tree",
-                "sample": "full",
-                "shard": "10md",
-            }
-
-            success, error = self.validator.validate_release_part(part_data)
-            self.assertTrue(success, f"Failed for mask: {mask}")
+    @parameterized.expand(
+        [
+            "account_number",
+            "private_address",
+            "private_date",
+            "private_email",
+            "private_person",
+            "private_phone",
+            "private_url",
+            "secret",
+            "BANK_ACCOUNT",
+            "BITCOIN_ADDRESS",
+            "CREDIT_CARD",
+            "DRIVER_LICENSE",
+            "EMAIL_ADDRESS",
+            "GOV_ID",
+            "IP_ADDRESS",
+            "LICENSE_PLATE",
+            "PHONE_NUMBER",
+        ]
+    )
+    def test_validate_release_part_all_mask_values(self, mask):
+        self.complete_record["mask"] = [mask]
+        success, error = self.validator.validate_release_part(self.complete_record)
+        self.assertTrue(success, f"Failed for sample: {mask}\n{error}")
 
     def test_validate_release_part_invalid_mask_value(self):
-        part_data = {
-            "input": "source",
-            "annotations": ["nemo-curator"],
-            "mask": ["invalid_mask"],
-            "pack": "tree",
-            "sample": "full",
-            "shard": "10md",
-        }
-
-        success, error = self.validator.validate_release_part(part_data)
+        self.complete_record["mask"] = ["invalid_mask"]
+        success, error = self.validator.validate_release_part(self.complete_record)
         self.assertFalse(success)
 
-    def test_validate_release_part_all_sample_values(self):
-        valid_samples = ["full", "dynamic", "random", "wds+register"]
-
-        for sample in valid_samples:
-            part_data = {
-                "input": "source",
-                "annotations": ["nemo-curator"],
-                "mask": [],
-                "pack": "tree",
-                "sample": sample,
-                "shard": "10md",
-            }
-
-            success, error = self.validator.validate_release_part(part_data)
-            self.assertTrue(success, f"Failed for sample: {sample}")
-
-    def test_validate_release_part_both_pack_values(self):
-        valid_packs = ["flat", "tree"]
-
-        for pack in valid_packs:
-            part_data = {
-                "input": "source",
-                "annotations": ["nemo-curator"],
-                "mask": [],
-                "pack": pack,
-                "sample": "full",
-                "shard": "10md",
-            }
-
-            success, error = self.validator.validate_release_part(part_data)
-            self.assertTrue(success, f"Failed for pack: {pack}, error: {error}")
-
-    def test_validate_release_part_empty_optional_fields(self):
-        part_data = {
-            "input": "source",
-            "annotations": ["nemo-curator"],
-            "mask": [],
-            "pack": "tree",
-            "sample": "full",
-            "shard": "10md",
-        }
-
-        success, error = self.validator.validate_release_part(part_data)
+    def test_validate_release_part_mask_empty_list(self):
+        self.complete_record["mask"] = []
+        success, error = self.validator.validate_release_part(self.complete_record)
         self.assertTrue(success)
 
     def test_validate_release_part_with_budget(self):
-        part_data = {
-            "input": "source",
-            "annotations": ["nemo-curator"],
-            "mask": [],
-            "pack": "tree",
-            "sample": "random",
-            "shard": "10md",
-            "budget": "25%",
-        }
-
-        success, error = self.validator.validate_release_part(part_data)
+        self.complete_record["budget"] = "25%"
+        success, error = self.validator.validate_release_part(self.complete_record)
         self.assertTrue(success)
 
-    def test_validate_release_part_with_filter(self):
-        part_data = {
-            "input": "source",
-            "annotations": ["nemo-curator"],
-            "mask": [],
-            "pack": "tree",
-            "sample": "dynamic",
-            "shard": "5md",
-            "filter": "../filters/custom_filter.py",
-        }
+    @parameterized.expand(
+        [
+            "100%",
+            "25",
+        ]
+    )
+    def test_validate_release_part_with_illegal_budget(self, budget):
+        self.complete_record["budget"] = budget
+        success, error = self.validator.validate_release_part(self.complete_record)
+        self.assertFalse(success)
 
-        success, error = self.validator.validate_release_part(part_data)
+    def test_validate_release_part_with_filter_and_parameters(self):
+        self.complete_record["filter"] = "../filters/custom_filter.py"
+        self.complete_record["parameters"] = {"param1": "value1", "param2": 42}
+        success, error = self.validator.validate_release_part(self.complete_record)
         self.assertTrue(success)
 
     def test_validate_release_part_with_scrub(self):
-        part_data = {
-            "input": "source",
-            "annotations": ["nemo-curator"],
-            "mask": [],
-            "pack": "tree",
-            "sample": "full",
-            "shard": "10md",
-            "scrub": ["field1", "field2"],
-        }
-
-        success, error = self.validator.validate_release_part(part_data)
-        self.assertTrue(success)
-
-    def test_validate_release_part_with_parameters(self):
-        part_data = {
-            "input": "source",
-            "annotations": ["nemo-curator"],
-            "mask": [],
-            "pack": "tree",
-            "sample": "dynamic",
-            "shard": "10md",
-            "parameters": {"param1": "value1", "param2": 42},
-        }
-
-        success, error = self.validator.validate_release_part(part_data)
-        self.assertTrue(success)
-
-    def test_validator_with_single_schema(self):
-        validator = Validator(["part.json"])
-        part_data = {
-            "input": "source",
-            "annotations": ["nemo-curator"],
-            "mask": [],
-            "pack": "flat",
-            "sample": "full",
-            "shard": "15bd",
-        }
-
-        success, error = validator.validate_release_part(part_data)
-        self.assertTrue(success)
-
-    @unittest.skip("Skipping until we fix separate schema for expanded part.")
-    def test_validator_error_message_format(self):
-        # TODO: Fix separate schema for expanded part.
-        part_data = {"input": "source", "pack": "tree", "sample": "full"}
-        # Missing required fields: annotations, mask, shard
-
-        success, error = self.validator.validate_release_part(part_data)
-        self.assertFalse(success)
-        self.assertIsNotNone(error)
-        self.assertIn("https://https://openeurollm.eu/schemas/part.json", error)
+        self.complete_record["scrub"] = ["xml", "md"]
+        success, error = self.validator.validate_release_part(self.complete_record)
+        self.assertTrue(success, error)
 
 
 if __name__ == "__main__":

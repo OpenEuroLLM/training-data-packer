@@ -37,10 +37,10 @@
           "GOV_ID",
           "IP_ADDRESS",
           "LICENSE_PLATE",
-          "MERGED",
           "PHONE_NUMBER"
         ]
-      }
+      },
+      "minItems": 0
     },
     "pack": {
       "type": "string",
@@ -70,7 +70,7 @@
     "budget": {
       "type": "string",
       "description": "Percent to keep, used when random sample. E.g. 25%",
-      "pattern": "^[0-9]+%$"
+      "pattern": "^[0-9]{1,2}%$"
     },
     "shard": {
       "type": "string",
