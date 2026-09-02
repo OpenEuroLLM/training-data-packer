@@ -4,9 +4,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from training_data_packer import propella_merge
+from training_data_packer.metadata.metadata import Metadata
 from training_data_packer.propella_merge import process_file
 from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter
-from training_data_packer.utils.metadata import Metadata
 from training_data_packer.utils.metrics import read_metrics_from_file
 
 

@@ -1,0 +1,13 @@
+name: not-allowed-prop-release-default.yaml
+catalogue: example
+id: id
+text: text
+suffix: .jsonl.zst
+release:
+  default:
+    input: source
+    pack: tree
+    annotations: []
+    not_allowed: value
+source:
+  documents:

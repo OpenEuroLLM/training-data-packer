@@ -1,7 +1,7 @@
 import unittest
 
+from training_data_packer.metadata import Metadata
 from training_data_packer.processor.parallel_merger import ParallelLanguageMerger, ParallelSyntheticId
-from training_data_packer.utils.metadata import Metadata
 
 
 class TestParallelLanguageMerger(unittest.TestCase):

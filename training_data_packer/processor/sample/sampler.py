@@ -8,8 +8,8 @@ from typing import Any
 
 from loguru import logger
 
+from training_data_packer.metadata.metadata import Metadata, get_matching_part
 from training_data_packer.processor.sample import sample_register
-from training_data_packer.utils.metadata import Metadata, get_matching_part
 
 
 def read_sampler_fn(filename: Path | None):

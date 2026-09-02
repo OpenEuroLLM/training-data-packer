@@ -2,8 +2,8 @@ import unittest
 
 from parameterized import parameterized
 
+from training_data_packer.metadata import Metadata
 from training_data_packer.processor.clean import AlignFieldNames, field_scrubber_factory
-from training_data_packer.utils.metadata import Metadata
 
 
 class TestAlignFieldNames(unittest.TestCase):

@@ -5,6 +5,7 @@ from typing import Any
 
 from loguru import logger
 
+from training_data_packer.metadata import Metadata, get_matching_part
 from training_data_packer.processor.clean import AlignFieldNames, field_scrubber_factory
 from training_data_packer.processor.filters import FilterOnBlocklist
 from training_data_packer.processor.parallel_merger import ParallelLanguageMerger, ParallelSyntheticId
@@ -12,7 +13,6 @@ from training_data_packer.processor.pii_masking import PIIMasker, openai_mask_do
 from training_data_packer.processor.sample.sampler import sampler_factory
 from training_data_packer.utils import metrics
 from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter
-from training_data_packer.utils.metadata import Metadata, get_matching_part
 
 
 def parallel_package_pipeline(

@@ -5,8 +5,8 @@ from pathlib import Path
 
 from parameterized import parameterized
 
+from training_data_packer.metadata.metadata import Metadata
 from training_data_packer.processor.sample.sampler import DynamicSampler, convert_to_type, sampler_factory
-from training_data_packer.utils.metadata import Metadata
 
 
 class TestDynamicSampler(unittest.TestCase):

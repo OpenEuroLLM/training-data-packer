@@ -3,7 +3,7 @@ from typing import Any
 
 import glom
 
-from training_data_packer.utils.metadata import Metadata
+from training_data_packer.metadata import Metadata
 
 
 class AlignFieldNames:
