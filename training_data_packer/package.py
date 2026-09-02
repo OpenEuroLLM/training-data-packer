@@ -1,4 +1,5 @@
 import argparse
+import sys
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
@@ -114,7 +115,8 @@ def main():
         case "lint":
             if args.slurm or args.workers > 1 or args.part is not None:
                 raise ValueError("Lint mode does not support SLURM, multiple workers, or part selection")
-            lint.process(Path(args.collection_dir))
+            if not lint.process(Path(args.collection_dir)):
+                sys.exit(1)
         case "release" | "sample":
             process(
                 Path(args.collection_dir),

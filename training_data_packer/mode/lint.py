@@ -3,6 +3,7 @@ from pathlib import Path
 from loguru import logger
 
 from training_data_packer.metadata import read_metadata
+from training_data_packer.metadata.schema import Validator
 
 
 def process(collection_dir: Path) -> bool:
@@ -12,5 +13,11 @@ def process(collection_dir: Path) -> bool:
         return False
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
     metadata["_internal"]["mode"] = "lint"
+
+    validator = Validator()
+    result, error = validator.validate_metadata(metadata)
+    if not result:
+        logger.error(f"Schema validation failed: {error}")
+        return False
 
     return True
