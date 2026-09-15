@@ -13,7 +13,7 @@ from training_data_packer.metadata import (
     get_shard_size_documents,
     read_metadata,
 )
-from training_data_packer.metadata.defaults import PREFIX_DEFAULT
+from training_data_packer.metadata.defaults import DEFAULT_SUFFIX, PREFIX_DEFAULT
 from training_data_packer.utils.file import find_files
 from training_data_packer.utils.slurm import get_my_slurm_tasks
 
@@ -94,8 +94,8 @@ def process(collection_dir: Path, part: None | str = None, workers: int = 1, slu
                     raise ValueError(f"Could not find config for part {part_name}")
                 logger.info(f"Processing part {part_name} with config {part_config}")
                 flat_output = part_config["pack"] == "flat"
-                metadata["suffix"] = ".jsonl.zst"
-                files = find_files(input_dir.joinpath(part_name), metadata["suffix"])
+                metadata["suffix"] = DEFAULT_SUFFIX
+                files = find_files(input_dir.joinpath(part_name), metadata.get("suffix", DEFAULT_SUFFIX))
                 logger.info(f"Processing part {part_name} with {len(files)} files")
                 docs_per_shard = get_shard_size_documents(part_config)
                 job = executor.submit(
@@ -112,8 +112,8 @@ def process(collection_dir: Path, part: None | str = None, workers: int = 1, slu
                     logger.error(f"There were an exception thrown for release {task_parts[n]}: {job.exception()}")
     else:
         if parts == ["default"]:
-            metadata["suffix"] = ".jsonl.zst"
-            files = find_files(input_dir, metadata["suffix"])
+            metadata["suffix"] = DEFAULT_SUFFIX
+            files = find_files(input_dir, metadata.get("suffix", DEFAULT_SUFFIX))
             docs_per_shard = get_shard_size_documents(metadata["release.default"])
             merge(
                 files,
@@ -129,8 +129,8 @@ def process(collection_dir: Path, part: None | str = None, workers: int = 1, slu
                     raise ValueError(f"Could not find config for part {part_name}")
                 logger.info(f"Processing part {part_name} with config {part_config}")
                 flat_output = part_config["pack"] == "flat"
-                metadata["suffix"] = ".jsonl.zst"
-                files = find_files(input_dir.joinpath(part_name), metadata["suffix"])
+                metadata["suffix"] = DEFAULT_SUFFIX
+                files = find_files(input_dir.joinpath(part_name), metadata.get("suffix", DEFAULT_SUFFIX))
                 logger.info(f"Processing part {part_name} with {len(files)} files")
                 docs_per_shard = get_shard_size_documents(part_config)
                 merge(

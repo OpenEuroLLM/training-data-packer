@@ -108,8 +108,8 @@
       "properties": {
         "count": {
           "type": "integer",
-          "description": "Number of chunks to create",
-          "minimum": 1
+          "description": "Number of pairs per document.",
+          "minimum": 40
         },
         "flip": {
           "type": "number",
