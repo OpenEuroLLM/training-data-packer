@@ -1,7 +1,9 @@
 import hashlib
 from collections.abc import Callable
 from copy import deepcopy
+from typing import Any
 
+import jsonpath_ng
 from iso639 import Lang
 from loguru import logger
 
@@ -65,3 +67,59 @@ def merge_hierarchy_dicts(dict_a, dict_b):
     if dict_a is None:
         return deepcopy(dict_b)
     return deepcopy(dict_a)
+
+
+def get_dict_value(dictionary: dict[str, Any], key: str, default: Any = None) -> Any:
+    """
+    Retrieves a specific value from a nested dictionary structure using a
+    JSONPath expression. This function utilizes the jsonpath_ng library to
+    parse the provided key and search the dictionary. It is designed to
+    handle scenarios where a value might be missing by returning a default,
+    but it enforces uniqueness by raising an error if the path matches
+    multiple entries.
+
+    Args:
+        dictionary: The dictionary or JSON-like object to be searched.
+        key: The JSONPath expression string used to identify the desired
+            element within the data structure.
+        default: The value to return if the query does not find any matches.
+            Defaults to None.
+
+    Returns:
+        The value corresponding to the unique match found by the JSONPath
+        expression, or the default value if no matches are present.
+
+    Raises:
+        KeyError: If the JSONPath expression yields multiple matches,
+            preventing the return of a single unambiguous value.
+    """
+    expr = jsonpath_ng.parse(key)
+    match = expr.find(dictionary)
+    if len(match) == 0:
+        return default
+    if len(match) == 1:
+        return match[0].value
+    raise KeyError(f"{key} gives multiple hits")
+
+
+def get_dict_values(dictionary: dict[str, Any], key: str) -> Any:
+    """
+    Retrieves a multiple values from a nested dictionary structure using a
+    JSONPath expression. This function utilizes the jsonpath_ng library to
+    parse the provided key and search the dictionary. It is designed to
+    handle scenarios where multiple entries match the query.
+
+    Args:
+        dictionary: The dictionary or JSON-like object to be searched.
+        key: The JSONPath expression string used to identify the desired
+            element within the data structure.
+
+    Returns:
+        List of values corresponding to the unique match found by the JSONPath
+        expression, or the default value if no matches are present.
+    """
+    expr = jsonpath_ng.parse(key)
+    match = expr.find(dictionary)
+    if len(match) == 0:
+        return []
+    return [m.value for m in match]
