@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from training_data_packer.metadata import Metadata
 from training_data_packer.processor.parallel_merger import ParallelLanguageMerger, ParallelSyntheticId
@@ -95,6 +96,24 @@ class TestParallelLanguageMerger(unittest.TestCase):
 
         expected_text = "English: Hello\nFrench: Bonjour\n\nEnglish: Goodbye\nFrench: Au revoir"
         self.assertIn(expected_text, result["text"])
+
+    @patch("training_data_packer.processor.parallel_merger.random.random", return_value=0.25)
+    def test_flip_zero_preserves_source_target_order(self, _random):
+        merger = ParallelLanguageMerger(self.metadata, {"parallel": {"flip": 0}})
+        docs = [{"src_lang": "eng", "source_text": "Hello", "tgt_lang": "fra", "target_text": "Bonjour"}]
+
+        result = merger.get_mapper()(docs)
+
+        self.assertEqual("English: Hello\nFrench: Bonjour", result["text"])
+
+    @patch("training_data_packer.processor.parallel_merger.random.random", return_value=0.75)
+    def test_flip_one_reverses_source_target_order(self, _random):
+        merger = ParallelLanguageMerger(self.metadata, {"parallel": {"flip": 1}})
+        docs = [{"src_lang": "eng", "source_text": "Hello", "tgt_lang": "fra", "target_text": "Bonjour"}]
+
+        result = merger.get_mapper()(docs)
+
+        self.assertEqual("French: Bonjour\nEnglish: Hello", result["text"])
 
     def test_initialization_custom_metadata_fields(self):
         custom_metadata = Metadata(
