@@ -89,6 +89,7 @@ def _check_uuid_section(metadata: Metadata) -> None:
 
 
 def _check_all_source_parts(metadata: Metadata, section: str = "source") -> None:
+    """Check all parts in a section that is source to other sections."""
     if "parallel" in metadata:
         fields = [
             metadata.get("parallel.source.text", SRC_TEXT_DEFAULT),
