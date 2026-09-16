@@ -15,35 +15,47 @@ from training_data_packer.metadata.defaults import (
 )
 from training_data_packer.metadata.schema import Validator
 from training_data_packer.processor.sample.sampler import read_sampler_fn
-from training_data_packer.utils.file import GenericJsonlReader, find_files, get_subdirectories
+from training_data_packer.utils.file import GenericJsonlReader, find_files
 from training_data_packer.utils.misc import get_dict_value
 
 
 def process(collection_dir: Path) -> bool:
     metadata_file = collection_dir / "metadata.yaml"
-    if not metadata_file.exists():
-        logger.error(f"Metadata file does not exist in {collection_dir}")
-        return False
     try:
+        if not metadata_file.exists():
+            raise ValueError(f"Metadata file does not exist in {collection_dir}")
         metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
         metadata["_internal"]["mode"] = "lint"
         _check_all_release_parts(metadata)
+
         if "source" in metadata:
             _check_all_source_parts(metadata)
         elif "openeurollm" in metadata:
             _check_all_source_parts(metadata, "openeurollm")
         else:
-            logger.error("Section `source` or `openeurollm` missing.")
-            ValueError("Section `source` or `openeurollm` missing.")
+            raise ValueError("Section `source` or `openeurollm` missing.")
+
         if "uuid" in metadata:
             _check_uuid_section(metadata)
+        elif collection_dir.joinpath("uuid").is_dir():
+            raise ValueError("UUID directory exist but no section in metadata.")
+
         if "sample" in metadata:
             _check_sample_section(metadata)
+        elif collection_dir.joinpath("sample").is_dir():
+            raise ValueError("Sample directory exist but no section in metadata.")
+
         if "propella-4b" in metadata:
             _check_propella_4b_section(metadata)
+        elif collection_dir.joinpath("propella-4b").is_dir():
+            raise ValueError("propella-4b directory exist but no section in metadata.")
+
         if "nugget" in metadata:
             _check_all_source_parts(metadata, "nugget")
-    except ValueError:
+        elif collection_dir.joinpath("nugget").is_dir():
+            raise ValueError("nugget directory exist but no section in metadata.")
+    except ValueError as e:
+        logger.error(f"Metadata is invalid: {e}")
         return False
     return True
 
@@ -53,7 +65,7 @@ def _check_propella_4b_section(metadata: Metadata) -> None:
     section = "propella-4b"
     directory = Path(metadata.get("_internal.collection_dir")).joinpath(section)
     if not directory.exists():
-        logger.info("Propella-4b data is not created.")
+        logger.warning("`propella-4b` data not created.")
 
 
 def _check_sample_section(metadata: Metadata) -> None:
@@ -97,7 +109,7 @@ def _check_all_source_parts(metadata: Metadata, section: str = "source") -> None
 def _check_sections_files(metadata: Metadata, section: str, fields: list[Any]):
     directory = Path(metadata.get("_internal.collection_dir")).joinpath(section)
     if not directory.exists():
-        logger.info(f"{section} data not created yet.")
+        logger.warning(f"`{section}` data not created.")
     else:
         part_names = metadata.get_all_part_names(section)
         if len(part_names) == 0:
@@ -107,8 +119,8 @@ def _check_sections_files(metadata: Metadata, section: str, fields: list[Any]):
             part_settings = metadata.get_part(part_path)
             suffix = part_settings.get("suffix", metadata.get("suffix", DEFAULT_SUFFIX))
             record = _get_one_record_from_section_dir(directory, part, suffix)
-            _check_fields_in_record(part, record, [fields])
-        _check_non_matching_part_dirs(directory, part_names)
+            _check_fields_in_record(part, record, fields)
+        _check_parts_and_dirs_match(directory, part_names)
 
 
 def _build_part_path(section: str, part_name: str) -> str:
@@ -116,22 +128,40 @@ def _build_part_path(section: str, part_name: str) -> str:
     return f'{section}."{part_name}"' if "'" in part_name else f"{section}.'{part_name}'"
 
 
-def _check_non_matching_part_dirs(directory: Path, part_names: list[str]) -> bool:
+def _check_parts_and_dirs_match(directory: Path, part_names: list[str]) -> bool:
     """Find if there are subdirectories not matching part names"""
-    part_dirs = {p.name for p in get_subdirectories(directory)}
-    exessive_parts = part_dirs - set(part_names)
-    if len(exessive_parts) > 0:
-        logger.warning(f"Dirs found in {directory.name} not matching parts: {', '.join(exessive_parts)}")
-        return True
-    return False
+    part_dirs = {str(p.relative_to(directory)) for p in directory.rglob("*") if p.is_dir()}
+
+    allowed_dirs = set(part_names)
+    for part_name in part_names:
+        path_parts = Path(part_name)
+        for i in range(len(path_parts.parts)):
+            allowed_dirs.add(str(Path(*path_parts.parts[: i + 1])))
+
+    excessive_dirs = part_dirs - allowed_dirs
+    if len(excessive_dirs) > 0:
+        logger.warning(
+            f"Directories found in `{directory.name}` not matching parts: {', '.join(sorted(excessive_dirs))}"
+        )
+        return False
+
+    excessive_parts = set(part_names) - part_dirs
+    if len(excessive_parts) > 0:
+        logger.warning(
+            f"All parts does not correspond to a directory in `{directory.name}`: {', '.join(sorted(excessive_parts))}"
+        )
+        return False
+    return True
 
 
 def _get_one_record_from_section_dir(directory: Path, part: str, suffix: Any) -> Any:
     part_files = find_files(directory, suffix, part)
     if len(part_files) == 0:
-        logger.error(f"No source files found for part `{part}`. Expected in `{directory}` with suffix `{suffix}`.")
         raise ValueError(f"No source files found for part `{part}`. Expected in `{directory}` with suffix `{suffix}`.")
-    first_row = next(GenericJsonlReader(part_files[0]).read())
+    try:
+        first_row = next(GenericJsonlReader(part_files[0]).read())
+    except StopIteration as e:
+        raise ValueError(f"Cannot read a record from {part_files[0]}") from e
     return first_row
 
 
@@ -153,7 +183,6 @@ def _check_fields_in_record(part: str, record: dict[str, Any], fields: list[str]
     """
     for field in fields:
         if get_dict_value(record, field, None) is None:
-            logger.error(f"First file for part {part} miss field {field}.")
             raise ValueError(f"First file for part {part} miss field {field}.")
 
 
@@ -207,10 +236,10 @@ def _check_pack_config(part_path: str, part_conf: dict[str, Any]):
     """
     match part_conf["pack"]:
         case "flat":
-            if "prefix" not in part_conf:
+            if "prefix" not in part_conf or part_conf["prefix"].strip() == "":
                 logger.warning(
                     f"In {part_path} setting `prefix` is recommended when `pack` has value `flat` to get unique names."
-                    f"`prefix` default to `{PREFIX_DEFAULT}`."
+                    f" `prefix` default is `{PREFIX_DEFAULT}`."
                 )
         case "tree":
             pass
@@ -218,7 +247,17 @@ def _check_pack_config(part_path: str, part_conf: dict[str, Any]):
             raise ValueError(f"In {part_path} pack has an unknown value: {part_conf['pack']}")
 
 
-def _check_sample_config(part_path: str, part_conf: dict[str, Any]):
+def _check_no_sample_specific_fields(part_path: str, part_conf: dict[str, Any], invalid_fields: set[str]) -> None:
+    """Ensures that only valid fields for the current sample mode are present."""
+    found_invalid = invalid_fields & set(part_conf.keys())
+    if found_invalid:
+        raise ValueError(
+            f"In {part_path}, with sample mode '{part_conf.get('sample')}', "
+            f"the following fields should not be set: {', '.join(sorted(found_invalid))}"
+        )
+
+
+def _check_sample_config(part_path: str, part_conf: dict[str, Any]) -> bool:
     """
     Validates the sample configuration dictionary for a specific part based on the
     sampling mode, ensuring that required keys are present and the configuration is
@@ -234,20 +273,22 @@ def _check_sample_config(part_path: str, part_conf: dict[str, Any]):
         ValueError: If validation fails
 
     Returns:
-        None
+        True if sample configuration appears consistent.
     """
     match part_conf["sample"]:
         case "full":
-            pass
+            _check_no_sample_specific_fields(part_path, part_conf, {"budget", "rubber", "filter", "parameters"})
         case "random":
+            _check_no_sample_specific_fields(part_path, part_conf, {"filter", "parameters"})
             if "rubber" not in part_conf:
                 logger.warning(
                     f"In {part_path} setting `rubber` is recommended when `sample` has value `random`."
-                    f"`rubber` default to `{RUBBER_DEFAULT}`."
+                    f" `rubber` default is `{RUBBER_DEFAULT}`."
                 )
             if "budget" not in part_conf:
                 raise ValueError(f"In {part_path} `sample` is `random` but `budget` is missing for part {part_path}.")
         case "dynamic":
+            _check_no_sample_specific_fields(part_path, part_conf, {"rubber", "budget"})
             if "filter" not in part_conf:
                 raise ValueError(f"In {part_path} sample is dynamic but filter is missing for part {part_path}.")
             if "parameters" not in part_conf:
@@ -257,6 +298,7 @@ def _check_sample_config(part_path: str, part_conf: dict[str, Any]):
             except Exception as e:
                 raise ValueError(f"Fail to read sampler function for part {part_path}: {e}") from e
         case "wds+register":
-            pass
+            _check_no_sample_specific_fields(part_path, part_conf, {"budget", "rubber", "filter", "parameters"})
         case _:
             raise ValueError(f"In {part_path} sample has an unknown value: {part_conf['sample']}")
+    return True

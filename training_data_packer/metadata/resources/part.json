@@ -109,11 +109,14 @@
         "count": {
           "type": "integer",
           "description": "Number of pairs per document.",
-          "minimum": 40
+          "minimum": 1,
+          "default": 40
         },
         "flip": {
           "type": "number",
           "description": "Flip original batch order",
+          "minimum": 0.0,
+          "maximum": 1.0,
           "default": 0.5
         }
       },
