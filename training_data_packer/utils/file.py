@@ -43,6 +43,28 @@ def change_suffix(filename: str | Path, original_suffix, new_suffix) -> Path:
     return Path(new_filename)
 
 
+def prepare_output_file(out_file: Path) -> tuple[Path, bool]:
+    """Prepare output file path and check if processing should continue.
+
+    Creates temporary file path, cleans up old temporary files, and ensures
+    output directory exists. Returns tuple of (temp_output_path, should_continue).
+
+    Args:
+        out_file: Target output file path
+
+    Returns:
+        tuple[Path, bool]: (temporary file path, whether processing should continue)
+    """
+    tmp_out_file = out_file.parent.joinpath("." + out_file.name)
+    if out_file.exists():
+        return tmp_out_file, False
+    if tmp_out_file.exists():
+        logger.info(f"Remove old temporary file {tmp_out_file}")
+        tmp_out_file.unlink()
+    out_file.parent.mkdir(exist_ok=True, parents=True)
+    return tmp_out_file, True
+
+
 class GenericJsonlReader:
     """
     Reader for jsonline files, compressed or not

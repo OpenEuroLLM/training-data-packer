@@ -15,7 +15,7 @@ from training_data_packer.processor.clean import AlignFieldNames, field_scrubber
 from training_data_packer.processor.propella import propella_annotate_factory
 from training_data_packer.processor.sample.sampler import sampler_factory
 from training_data_packer.utils import metrics
-from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, find_files
+from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, find_files, prepare_output_file
 from training_data_packer.utils.slurm import schedule_files
 
 
@@ -44,15 +44,11 @@ def sample_file(src_file: Path, metadata: Metadata) -> None:
     propella_file = calculate_file_path(src_file, metadata, collection_dir.joinpath("propella-4b"))
     out_file = calculate_file_path(src_file, metadata, collection_dir.joinpath("sample"))
 
-    tmp_out_file = out_file.parent.joinpath("." + out_file.name)
-    if out_file.exists():
+    tmp_out_file, cont = prepare_output_file(out_file)
+    if not cont:
         # File is already processed. Do not process it again
         logger.info(f"Skipping {out_file}, already exists")
         return
-    if tmp_out_file.exists():
-        logger.info(f"Remove old temporary file {tmp_out_file}")
-        os.remove(tmp_out_file)
-    os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
     part_config, part_name = get_matching_part(metadata, src_file, section_name="sample")
     if part_config is None:
