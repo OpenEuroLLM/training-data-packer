@@ -3,15 +3,47 @@ from pathlib import Path
 
 from loguru import logger
 
-from training_data_packer.metadata import Metadata, get_matching_part
+from training_data_packer.metadata import (
+    Metadata,
+    calculate_file_path,
+    get_in_suffix,
+    get_matching_part,
+    get_source_dir,
+    read_metadata,
+)
 from training_data_packer.processor.clean import AlignFieldNames, field_scrubber_factory
 from training_data_packer.processor.propella import propella_annotate_factory
 from training_data_packer.processor.sample.sampler import sampler_factory
 from training_data_packer.utils import metrics
-from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter
+from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, find_files
+from training_data_packer.utils.slurm import schedule_files
 
 
-def sample_file(src_file: Path, metadata: Metadata, propella_file: Path, out_file: Path) -> None:
+def process(
+    collection_dir: Path,
+    workers=1,
+    slurm: bool = False,
+    part: str | None = None,
+) -> None:
+    """Schedule sampling for files to be sampled according to metadata in collection dir."""
+    metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
+    metadata["_internal"]["mode"] = "sample"
+    source_dir = get_source_dir(metadata)
+    src_suffix = get_in_suffix(metadata, "sample")
+    all_files = find_files(source_dir, src_suffix, part)
+    if len(all_files) == 0:
+        logger.error("No files detected, probably error in metadata.yaml")
+        raise ValueError("No files detected")
+    logger.info(f"Found {len(all_files)} files")
+
+    schedule_files(all_files, metadata, sample_file, workers, slurm)
+
+
+def sample_file(src_file: Path, metadata: Metadata) -> None:
+    collection_dir = metadata["_internal.collection_dir"]
+    propella_file = calculate_file_path(src_file, metadata, collection_dir.joinpath("propella-4b"))
+    out_file = calculate_file_path(src_file, metadata, collection_dir.joinpath("sample"))
+
     tmp_out_file = out_file.parent.joinpath("." + out_file.name)
     if out_file.exists():
         # File is already processed. Do not process it again
