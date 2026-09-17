@@ -6,6 +6,13 @@ from typing import Any
 import glom
 
 from training_data_packer.metadata import Metadata
+from training_data_packer.metadata.defaults import (
+    PARALLEL_COUNT_DEFAULT,
+    SRC_LANGUAGE_DEFAULT,
+    SRC_TEXT_DEFAULT,
+    TGT_LANGUAGE_DEFAULT,
+    TGT_TEXT_DEFAULT,
+)
 from training_data_packer.utils.misc import hash_factory, lang_to_name
 
 
@@ -34,11 +41,11 @@ class ParallelLanguageMerger:
         flip_probability = float(glom.glom(part_config, "parallel.flip", default=0.5))
         self._flip_fn = flip_fn or (lambda: random.random() < flip_probability)
         self._hash_fn = hash_factory("sha256")
-        self._src_lang = metadata.get("parallel.source.language", "src_lang")
-        self._source_text_col = metadata.get("parallel.source.text", "source_text")
-        self._tgt_lang = metadata.get("parallel.target.language", "tgt_lang")
-        self._target_text_col = metadata.get("parallel.target.text", "target_text")
-        self._documents_per_batch = int(glom.glom(part_config, "parallel.count", default="40"))
+        self._src_lang = metadata.get("parallel.source.language", SRC_LANGUAGE_DEFAULT)
+        self._source_text_col = metadata.get("parallel.source.text", SRC_TEXT_DEFAULT)
+        self._tgt_lang = metadata.get("parallel.target.language", TGT_LANGUAGE_DEFAULT)
+        self._target_text_col = metadata.get("parallel.target.text", TGT_TEXT_DEFAULT)
+        self._documents_per_batch = int(glom.glom(part_config, "parallel.count", default=PARALLEL_COUNT_DEFAULT))
 
     def get_metrics(self):
         """
@@ -95,7 +102,7 @@ class ParallelLanguageMerger:
 
 class ParallelSyntheticId:
     """
-    Creaate a synthetic ID of the a language pair.
+    Create a synthetic ID of a language pair.
     """
 
     def __init__(

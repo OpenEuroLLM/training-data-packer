@@ -37,6 +37,8 @@ def get_subdirectories(directory: str | Path) -> list[Path]:
 
 
 def change_suffix(filename: str | Path, original_suffix, new_suffix) -> Path:
+    if original_suffix == new_suffix:
+        return Path(filename)
     new_filename = re.sub(f"(.*){original_suffix}", f"\\1{new_suffix}", str(filename))
     return Path(new_filename)
 

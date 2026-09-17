@@ -254,7 +254,7 @@
             "language": {
               "type": "string",
               "minLength": 0,
-              "default": "src_text"
+              "default": "src_lang"
             }
           },
           "required": [
@@ -275,7 +275,7 @@
             "language": {
               "type": "string",
               "minLength": 0,
-              "default": "tgt_text"
+              "default": "tgt_lang"
             }
           },
           "required": [

@@ -6,16 +6,20 @@ import glom
 import jsonpath_ng
 from loguru import logger
 
+from training_data_packer.metadata.defaults import DEFAULT_SUFFIX
 from training_data_packer.utils.file import change_suffix
 from training_data_packer.utils.misc import merge_hierarchy_dicts
 
 
 class Metadata(UserDict):
     def __getitem__(self, key) -> Any:
-        value = self.get(key)
-        if value is None:
+        expr = jsonpath_ng.parse(key)
+        match = expr.find(self.data)
+        if len(match) == 0:
             raise KeyError(f"No such key {key}")
-        return value
+        elif len(match) > 1:
+            raise ValueError(f"{key} return more than one match in metadata.")
+        return match[0].value
 
     def __setitem__(self, key, value) -> None:
         key = key.replace("[", ".").replace("]", "")
@@ -44,10 +48,11 @@ class Metadata(UserDict):
             raise ValueError(f"{key} return more than one match in metadata.")
         return match[0].value
 
-    def get_all_part_names(self, section: str) -> list[str]:
+    def get_all_part_names(self, section: str, include_path: bool = False) -> list[str]:
         """
         Returns all part names from metadata.
         :param section: Section to start looking for partnames from.
+        :param include_path: Include section-path in the returned names. e.g. "v3.train".
         :return: List of part names.
         """
         reserved_part_names = ["default"]
@@ -60,7 +65,10 @@ class Metadata(UserDict):
                 return section_parts.union(_get_section_parts(input_src))
             return section_parts
 
-        return sorted(_get_section_parts(section))
+        part_names = sorted(_get_section_parts(section))
+        if include_path:
+            part_names = [f'{section}."{name}"' if "'" in name else f"{section}.'{name}'" for name in part_names]
+        return part_names
 
     def get_part(self, part_path: str) -> dict[str, Any]:
         """
@@ -86,7 +94,11 @@ class Metadata(UserDict):
             return str(default_parser)
 
         part = self.get(part_path)
+        if part is None:
+            part = {}
         default = self.get(_get_path_to_related_default(part_path))
+        if default is None:
+            default = {}
         return merge_hierarchy_dicts(part, default)
 
 
@@ -168,11 +180,11 @@ def get_source_dir(metadata: Metadata) -> Path:
 
 def get_in_suffix(metadata: Metadata, mode: str) -> str:
     input_dir = metadata.get(f"{mode}.default.input", None)
-    return metadata.get(f"{input_dir}.default.suffix", metadata["suffix"])
+    return metadata.get(f"{input_dir}.default.suffix", metadata.get("suffix", DEFAULT_SUFFIX))
 
 
 def calculate_file_path(src_file: Path, metadata: Metadata, mode: str, process_dir: Path) -> Path:
     input_suffix = get_in_suffix(metadata, mode)
     rel_file_path = src_file.relative_to(get_source_dir(metadata))
-    out_suffix = ".jsonl.zst"
+    out_suffix = DEFAULT_SUFFIX
     return change_suffix(process_dir.joinpath(rel_file_path), input_suffix, out_suffix)

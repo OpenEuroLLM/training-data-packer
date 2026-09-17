@@ -6,6 +6,7 @@ from pathlib import Path
 from loguru import logger
 
 from training_data_packer.metadata import Metadata, read_metadata
+from training_data_packer.metadata.defaults import DEFAULT_SUFFIX
 from training_data_packer.processor.propella import MergePropellaRecords
 from training_data_packer.utils import metrics
 from training_data_packer.utils.file import (
@@ -25,7 +26,7 @@ def process(collection_dir: Path, part: str = "", workers=1, slurm: bool = False
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
 
     # Find all source file and take their names
-    suffix = metadata.get("source.default.suffix", metadata["suffix"])
+    suffix = metadata.get("source.default.suffix", metadata.get("suffix", DEFAULT_SUFFIX))
     all_names = list(map(lambda x: x.name, find_files(source_dir, suffix)))
 
     if slurm:
@@ -72,8 +73,8 @@ def process_file(metadata: Metadata, source_name: str, propella_dir: Path):
     """
     new_name = change_suffix(
         source_name,
-        metadata.get("source.default.suffix", metadata["suffix"]),
-        metadata.get("annotations.propella-4b.suffix", metadata["suffix"]),
+        metadata.get("source.default.suffix", metadata.get("suffix", DEFAULT_SUFFIX)),
+        metadata.get("annotations.propella-4b.suffix", metadata.get("suffix", DEFAULT_SUFFIX)),
     )
     out_file_name = propella_dir.joinpath(new_name)
 

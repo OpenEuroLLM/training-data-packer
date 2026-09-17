@@ -4,15 +4,16 @@ from typing import Any
 import jsonpath_ng
 
 from training_data_packer.metadata import Metadata
+from training_data_packer.metadata.defaults import DEFAULT_ID, DEFAULT_TEXT
 
 
 class AlignFieldNames:
     def __init__(self, src_data: Iterator[Any], metadata: Metadata):
         self._src_data = src_data
         self._mapper = {}
-        if "id" in metadata and metadata["id"] != "id":
+        if "id" in metadata and metadata["id"] != DEFAULT_ID:
             self._mapper["id"] = jsonpath_ng.parse(metadata["id"])
-        if "text" in metadata and metadata["text"] != "text":
+        if "text" in metadata and metadata["text"] != DEFAULT_TEXT:
             self._mapper["text"] = jsonpath_ng.parse(metadata["text"])
 
     def __iter__(self):

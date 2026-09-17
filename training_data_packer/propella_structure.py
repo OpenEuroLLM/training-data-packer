@@ -7,6 +7,7 @@ from typing import Any
 from loguru import logger
 
 from training_data_packer.metadata import read_metadata
+from training_data_packer.metadata.defaults import DEFAULT_SUFFIX
 from training_data_packer.metadata.metadata import Metadata
 from training_data_packer.processor.propella import SourceToPropellaMapper
 from training_data_packer.storage.propella import get_lookup_fn
@@ -25,7 +26,7 @@ def process(collection_dir: Path, propella_dir: Path, part: str = "", slurm: boo
     source_dir = collection_dir.joinpath("source").joinpath(part)
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
 
-    suffix = metadata.get("source.default.suffix", metadata["suffix"])
+    suffix = metadata.get("source.default.suffix", metadata.get("suffix", DEFAULT_SUFFIX))
     all_files = find_files(source_dir, suffix)
     if slurm:
         task_files = get_my_slurm_tasks(all_files)

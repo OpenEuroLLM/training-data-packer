@@ -17,6 +17,13 @@ class TestFileFunctions(unittest.TestCase):
                 "/foo/bar/hello.zst",
             ],
             [
+                "same",
+                "/foo/bar/hello.gz",
+                ".gz",
+                ".gz",
+                "/foo/bar/hello.gz",
+            ],
+            [
                 "mid_name",
                 "/foo/bar/he.gz.llo.gz",
                 ".gz",

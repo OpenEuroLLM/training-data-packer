@@ -5,6 +5,7 @@ from loguru import logger
 
 import training_data_packer.utils.misc
 from training_data_packer.metadata import Metadata
+from training_data_packer.metadata.defaults import DEFAULT_HASH_ID, DEFAULT_ID, DEFAULT_TEXT
 
 
 class SourceToPropellaMapper:
@@ -31,9 +32,9 @@ class SourceToPropellaMapper:
         self._unmatched_records = 0
         self._multiple_match = 0
         self._lookup_fn = lookup_fn
-        self._id_field = metadata["id"]
-        self._text_field = metadata["text"]
-        self._hash_field = metadata.get("propella-4b.hash-id", "hash")
+        self._id_field = metadata.get("id", DEFAULT_ID)
+        self._text_field = metadata.get("text", DEFAULT_TEXT)
+        self._hash_field = metadata.get("propella-4b.hash-id", DEFAULT_HASH_ID)
         id_hash = metadata.get("propella-4b.hash", None)
         if id_hash is not None:
             self._id_hash_fn = training_data_packer.utils.misc.hash_factory(id_hash)
