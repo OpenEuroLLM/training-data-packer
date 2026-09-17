@@ -32,13 +32,14 @@ class ParallelLanguageMerger:
         self,
         metadata: Metadata,
         part_config: dict[str, Any],
-        flip_fn: callable[None, bool] = lambda: random.random() < 0.5,
+        flip_fn: Callable[[], bool] | None = None,
         metric_name: str = "parallel_merger_matching",
     ):
         self._metric_name = metric_name
         self._processed_records = 0
         self._written_records = 0
-        self._flip_fn = flip_fn
+        flip_probability = float(glom.glom(part_config, "parallel.flip", default=0.5))
+        self._flip_fn = flip_fn or (lambda: random.random() < flip_probability)
         self._hash_fn = hash_factory("sha256")
         self._src_lang = metadata.get("parallel.source.language", SRC_LANGUAGE_DEFAULT)
         self._source_text_col = metadata.get("parallel.source.text", SRC_TEXT_DEFAULT)
