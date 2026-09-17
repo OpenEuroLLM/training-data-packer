@@ -35,7 +35,7 @@ def main():
         case "sample":
             sample.process(Path(args.collection_dir), workers=args.workers, slurm=args.slurm, part=args.part)
         case _:
-            raise ValueError(f"Undefined mode {args.mode}. Ude one of: lint, sample, or release")
+            raise ValueError(f"Undefined mode {args.mode}. Use one of: lint, sample, or release")
 
 
 if __name__ == "__main__":

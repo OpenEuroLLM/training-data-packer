@@ -32,7 +32,7 @@ class Validator:
         return True
 
     def validate_metadata(self, metadata: Metadata) -> bool:
-        return self._validator("https://https://openeurollm.eu/schemas/metadata.json", metadata.data)
+        return self._validator("https://openeurollm.eu/schemas/metadata.json", metadata.data)
 
     def validate_release_part(self, data: dict) -> bool:
-        return self._validator("https://https://openeurollm.eu/schemas/release-part.json", data)
+        return self._validator("https://openeurollm.eu/schemas/release-part.json", data)

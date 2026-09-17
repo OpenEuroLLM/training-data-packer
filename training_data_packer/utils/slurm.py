@@ -73,7 +73,7 @@ def schedule_files(
             for src_file in task_files:
                 job = executor.submit(function, src_file, metadata)
                 jobs.append(job)
-            executor.shutdown(job)
+            executor.shutdown(wait=True)
         for n, job in enumerate(jobs):
             if job.exception() is not None:
                 logger.error(f"There were an exception thrown for file {task_files[n]}: {job.exception()}")
