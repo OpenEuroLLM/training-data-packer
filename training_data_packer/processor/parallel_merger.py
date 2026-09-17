@@ -3,8 +3,6 @@ import random
 from collections.abc import Callable, Iterable
 from typing import Any
 
-import glom
-
 from training_data_packer.metadata import Metadata
 from training_data_packer.metadata.defaults import (
     PARALLEL_COUNT_DEFAULT,
@@ -13,7 +11,7 @@ from training_data_packer.metadata.defaults import (
     TGT_LANGUAGE_DEFAULT,
     TGT_TEXT_DEFAULT,
 )
-from training_data_packer.utils.misc import hash_factory, lang_to_name
+from training_data_packer.utils.misc import get_dict_value, hash_factory, lang_to_name
 
 
 class ParallelLanguageMerger:
@@ -38,14 +36,14 @@ class ParallelLanguageMerger:
         self._metric_name = metric_name
         self._processed_records = 0
         self._written_records = 0
-        flip_probability = float(glom.glom(part_config, "parallel.flip", default=0.5))
+        flip_probability = get_dict_value(part_config, "parallel.flip", default=0.5)
         self._flip_fn = flip_fn or (lambda: random.random() < flip_probability)
         self._hash_fn = hash_factory("sha256")
         self._src_lang = metadata.get("parallel.source.language", SRC_LANGUAGE_DEFAULT)
         self._source_text_col = metadata.get("parallel.source.text", SRC_TEXT_DEFAULT)
         self._tgt_lang = metadata.get("parallel.target.language", TGT_LANGUAGE_DEFAULT)
         self._target_text_col = metadata.get("parallel.target.text", TGT_TEXT_DEFAULT)
-        self._documents_per_batch = int(glom.glom(part_config, "parallel.count", default=PARALLEL_COUNT_DEFAULT))
+        self._documents_per_batch = get_dict_value(part_config, "parallel.count", default=PARALLEL_COUNT_DEFAULT)
 
     def get_metrics(self):
         """
