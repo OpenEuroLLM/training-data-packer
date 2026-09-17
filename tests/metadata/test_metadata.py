@@ -221,10 +221,10 @@ class TestCalculateFilePath(unittest.TestCase):
                 "suffix": ".jsonl.zstd",
             }
         )
-        contamination_file = calculate_file_path(src_file, metadata, "release", self.contamination_dir)
-        pii_file = calculate_file_path(src_file, metadata, "release", self.pii_dir)
-        propella_file = calculate_file_path(src_file, metadata, "release", self.propella_dir)
-        out_file = calculate_file_path(src_file, metadata, "release", self.output_dir)
+        contamination_file = calculate_file_path(src_file, metadata, self.contamination_dir)
+        pii_file = calculate_file_path(src_file, metadata, self.pii_dir)
+        propella_file = calculate_file_path(src_file, metadata, self.propella_dir)
+        out_file = calculate_file_path(src_file, metadata, self.output_dir)
 
         self.assertEqual(self.contamination_dir.joinpath("shard01/file01.jsonl.zst"), contamination_file)
         self.assertEqual(self.pii_dir.joinpath("shard01/file01.jsonl.zst"), pii_file)
@@ -242,10 +242,10 @@ class TestCalculateFilePath(unittest.TestCase):
             }
         )
 
-        contamination_file = calculate_file_path(src_file, metadata, "release", self.contamination_dir)
-        pii_file = calculate_file_path(src_file, metadata, "release", self.pii_dir)
-        propella_file = calculate_file_path(src_file, metadata, "release", self.propella_dir)
-        out_file = calculate_file_path(src_file, metadata, "release", self.output_dir)
+        contamination_file = calculate_file_path(src_file, metadata, self.contamination_dir)
+        pii_file = calculate_file_path(src_file, metadata, self.pii_dir)
+        propella_file = calculate_file_path(src_file, metadata, self.propella_dir)
+        out_file = calculate_file_path(src_file, metadata, self.output_dir)
 
         self.assertEqual(self.contamination_dir.joinpath("shard01/file01.jsonl.zst"), contamination_file)
         self.assertEqual(self.pii_dir.joinpath("shard01/file01.jsonl.zst"), pii_file)
@@ -264,10 +264,10 @@ class TestCalculateFilePath(unittest.TestCase):
             }
         )
 
-        contamination_file = calculate_file_path(src_file, metadata, "sample", self.contamination_dir)
-        pii_file = calculate_file_path(src_file, metadata, "sample", self.pii_dir)
-        propella_file = calculate_file_path(src_file, metadata, "sample", self.propella_dir)
-        out_file = calculate_file_path(src_file, metadata, "sample", output_dir)
+        contamination_file = calculate_file_path(src_file, metadata, self.contamination_dir)
+        pii_file = calculate_file_path(src_file, metadata, self.pii_dir)
+        propella_file = calculate_file_path(src_file, metadata, self.propella_dir)
+        out_file = calculate_file_path(src_file, metadata, output_dir)
 
         self.assertEqual(self.contamination_dir.joinpath("shard01/file01.jsonl.zst"), contamination_file)
         self.assertEqual(self.pii_dir.joinpath("shard01/file01.jsonl.zst"), pii_file)

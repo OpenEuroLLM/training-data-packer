@@ -183,7 +183,8 @@ def get_in_suffix(metadata: Metadata, mode: str) -> str:
     return metadata.get(f"{input_dir}.default.suffix", metadata.get("suffix", DEFAULT_SUFFIX))
 
 
-def calculate_file_path(src_file: Path, metadata: Metadata, mode: str, process_dir: Path) -> Path:
+def calculate_file_path(src_file: Path, metadata: Metadata, process_dir: Path) -> Path:
+    mode = metadata["_internal"]["mode"]
     input_suffix = get_in_suffix(metadata, mode)
     rel_file_path = src_file.relative_to(get_source_dir(metadata))
     out_suffix = DEFAULT_SUFFIX

@@ -5,14 +5,42 @@ from typing import Any
 
 from loguru import logger
 
-from training_data_packer.metadata import Metadata, get_matching_part
+from training_data_packer.metadata import (
+    Metadata,
+    calculate_file_path,
+    get_in_suffix,
+    get_matching_part,
+    get_source_dir,
+    read_metadata,
+)
 from training_data_packer.processor.clean import AlignFieldNames, field_scrubber_factory
 from training_data_packer.processor.filters import FilterOnBlocklist
 from training_data_packer.processor.parallel_merger import ParallelLanguageMerger, ParallelSyntheticId
 from training_data_packer.processor.pii_masking import PIIMasker, openai_mask_document
 from training_data_packer.processor.sample.sampler import sampler_factory
 from training_data_packer.utils import metrics
-from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter
+from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, find_files
+from training_data_packer.utils.slurm import schedule_files
+
+
+def process(
+    collection_dir: Path,
+    workers=1,
+    slurm: bool = False,
+    part: str | None = None,
+) -> None:
+    """Schedule release packaging for files to be delivered according to metadata in collection dir."""
+    metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
+    metadata["_internal"]["mode"] = "release"
+    source_dir = get_source_dir(metadata)
+    src_suffix = get_in_suffix(metadata, "release")
+    all_files = find_files(source_dir, src_suffix, part)
+    if len(all_files) == 0:
+        logger.error("No files detected, probably error in metadata.yaml")
+        raise ValueError("No files detected")
+    logger.info(f"Found {len(all_files)} files")
+
+    schedule_files(all_files, metadata, package_file, workers, slurm)
 
 
 def parallel_package_pipeline(
@@ -46,9 +74,12 @@ def parallel_package_pipeline(
     return parallel_merger.get_merge_iterator(filtered_iter), [pii_filter, contamination_filter, parallel_merger]
 
 
-def package_file(
-    src_file: Path, metadata: Metadata, contamination_file: Path, pii_file: Path, propella_file: Path, out_file: Path
-) -> None:
+def package_file(src_file: Path, metadata: Metadata) -> None:
+    collection_dir = metadata["_internal.collection_dir"]
+    contamination_file = calculate_file_path(src_file, metadata, collection_dir.joinpath("nemo-curator"))
+    pii_file = calculate_file_path(src_file, metadata, collection_dir.joinpath("openai-privacy-filter"))
+    out_file = calculate_file_path(src_file, metadata, collection_dir.joinpath("release-raw"))
+
     tmp_out_file = out_file.parent.joinpath("." + out_file.name)
     if out_file.exists():
         # File is already processed. Do not process it again
