@@ -15,7 +15,7 @@ class TestParallelLanguageMerger(unittest.TestCase):
                 }
             }
         )
-        self.part_config = {"parallel": {"count": "40"}}
+        self.part_config = {"parallel": {"count": 40}}
 
     def test_initialization_default_values(self):
         merger = ParallelLanguageMerger(self.metadata, self.part_config)
@@ -124,7 +124,7 @@ class TestParallelLanguageMerger(unittest.TestCase):
                 }
             }
         )
-        custom_part_config = {"parallel": {"count": "3"}}
+        custom_part_config = {"parallel": {"count": 3}}
 
         mapper = ParallelLanguageMerger(custom_metadata, custom_part_config)
         self.assertEqual(mapper._src_lang, "source_language")
@@ -164,7 +164,7 @@ class TestParallelLanguageMerger(unittest.TestCase):
         self.assertIn("Goodbye", results[0]["text"])
 
     def test_get_merge_iterator_with_custom_batch_size(self):
-        custom_part_config = {"parallel": {"count": "2"}}
+        custom_part_config = {"parallel": {"count": 2}}
         merger = ParallelLanguageMerger(self.metadata, custom_part_config)
         data = [
             {"src_lang": "eng", "source_text": "Hello", "tgt_lang": "fra", "target_text": "Bonjour"},
