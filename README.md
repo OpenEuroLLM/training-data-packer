@@ -17,6 +17,36 @@ The packer consists of the following tools:
 
 Both tools read a file `metadata.yaml` containing metadata about the structure and processing of the data.
 
+## Dataset Directory Structure
+
+A dataset directory managed by the packager contains input sources, annotations, configuration, and generated outputs. The directories relate to each other as follows:
+
+```text
+dataset-directory/
+├── metadata.yaml        # Dataset configuration, schema mappings, and pipeline rules
+├── source/              # Original raw data files (e.g., .jsonl.gz), arranged in hierarchical subdirectories
+├── open-privacy-filter/ # PII annotation files mirroring source/ paths (documents PII spans to mask). Output from open-privacy-filter
+├── nemo-curator/        # Contamination annotation files mirroring source/ paths (documents benchmark-contaminated records to remove). Output from Nemo-Curator
+├── propella-4b/         # Optional Propella quality score parquet files used for quality filtering
+├── release-raw/         # Output of oellm-package-data: per-file processed data with PII masked, decontaminated, and sampled
+├── release/             # Output of oellm-package-merge: consolidated and merged files ready for tokenization
+└── sample/              # Files sampled on quality using propella-4b and other quality metrics
+```
+
+### Directory Roles and Data Flow
+
+1. **Input & Annotations:**
+   - **`source/`**: The primary input data. Files are typically organized by domain, language, or partition.
+   - **`open-privacy-filter/`, `propella-4b` & `nemo-curator/`**: Annotation companion directories. Every annotation file mirrors the relative path and filename of the corresponding file in `source/`.
+   - **`metadata.yaml`**: Coordinates the pipeline by specifying dataset name, source URLs, annotation file formats, sampling ratios, and shard parameters.
+
+2. **Packaging (`oellm-package-data`):**
+   - Reads `source/`, applies masking annotations from `pii/` and exclusions from `contamination/`, and writes the packaged files to **`release-raw/`**.
+   - Output files in `release-raw/` preserve the directory hierarchy of `source/` and include hidden metric sidecars (`.*.metrics.json`).
+
+3. **Consolidation (`oellm-package-merge`):**
+   - Reads files from **`release-raw/`** and merges smaller chunks into target-sized files in **`release/`**, maintaining path semantics while reducing file handle overhead for tokenization and pretraining.
+
 ## TL;DR; I just want to run!
 Here are steps to run packaging and reduce the number of files.
 1. Install `uv` if not already don. Run: `curl -LsSf https://astral.sh/uv/install.sh | sh`, it will be
