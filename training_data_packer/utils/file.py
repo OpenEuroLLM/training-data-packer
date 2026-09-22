@@ -77,19 +77,22 @@ class GenericJsonlReader:
 
     def __init__(
         self,
-        input_file_name: str | Path,
+        input_file_name: str | Path | None,
         encoding="utf-8",
         chunk_size: int = 16384,
         counter_name: str = "input",
     ):
-        self._input_file_name = Path(input_file_name)
+        if input_file_name is None or input_file_name == "":
+            self._input_file_name = None
+        else:
+            self._input_file_name = Path(input_file_name)
         self._chunk_size = chunk_size
         self._encoding = encoding
         self._counter_name = counter_name
         self._lines = 0
 
     def read(self) -> Generator[Any, Any, Iterator[Any] | None]:
-        if not self._input_file_name.exists():
+        if self._input_file_name is None or not self._input_file_name.exists():
             logger.info(f"File not exist: {self._input_file_name}")
             return iter([])
 
