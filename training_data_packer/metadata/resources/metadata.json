@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://https://openeurollm.eu/schemas/metadata.json",
+  "$id": "https://openeurollm.eu/schemas/metadata.json",
   "title": "Metadata",
   "description": "Global schema for metadata file",
   "type": "object",
@@ -48,7 +48,7 @@
       "description": "Object describing detail of how release packaging is done.",
       "properties": {
         "default": {
-          "$ref": "https://https://openeurollm.eu/schemas/part.json",
+          "$ref": "https://openeurollm.eu/schemas/part.json",
           "required": [
             "input",
             "pack"
@@ -62,7 +62,7 @@
         "oneOf": [
           {
             "type": "object",
-            "$ref": "https://https://openeurollm.eu/schemas/part.json"
+            "$ref": "https://openeurollm.eu/schemas/part.json"
           },
           {
             "type": "null"
@@ -81,7 +81,7 @@
           "description": "Default values for sample parts",
           "allOf": [
             {
-              "$ref": "https://https://openeurollm.eu/schemas/part.json"
+              "$ref": "https://openeurollm.eu/schemas/part.json"
             }
           ],
           "required": [
@@ -100,7 +100,7 @@
         "oneOf": [
           {
             "type": "object",
-            "$ref": "https://https://openeurollm.eu/schemas/part.json"
+            "$ref": "https://openeurollm.eu/schemas/part.json"
           },
           {
             "type": "null"
@@ -118,7 +118,7 @@
           "oneOf": [
             {
               "type": "object",
-              "$ref": "https://https://openeurollm.eu/schemas/part.json",
+              "$ref": "https://openeurollm.eu/schemas/part.json",
               "mask": false,
               "pack": false,
               "scrub": false,
@@ -140,7 +140,7 @@
         "oneOf": [
           {
             "type": "object",
-            "$ref": "https://https://openeurollm.eu/schemas/part.json"
+            "$ref": "https://openeurollm.eu/schemas/part.json"
           },
           {
             "type": "null"
@@ -155,14 +155,14 @@
       "description": "Object describing details of source data adapted for openeurollm.",
       "properties": {
         "default": {
-          "$ref": "https://https://openeurollm.eu/schemas/part.json"
+          "$ref": "https://openeurollm.eu/schemas/part.json"
         }
       },
       "additionalProperties": {
         "oneOf": [
           {
             "type": "object",
-            "$ref": "https://https://openeurollm.eu/schemas/part.json"
+            "$ref": "https://openeurollm.eu/schemas/part.json"
           },
           {
             "type": "null"
@@ -197,7 +197,7 @@
         "oneOf": [
           {
             "type": "object",
-            "$ref": "https://https://openeurollm.eu/schemas/part.json"
+            "$ref": "https://openeurollm.eu/schemas/part.json"
           },
           {
             "type": "null"
@@ -230,7 +230,7 @@
         "oneOf": [
           {
             "type": "object",
-            "$ref": "https://https://openeurollm.eu/schemas/part.json"
+            "$ref": "https://openeurollm.eu/schemas/part.json"
           },
           {
             "type": "null"
@@ -317,7 +317,7 @@
         "oneOf": [
           {
             "type": "object",
-            "$ref": "https://https://openeurollm.eu/schemas/part.json"
+            "$ref": "https://openeurollm.eu/schemas/part.json"
           },
           {
             "type": "null"
@@ -357,7 +357,7 @@
         "oneOf": [
           {
             "type": "object",
-            "$ref": "https://https://openeurollm.eu/schemas/part.json",
+            "$ref": "https://openeurollm.eu/schemas/part.json",
             "additionalProperties": false
           },
           {
@@ -376,7 +376,7 @@
           "oneOf": [
             {
               "type": "object",
-              "$ref": "https://https://openeurollm.eu/schemas/part.json",
+              "$ref": "https://openeurollm.eu/schemas/part.json",
               "mask": false,
               "pack": false,
               "scrub": false,
@@ -401,7 +401,7 @@
         "oneOf": [
           {
             "type": "object",
-            "$ref": "https://https://openeurollm.eu/schemas/part.json",
+            "$ref": "https://openeurollm.eu/schemas/part.json",
             "additionalProperties": false,
             "unevaluatedProperties": false
           },

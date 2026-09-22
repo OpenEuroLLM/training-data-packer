@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://https://openeurollm.eu/schemas/part.json",
+  "$id": "https://openeurollm.eu/schemas/part.json",
   "title": "Part",
   "description": "Sub-schema for parts of type release or sample",
   "type": "object",

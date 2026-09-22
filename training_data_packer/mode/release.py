@@ -19,7 +19,7 @@ from training_data_packer.processor.parallel_merger import ParallelLanguageMerge
 from training_data_packer.processor.pii_masking import PIIMasker, openai_mask_document
 from training_data_packer.processor.sample.sampler import sampler_factory
 from training_data_packer.utils import metrics
-from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, find_files
+from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, find_files, prepare_output_file
 from training_data_packer.utils.slurm import schedule_files
 
 
@@ -80,15 +80,11 @@ def package_file(src_file: Path, metadata: Metadata) -> None:
     pii_file = calculate_file_path(src_file, metadata, collection_dir.joinpath("openai-privacy-filter"))
     out_file = calculate_file_path(src_file, metadata, collection_dir.joinpath("release-raw"))
 
-    tmp_out_file = out_file.parent.joinpath("." + out_file.name)
-    if out_file.exists():
+    tmp_out_file, cont = prepare_output_file(out_file)
+    if not cont:
         # File is already processed. Do not process it again
         logger.info(f"Skipping {out_file}, already exists")
         return
-    if tmp_out_file.exists():
-        logger.info(f"Remove old temporary file {tmp_out_file}")
-        os.remove(tmp_out_file)
-    os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
     contamination_filter = None
     block_filter = None
