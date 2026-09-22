@@ -1,3 +1,4 @@
+import itertools
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +17,7 @@ from training_data_packer.metadata.defaults import (
 from training_data_packer.metadata.schema import Validator
 from training_data_packer.processor.sample.sampler import read_sampler_fn
 from training_data_packer.utils.file import GenericJsonlReader, find_files
-from training_data_packer.utils.misc import get_dict_value
+from training_data_packer.utils.misc import get_dict_value, get_dict_values
 
 
 def process(collection_dir: Path) -> bool:
@@ -45,10 +46,8 @@ def process(collection_dir: Path) -> bool:
         elif collection_dir.joinpath("sample").is_dir():
             raise ValueError("Sample directory exist but no section in metadata.")
 
-        if "propella-4b" in metadata:
-            _check_propella_4b_section(metadata)
-        elif collection_dir.joinpath("propella-4b").is_dir():
-            raise ValueError("propella-4b directory exist but no section in metadata.")
+        for annotation in ["propella-4b", "nemo-curator", "openai-privacy-filter"]:
+            _check_annotation_section(metadata, annotation)
 
         if "nugget" in metadata:
             _check_all_source_parts(metadata, "nugget")
@@ -60,12 +59,28 @@ def process(collection_dir: Path) -> bool:
     return True
 
 
-def _check_propella_4b_section(metadata: Metadata) -> None:
-    """Validates the propella-4b section of the metadata."""
-    section = "propella-4b"
-    directory = Path(metadata.get("_internal.collection_dir")).joinpath(section)
-    if not directory.exists():
-        logger.warning("`propella-4b` data not created.")
+def _check_annotation_section(metadata: Metadata, annotation: str) -> None:
+    """
+    Validates annotation section of the metadata. An annotation section is a section
+    referenced by other parts via the `annotations` field.
+
+    Args:
+        metadata: Metadata object to validate.
+        annotation: Identifier for the specific annotation section to validate e.g., propella-4b.
+
+    Raises:
+        ValueError: If the annotation section is defined in the metadata but not used in
+        any annotations field, or if a directory for the annotation exists on the filesystem
+        without a corresponding definition in the metadata.
+    """
+    directory = Path(metadata.get("_internal.collection_dir")).joinpath(annotation)
+    if annotation in metadata:
+        if not directory.exists():
+            logger.warning(f"`{annotation}` data not created.")
+        if annotation not in _get_all_annotations(metadata):
+            raise ValueError(f"`{annotation}` section defined but not used in any annotations field.")
+    elif directory.is_dir():
+        raise ValueError(f"`{annotation}` directory exist but no section in metadata.")
 
 
 def _check_sample_section(metadata: Metadata) -> None:
@@ -76,6 +91,14 @@ def _check_sample_section(metadata: Metadata) -> None:
     if input not in metadata:
         raise ValueError(f"{section}.default.input references part `{input}` which is not defined.")
     _check_sections_files(metadata, section, fields)
+    for part in metadata.get_all_part_names(section):
+        part_path = _build_part_path(section, part)
+        part_settings = metadata.get_part(part_path)
+        try:
+            _check_annotations_config(part_path, part_settings, metadata, {"propella-4b"})
+        except ValueError as e:
+            logger.error(f"Part {part_path} failed validation. Reason: {e}")
+            raise e
 
 
 def _check_uuid_section(metadata: Metadata) -> None:
@@ -118,6 +141,12 @@ def _check_sections_files(metadata: Metadata, section: str, fields: list[Any]):
         for part in part_names:
             part_path = _build_part_path(section, part)
             part_settings = metadata.get_part(part_path)
+            _check_annotations_config(
+                part_path,
+                part_settings,
+                metadata,
+                ["doc_scores", "web-register", "bsc-edu", "finepdfs-edu", "fineweb2-hq", "jql", "propella-4b"],
+            )
             suffix = part_settings.get("suffix", metadata.get("suffix", DEFAULT_SUFFIX))
             record = _get_one_record_from_section_dir(directory, part, suffix)
             _check_fields_in_record(part, record, fields)
@@ -210,9 +239,16 @@ def _check_release_part(part_path: str, metadata: Metadata) -> None:
 
     :param part_path: Path to part in metadata. Typically, `section.part-name`.
     :param metadata: metadata
+
+    Raises:
+        ValueError: If validation fails.
+
+    Returns:
+        None
     """
     part_settings = metadata.get_part(part_path)
     Validator().validate_release_part(part_settings)
+    _check_annotations_config(part_path, part_settings, metadata, {"nemo-curator", "openai-privacy-filter"})
     _check_sample_config(part_path, part_settings)
     _check_pack_config(part_path, part_settings)
 
@@ -256,6 +292,41 @@ def _check_no_sample_specific_fields(part_path: str, part_conf: dict[str, Any], 
             f"In {part_path}, with sample mode '{part_conf.get('sample')}', "
             f"the following fields should not be set: {', '.join(sorted(found_invalid))}"
         )
+
+
+def _check_annotations_config(
+    part_path: str, part_settings: dict[str, Any], metadata: Metadata, allowed_annotations: set[str]
+) -> None:
+    """
+    Validates annotations defined in the part settings against a set of allowed
+    values and ensures that each annotation references a valid section in the
+    metadata.
+
+    Args:
+        part_path: Identifier for the part being checked, utilized to provide
+            context in error messages.
+        part_settings: Configuration containing the definitions to be validated,
+            specifically looking for an 'annotations' key.
+        metadata: Object acting as the source of truth for available sections,
+            ensuring all annotations point to valid entries.
+        allowed_annotations: Approved keys that are permitted for use in the
+            configuration.
+
+    Raises:
+        ValueError: If the part configuration includes annotations that are not
+            in the allowed set or if any annotation fails to map to a section in
+            the metadata.
+
+    Returns:
+        None
+    """
+    part_annotations = set(part_settings.get("annotations", []))
+    disallowed_annotations = part_annotations - allowed_annotations
+    if len(disallowed_annotations) > 0:
+        raise ValueError(f"In {part_path} annotations contain unknown value: {', '.join(disallowed_annotations)}")
+    for pa in part_annotations:
+        if pa not in metadata:
+            raise ValueError(f"In {part_path} annotations {pa} miss corresponding section.")
 
 
 def _check_sample_config(part_path: str, part_conf: dict[str, Any]) -> bool:
@@ -303,3 +374,7 @@ def _check_sample_config(part_path: str, part_conf: dict[str, Any]) -> bool:
         case _:
             raise ValueError(f"In {part_path} sample has an unknown value: {part_conf['sample']}")
     return True
+
+
+def _get_all_annotations(metadata: Metadata) -> set[str]:
+    return set(itertools.chain.from_iterable(get_dict_values(metadata.data, "$..annotations")))

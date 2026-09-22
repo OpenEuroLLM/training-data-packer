@@ -145,7 +145,7 @@ def get_matching_part(
     Returns matching part config and part name from metadata for given source file name.
     :param metadata: Metadata dictionary.
     :param src_file_name: Source file name.
-    :param section_name: Name of section to looks for parts information. Defult is release.
+    :param section_name: Name of section to looks for parts information. Default is release.
     :return: Tuple of part config and part name.
     """
     section = metadata[section_name]

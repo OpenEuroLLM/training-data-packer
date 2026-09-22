@@ -4,7 +4,13 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from training_data_packer.mode.lint import _check_pack_config, _check_parts_and_dirs_match, _check_sample_config
+from training_data_packer.metadata import Metadata
+from training_data_packer.mode.lint import (
+    _check_annotation_section,
+    _check_pack_config,
+    _check_parts_and_dirs_match,
+    _check_sample_config,
+)
 
 
 class TestCheckPartsAndDirsMatch(unittest.TestCase):
@@ -504,3 +510,128 @@ class TestCheckPackConfig(unittest.TestCase):
             _check_pack_config(self.part_path, part_conf)
             warning_message = str(mock_logger.warning.call_args)
             self.assertIn(self.part_path, warning_message)
+
+
+class TestCheckAnnotationSection(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_annotation_defined_with_directory_and_used_in_annotations_passes(self):
+        annotation = "propella-4b"
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                annotation: {"some_config": "value"},
+                "release": {"main": {"annotations": [annotation]}},
+            }
+        )
+        annotation_dir = Path(self.temp_dir) / annotation
+        annotation_dir.mkdir()
+
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
+            _check_annotation_section(metadata, annotation)
+            mock_logger.warning.assert_not_called()
+
+    def test_annotation_defined_without_directory_warns(self):
+        annotation = "nemo-curator"
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                annotation: {"some_config": "value"},
+                "release": {"main": {"annotations": [annotation]}},
+            }
+        )
+
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
+            _check_annotation_section(metadata, annotation)
+            mock_logger.warning.assert_called_once()
+            self.assertIn(annotation, str(mock_logger.warning.call_args))
+
+    def test_annotation_defined_but_not_used_raises_error(self):
+        annotation = "openai-privacy-filter"
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                annotation: {"some_config": "value"},
+                "release": {"main": {"annotations": ["propella-4b"]}},
+            }
+        )
+        annotation_dir = Path(self.temp_dir) / annotation
+        annotation_dir.mkdir()
+
+        with self.assertRaises(ValueError) as context:
+            _check_annotation_section(metadata, annotation)
+        self.assertIn(annotation, str(context.exception))
+        self.assertIn("not used in any annotations field", str(context.exception).lower())
+
+    def test_annotation_not_defined_and_directory_not_exist_passes(self):
+        annotation = "propella-4b"
+        metadata = Metadata(
+            {"_internal": {"collection_dir": self.temp_dir}, "release": {"main": {"annotations": ["nemo-curator"]}}}
+        )
+
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
+            _check_annotation_section(metadata, annotation)
+            mock_logger.warning.assert_not_called()
+
+    def test_directory_exists_without_metadata_section_raises_error(self):
+        annotation = "propella-4b"
+        metadata = Metadata({"_internal": {"collection_dir": self.temp_dir}, "release": {"main": {"annotations": []}}})
+        annotation_dir = Path(self.temp_dir) / annotation
+        annotation_dir.mkdir()
+
+        with self.assertRaises(ValueError) as context:
+            _check_annotation_section(metadata, annotation)
+        self.assertIn(annotation, str(context.exception))
+        self.assertIn("directory exist but no section in metadata", str(context.exception).lower())
+
+    def test_annotation_used_in_multiple_sections(self):
+        annotation = "propella-4b"
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                annotation: {"some_config": "value"},
+                "release": {"main": {"annotations": [annotation]}, "secondary": {"annotations": [annotation]}},
+            }
+        )
+        annotation_dir = Path(self.temp_dir) / annotation
+        annotation_dir.mkdir()
+
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
+            _check_annotation_section(metadata, annotation)
+            mock_logger.warning.assert_not_called()
+
+    def test_annotation_used_in_sample_section(self):
+        annotation = "propella-4b"
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                annotation: {"some_config": "value"},
+                "sample": {"default": {"input": "source"}, "train": {"annotations": [annotation]}},
+            }
+        )
+        annotation_dir = Path(self.temp_dir) / annotation
+        annotation_dir.mkdir()
+
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
+            _check_annotation_section(metadata, annotation)
+            mock_logger.warning.assert_not_called()
+
+    def test_annotation_config_with_empty_annotations_list(self):
+        annotation = "propella-4b"
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                annotation: {"some_config": "value"},
+                "release": {"main": {"annotations": []}},
+            }
+        )
+        annotation_dir = Path(self.temp_dir) / annotation
+        annotation_dir.mkdir()
+
+        with self.assertRaises(ValueError) as context:
+            _check_annotation_section(metadata, annotation)
+        self.assertIn("not used in any annotations field", str(context.exception).lower())
