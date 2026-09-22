@@ -25,19 +25,19 @@ A dataset directory managed by the packager contains input sources, annotations,
 dataset-directory/
 ├── metadata.yaml        # Dataset configuration, schema mappings, and pipeline rules
 ├── source/              # Original raw data files (e.g., .jsonl.gz), arranged in hierarchical subdirectories
-├── pii/                 # PII annotation files mirroring source/ paths (documents PII spans to mask)
-├── contamination/       # Contamination annotation files mirroring source/ paths (documents benchmark-contaminated records to remove)
-├── propella/            # Optional Propella quality score parquet files used for quality filtering
+├── open-privacy-filter/ # PII annotation files mirroring source/ paths (documents PII spans to mask). Output from open-privacy-filter
+├── nemo-curator/        # Contamination annotation files mirroring source/ paths (documents benchmark-contaminated records to remove). Output from Nemo-Curator
+├── propella-4b/         # Optional Propella quality score parquet files used for quality filtering
 ├── release-raw/         # Output of oellm-package-data: per-file processed data with PII masked, decontaminated, and sampled
 ├── release/             # Output of oellm-package-merge: consolidated and merged files ready for tokenization
-└── logs/                # Slurm and pipeline execution logs
+└── sample/              # Files sampled on quality using propella-4b and other quality metrics
 ```
 
 ### Directory Roles and Data Flow
 
 1. **Input & Annotations:**
    - **`source/`**: The primary input data. Files are typically organized by domain, language, or partition.
-   - **`pii/` & `contamination/`**: Annotation companion directories. Every annotation file mirrors the relative path and filename of the corresponding file in `source/`.
+   - **`open-privacy-filter/`, `propella-4b` & `nemo-curator/`**: Annotation companion directories. Every annotation file mirrors the relative path and filename of the corresponding file in `source/`.
    - **`metadata.yaml`**: Coordinates the pipeline by specifying dataset name, source URLs, annotation file formats, sampling ratios, and shard parameters.
 
 2. **Packaging (`oellm-package-data`):**
