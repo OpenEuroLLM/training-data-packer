@@ -162,63 +162,79 @@ def _split_email(email):
         raise ValueError("Invalid email {email}")
 
 
-def _mask_email_address(document: dict[str, Any], pii_record: dict[str, Any]) -> dict[str, Any]:
+def _mask_email_address(document: dict[str, Any], pii_record: dict[str, Any], cache=dict[str, str]) -> dict[str, Any]:
     """Mask email address.
 
     Masking an email address by replacing it with a random email address.
     :param document: Document to mask.
     :param pii_record: Pii record containing position of email address in document.
+    :param cache: Replacement cache to replace same value with same scrambled text within doc.
     :return: Masked document.
     """
-    try:
-        user_name, domain, separator = _split_email(pii_record["value"])
-        if user_name != "" and domain != "":
-            email_mask = f"{_scramble_string(user_name)}{separator}example.com"
-        elif domain == "":
-            email_mask = f"{_scramble_string(user_name)}{separator}"
-        else:
+    value = pii_record["value"]
+    if value in cache:
+        email_mask = cache[value]
+    else:
+        try:
+            user_name, domain, separator = _split_email(value)
+            if user_name != "" and domain != "":
+                email_mask = f"{_scramble_string(user_name)}{separator}example.com"
+            elif domain == "":
+                email_mask = f"{_scramble_string(user_name)}{separator}"
+            else:
+                logger.warning(f"PII record {pii_record} has not a valid email. Scrambling as string.")
+                email_mask = _scramble_string(value)
+        except ValueError:
             logger.warning(f"PII record {pii_record} has not a valid email. Scrambling as string.")
-            email_mask = _scramble_string(pii_record["value"])
-    except ValueError:
-        logger.warning(f"PII record {pii_record} has not a valid email. Scrambling as string.")
-        email_mask = _scramble_string(pii_record["value"])
+            email_mask = _scramble_string(value)
+        cache[value] = email_mask
     document["text"] = _replace_segment(document["text"], pii_record["start_pos"], pii_record["end_pos"], email_mask)
     return document
 
 
-def _mask_with_scrambled_string(document: dict[str, Any], pii_record: dict[str, Any]) -> dict[str, Any]:
+def _mask_with_scrambled_string(
+    document: dict[str, Any], pii_record: dict[str, Any], cache: dict[str, str]
+) -> dict[str, Any]:
     """Mask string.
 
     Masking a string in document by replacing it with a scrambled string.
     :param document: Document to mask.
     :param pii_record: Pii record containing position of string in document.
+    :param cache: Replacement cache to replace same value with same scrambled text within doc.
     :return: Masked document.
     """
-    scrambled_value = _scramble_string(pii_record["value"])
+    value = pii_record["value"]
+    if value in cache:
+        scrambled_value = cache[value]
+    else:
+        scrambled_value = _scramble_string(value)
+        cache[value] = scrambled_value
     document["text"] = _replace_segment(
         document["text"], pii_record["start_pos"], pii_record["end_pos"], scrambled_value
     )
     return document
 
 
-def _mask_bitcoin_address(document: dict[str, Any], pii_record: dict[str, Any]) -> dict[str, Any]:
+def _mask_bitcoin_address(document: dict[str, Any], pii_record: dict[str, Any], cache) -> dict[str, Any]:
     """Mask bitcoin address.
 
     Masking a bitcoin address in document by replacing it with a scrambled string, keping bitcoin prefix.
     :param document: Document to mask.
     :param pii_record: Pii record containing position of bitcoin address in document.
+    :param cache: Replacement cache to replace same value with same scrambled text within doc.
     :return: Masked document.
     """
-    if pii_record["value"][0] == "1" or pii_record["value"][0] == "3":
-        scrambled_bitcoin = pii_record["value"][0] + _scramble_string(pii_record["value"][1:])
-    elif pii_record["value"][0:3] == "bc1":
-        scrambled_bitcoin = pii_record["value"][0:3] + _scramble_string(pii_record["value"][3:])
+    value = pii_record["value"]
+    if value in cache:
+        scrambled_bitcoin = cache[value]
+    elif value[0] == "1" or value[0] == "3":
+        scrambled_bitcoin = value[0] + _scramble_string(value[1:])
+    elif value[0:3] == "bc1":
+        scrambled_bitcoin = value[0:3] + _scramble_string(value[3:])
     else:
-        logger.warning(
-            f"Unknown bitcoin address format {pii_record['value']} in document {pii_record['id']},"
-            f" using scrambled string"
-        )
-        scrambled_bitcoin = _scramble_string(pii_record["value"])
+        logger.warning(f"Unknown bitcoin address format {value} in document {pii_record['id']}, using scrambled string")
+        scrambled_bitcoin = _scramble_string(value)
+        cache[value] = scrambled_bitcoin
     document["text"] = _replace_segment(
         document["text"],
         pii_record["start_pos"],
@@ -228,21 +244,28 @@ def _mask_bitcoin_address(document: dict[str, Any], pii_record: dict[str, Any]) 
     return document
 
 
-def _mask_ip_address(document: dict[str, Any], pii_record: dict[str, Any]) -> dict[str, Any]:
+def _mask_ip_address(document: dict[str, Any], pii_record: dict[str, Any], cache: dict[str, str]) -> dict[str, Any]:
     """Mask IP address in document.
 
     Masking an IP address in document by replacing it with a scrambled IP address. Supports both IPv4 and IPv6.
     :param document: Document to mask.
     :param pii_record: Pii record containing position of IP address in document.
+    :param cache: Replacement cache to replace same value with same scrambled text within doc.
+    :param cache: Replacement cache to replace same value with same scrambled text within doc.
     :return: Masked document.
     """
     try:
-        scrambled_ip = _scramble_ip_address(pii_record["value"])
+        value = pii_record["value"]
+        if value in cache:
+            scrambled_ip = cache[value]
+        else:
+            scrambled_ip = _scramble_ip_address(value)
+            cache[value] = scrambled_ip
         document["text"] = _replace_segment(
             document["text"], pii_record["start_pos"], pii_record["end_pos"], scrambled_ip
         )
     except ValueError:
-        logger.warning(f'"{pii_record["value"]}" not a valid ip address')
+        logger.warning(f'"{value}" not a valid ip address')
 
     return document
 
@@ -260,6 +283,7 @@ def multilingual_mask_document(
     :return: Masked document.
     """
     try:
+        cache = {}
         for pii_record in pii_records:
             match pii_record["name"]:
                 case (
@@ -271,19 +295,19 @@ def multilingual_mask_document(
                     | "PHONE_NUMBER"
                     | "MERGED"
                 ):
-                    document = _mask_with_scrambled_string(document, pii_record)
+                    document = _mask_with_scrambled_string(document, pii_record, cache)
                 case "BITCOIN_ADDRESS":
-                    document = _mask_bitcoin_address(document, pii_record)
+                    document = _mask_bitcoin_address(document, pii_record, cache)
                 case "EMAIL_ADDRESS":
-                    document = _mask_email_address(document, pii_record)
+                    document = _mask_email_address(document, pii_record, cache)
                 case "IP_ADDRESS":
-                    document = _mask_ip_address(document, pii_record)
+                    document = _mask_ip_address(document, pii_record, cache)
                 case _:
                     logger.warning(
                         f"Unknown pii record type {pii_record['name']} in document {document['id']},"
                         f" masked as scrambled string"
                     )
-                    document = _mask_with_scrambled_string(document, pii_record)
+                    document = _mask_with_scrambled_string(document, pii_record, cache)
                     document["pii_unknown"] = True
     except ValueError as e:
         logger.warning(f"Document {document['id']} has pii issues {e}")
@@ -306,6 +330,7 @@ def openai_mask_document(
     """
     try:
         masked_occations = 0
+        cache = {}
         if mask_fields is None:
             mask_fields = ["private_email", "private_phone", "private_url", "secret"]
         for pii_record in pii_records:
@@ -320,21 +345,21 @@ def openai_mask_document(
                     | "private_date"
                     | "account_number"
                 ):
-                    document = _mask_with_scrambled_string(document, pii_record)
+                    document = _mask_with_scrambled_string(document, pii_record, cache)
                     masked_occations += 1
                 case "private_email":
-                    document = _mask_email_address(document, pii_record)
+                    document = _mask_email_address(document, pii_record, cache)
                     masked_occations += 1
                 case "private_url":
                     if not pii_record["value"].startswith("http"):
-                        document = _mask_ip_address(document, pii_record)
+                        document = _mask_ip_address(document, pii_record, cache)
                         masked_occations += 1
                 case _:
                     logger.warning(
                         f"Unknown pii record type {pii_record['name']} in document {document['id']},"
                         f" masked as scrambled string"
                     )
-                    document = _mask_with_scrambled_string(document, pii_record)
+                    document = _mask_with_scrambled_string(document, pii_record, cache)
                     masked_occations += 1
                     document["pii_unknown"] = True
     except ValueError as e:

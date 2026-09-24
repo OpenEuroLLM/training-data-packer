@@ -247,10 +247,23 @@ class TestMaskRecords(unittest.TestCase):
     )
     def test_mask_email_address(self, name, text, pii_record, expected):
         document = {"text": text}
-        result = pii_masking._mask_email_address(document, pii_record)
+        result = pii_masking._mask_email_address(document, pii_record, {})
         self.assertEqual(expected[0:16], result["text"][0:16])
         self.assertNotEqual(pii_record["value"], result["text"][17:-1])
         self.assertEqual(expected[21:], result["text"][21:])
+
+    def test_mask_cached_email_address(self):
+        value = "user@example.org"
+        document = {"text": f"This is my email {value}. {value}"}
+        pii_record_1 = {"start_pos": 17, "end_pos": 33, "value": value}
+        pii_record_2 = {"start_pos": 35, "end_pos": 51, "value": value}
+        cache = {}
+        result = pii_masking._mask_email_address(document, pii_record_2, cache)
+        result = pii_masking._mask_email_address(result, pii_record_1, cache)
+
+        self.assertTrue(value in cache)
+        self.assertEqual(1, len(cache))
+        self.assertEqual(2, result["text"].count(cache[value]))
 
     @parameterized.expand(
         [
@@ -362,7 +375,7 @@ class TestMaskRecords(unittest.TestCase):
     )
     def test_mask_ip_address(self, name, text, pii_record):
         document = {"text": text}
-        result = pii_masking._mask_ip_address(document, pii_record)
+        result = pii_masking._mask_ip_address(document, pii_record, {})
         self.assertEqual(result["text"][: pii_record["start_pos"]], text[: pii_record["start_pos"]])
         self.assertNotEqual(
             result["text"][pii_record["start_pos"] : pii_record["end_pos"]],
@@ -370,6 +383,19 @@ class TestMaskRecords(unittest.TestCase):
         )
         suffix_text = text[pii_record["end_pos"] + 1 :]
         self.assertEqual(result["text"][-len(suffix_text) :], suffix_text)
+
+    def test_mask_cached_ip_address(self):
+        value = "2001:db8::1000"
+        document = {"text": f"The IP {value} is a public DNS. {value}"}
+        pii_record_1 = {"start_pos": 7, "end_pos": 20, "value": value}
+        pii_record_2 = {"start_pos": 38, "end_pos": 51, "value": value}
+        cache = {}
+        result = pii_masking._mask_ip_address(document, pii_record_2, cache)
+        result = pii_masking._mask_ip_address(result, pii_record_1, cache)
+
+        self.assertTrue(value in cache)
+        self.assertEqual(1, len(cache))
+        self.assertEqual(2, result["text"].count(cache[value]))
 
     @parameterized.expand(
         [
@@ -382,13 +408,25 @@ class TestMaskRecords(unittest.TestCase):
     )
     def test_mask_with_scrambled_string(self, name, text, pii_record):
         document = {"text": text}
-        result = pii_masking._mask_with_scrambled_string(document, pii_record)
+        result = pii_masking._mask_with_scrambled_string(document, pii_record, {})
         self.assertEqual(result["text"][: pii_record["start_pos"]], text[: pii_record["start_pos"]])
         self.assertNotEqual(
             result["text"][pii_record["start_pos"] : pii_record["end_pos"]],
             text[pii_record["start_pos"] : pii_record["end_pos"]],
         )
         self.assertEqual(result["text"][pii_record["end_pos"] + 1 :], text[pii_record["end_pos"] + 1 :])
+
+    def test_mask_with_scrambled_string_and_cache(self):
+        value = "+1 (505) 619 5504"
+        document = {"text": f"This is my email {value} and I say it again {value}"}
+        cache = {}
+        pii_record_2 = {"start_pos": 54, "end_pos": 71, "value": value}
+        result = pii_masking._mask_with_scrambled_string(document, pii_record_2, cache)
+        pii_record_1 = {"start_pos": 17, "end_pos": 34, "value": value}
+        result = pii_masking._mask_with_scrambled_string(result, pii_record_1, cache)
+        self.assertTrue(value in cache)
+        self.assertEqual(1, len(cache))
+        self.assertEqual(2, result["text"].count(cache[value]))
 
     @parameterized.expand(
         [
@@ -440,7 +478,7 @@ class TestMaskRecords(unittest.TestCase):
     )
     def test_mask_bitcoin_address(self, name, text, pii_record, prefix_length):
         document = {"text": text}
-        result = pii_masking._mask_bitcoin_address(document, pii_record)
+        result = pii_masking._mask_bitcoin_address(document, pii_record, {})
         self.assertEqual(
             result["text"][: pii_record["start_pos"] + prefix_length],
             text[: pii_record["start_pos"] + prefix_length],
@@ -450,6 +488,19 @@ class TestMaskRecords(unittest.TestCase):
             text[pii_record["start_pos"] + prefix_length : pii_record["end_pos"]],
         )
         self.assertEqual(result["text"][pii_record["end_pos"] + 1 :], text[pii_record["end_pos"] + 1 :])
+
+    def test_mask_bitcoin_address_with_cache(self):
+        value = "7BgXRx8YMGKU7fc8RfTPQ2uL2ivC9cMmGj"
+        document = {"text": f"This is my bitcoin {value} give me the money {value}"}
+        pii_record_1 = {"start_pos": 19, "end_pos": 53, "value": value, "id": "4"}
+        pii_record_2 = {"start_pos": 72, "end_pos": 106, "value": value, "id": "4"}
+        cache = {}
+        result = pii_masking._mask_bitcoin_address(document, pii_record_2, cache)
+        result = pii_masking._mask_bitcoin_address(result, pii_record_1, cache)
+
+        self.assertTrue(value in cache)
+        self.assertEqual(1, len(cache))
+        self.assertEqual(2, result["text"].count(cache[value]))
 
     @parameterized.expand(
         [
