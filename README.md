@@ -3,19 +3,38 @@ Packaging annotated datasets into final training data. Purpose is to have a repe
 well-packaged data to remove any data management in the training step.
 
 The packer consists of the following tools:
-* oellm-package-data - Take source files and apply decontamination, PII-masking, and sampling. Each file
+* `oellm-package-data` - Take source files and apply decontamination, PII-masking, and sampling. Each file
     in the source directory gets a correspondent file with the data processed. The tool is idempotent, if it fails,
     then run it again, and it will take of where it left. This is the main tool.
-* oellm-package-merge - This shall run after oellm-package-data and deduces the number of files to simplify
+    The tool contain three sub tools: `release` (default), `sample`, and `lint`.
+* `oellm-package-merge` - This shall run after oellm-package-data and deduces the number of files to simplify
     tokenization and training.
-* oellm-collect-metrics - Collect and summarize metrics from a collection directory.
-* oellm-propella-structure - Structure Propella data based on source data structure. For each record in the
+* `oellm-collect-metrics` - Collect and summarize metrics from a collection directory.
+* `oellm-propella-structure` - Structure Propella data based on source data structure. For each record in the
     source files, if its ID exists in the Propella data, it is written to the output. This arranges Propella
     data in the same oßrder as source data.
-* oellm-propella-merge - If Propella data is to big to be in memory `oellm-propella-structure` can run on
+* `oellm-propella-merge` - If Propella data is to big to be in memory `oellm-propella-structure` can run on
   individual Propella-parquet files. Then use this tool to merge the results from all Propella-parquet files.
 
-Both tools read a file `metadata.yaml` containing metadata about the structure and processing of the data.
+All tools read a file `metadata.yaml` containing metadata about the structure and processing of the data.
+
+## TL;DR; I just want to run!
+Here are steps to run packaging and reduce the number of files.
+1. Install `uv` if not already don. Run: `curl -LsSf https://astral.sh/uv/install.sh | sh`, it will be installed in `~/.local/bin/uv`
+2. Check out `https://github.com/OpenEuroLLM/training-data-packer`
+3. Go down in training-data-packar and create uv-environment with `uv sync`
+4. Lint your metadata to find errors in the declaration: `uv run oellm-package-data --collection-dir /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0 --mode lint`
+5. Start a packaging job `sbatch --array=0-4 ./package.sh  /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0`
+Change path to the dataset you want to process. Adjust the array size to the size of data.
+If it times out just rerun again; you can even change the array size on re-runs.
+6. Check data in `release-raw` directory under the provided path. There are also hidden metric files.
+7. Move logs from `logs` directory within the directory where you checked out the code into `/scratch/project_465002530/training/collection/flag/log/release`
+8. Start the merge step to reduce number of files: `sbatch --array=0-9 ./merge.sh /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0`
+9. Check data in `release` directory under the provided path.
+10. Move logs from `logs` directory within the directory where you checked out the code into `/scratch/project_465002530/training/collection/flag/log/release`
+
+The three first steps are a one time operation or when you update the packager.
+
 
 ## Dataset Directory Structure
 
@@ -46,26 +65,6 @@ dataset-directory/
 
 3. **Consolidation (`oellm-package-merge`):**
    - Reads files from **`release-raw/`** and merges smaller chunks into target-sized files in **`release/`**, maintaining path semantics while reducing file handle overhead for tokenization and pretraining.
-
-## TL;DR; I just want to run!
-Here are steps to run packaging and reduce the number of files.
-1. Install `uv` if not already don. Run: `curl -LsSf https://astral.sh/uv/install.sh | sh`, it will be
-installed in `~/.local/bin/uv`
-2. Check out `https://github.com/OpenEuroLLM/training-data-packer`
-3. Go down in training-data-packar and create uv-environment with `uv sync`
-4. Start a packaging job `sbatch --array=0-4 ./package.sh  /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0`
-Change path to the dataset you want to process. Adjust the array size to size of data. If it times
-out. Just rerun again, you can even change array size on re-runs.
-5. Check data in `release-raw` directory under the provided path. There are also hidden metric files.
-6. Move logs from `logs` directory within the directory where you checked out the code into
-`/scratch/project_465002530/training/collection/flag/log/release`
-7. Start the merge step to reduce number of files:
-`sbatch --array=0-9 ./merge.sh /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0`
-8. Check data in `release` directory under the provided path.
-9. Move logs from `logs` directory within the directory where you checked out the code into
-`/scratch/project_465002530/training/collection/flag/log/release`
-
-The three first steps are a one time operation or when you update the packager.
 
 
 ## Related projects
@@ -120,10 +119,30 @@ sbatch --array=0-49 ./package.sh \
     /scratch/project_465002530/training/collection/baby/nemotron-cc-opus-1.1
 ```
 
+## Linter: oellm-package-data
+To be able to check the `metadata.yaml`file and the directory structure for annoying errors there is a lint mode for the oellm-package-data-
+The lint mode check:
+* metadata.yaml follow schema
+* Extensive checks on fields that are correlated to each other.
+* Reads some data files, if exists, to verify alignment with `metadata.yaml`.
+
+To lint `tests/resources/integration/non_partitioned` run:
+```shell
+uv run oellm-package-data --collection-dir tests/resources/integration/flat_release -m lint
+```
+
+The linter loggs warning messages for errors that are not fatal.
+It can be a recommendation to set default values for clarity or tell that some data files are missing.
+Missing datafiles is most often due to previous steps not being run yet.
+Warning messages do not make the linter fail.
+Error logs must be fixed be for running the packager.
+On errors the linter returns a non-zero status code.
+
+
 ### Merger: oellm-package-merge
 The merger reduces the number of files but still keeps semantics in paths, like language or quality.
-The merger uses the `metadata.yaml` in provided collection-directory. As input it use the subdirectory `release-raw` and
-write the merged files to `release` subdirectory.
+The merger uses the `metadata.yaml` in provided collection-directory.
+Input directory is the subdirectory `release-raw` and output to `release` subdirectory.
 
 The merger run after `oellm-package-data`.
 
