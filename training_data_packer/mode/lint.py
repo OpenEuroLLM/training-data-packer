@@ -51,6 +51,9 @@ def process(collection_dir: Path) -> bool:
         for annotation in ["propella-4b", "nemo-curator", "openai-privacy-filter"]:
             _check_annotation_section(metadata, annotation)
 
+        for s in ["nemo-curator", "openai-privacy-filter"]:
+            _check_input_in_section(metadata, s)
+
         if "nugget" in metadata:
             _check_all_source_parts(metadata, "nugget")
         elif collection_dir.joinpath("nugget").is_dir():
@@ -85,13 +88,17 @@ def _check_annotation_section(metadata: Metadata, annotation: str) -> None:
         raise ValueError(f"`{annotation}` directory exist but no section in metadata.")
 
 
+def _check_input_in_section(metadata: Metadata, section: str) -> None:
+    input = metadata[f"{section}.default.input"]
+    if input not in metadata:
+        raise ValueError(f"{section}.default.input references part `{input}` which is not defined.")
+
+
 def _check_sample_section(metadata: Metadata) -> None:
     """Validates the sample section of the metadata."""
     section = "sample"
     fields = [metadata.get("id", DEFAULT_ID), metadata.get("text", DEFAULT_TEXT)]
-    input = metadata[f"{section}.default.input"]
-    if input not in metadata:
-        raise ValueError(f"{section}.default.input references part `{input}` which is not defined.")
+    _check_input_in_section(metadata, section)
     _check_record_fields_in_sections_files(metadata, section, fields)
     for part in metadata.get_all_part_names(section):
         part_path = _build_part_path(section, part)
@@ -107,9 +114,7 @@ def _check_uuid_section(metadata: Metadata) -> None:
     """Validates the uuid section of the metadata."""
     section = "uuid"
     fields = [metadata.get("id", DEFAULT_ID)]
-    input = metadata[f"{section}.default.input"]
-    if input not in metadata:
-        raise ValueError(f"{section}.default.input references part `{input}` which is not defined.")
+    _check_input_in_section(metadata, section)
     _check_record_fields_in_sections_files(metadata, section, fields)
 
 
