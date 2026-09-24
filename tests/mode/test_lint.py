@@ -4,11 +4,24 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import orjson
+import zstandard as zstd
+
 from training_data_packer.metadata import Metadata
+from training_data_packer.metadata.defaults import (
+    DEFAULT_ID,
+    DEFAULT_TEXT,
+    SRC_LANGUAGE_DEFAULT,
+    SRC_TEXT_DEFAULT,
+    TGT_LANGUAGE_DEFAULT,
+    TGT_TEXT_DEFAULT,
+)
 from training_data_packer.mode.lint import (
+    _check_all_source_parts,
     _check_annotation_section,
     _check_pack_config,
     _check_parts_and_dirs_match,
+    _check_record_fields_in_sections_files,
     _check_sample_config,
 )
 
@@ -635,3 +648,526 @@ class TestCheckAnnotationSection(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             _check_annotation_section(metadata, annotation)
         self.assertIn("not used in any annotations field", str(context.exception).lower())
+
+
+def _create_test_jsonl_file(file_path: Path, data: list) -> None:
+    """Helper to create a JSONL file for testing."""
+    if file_path.suffix == ".zst":
+        cctx = zstd.ZstdCompressor()
+        with open(file_path, "wb") as f:
+            with cctx.stream_writer(f) as compressor:
+                for item in data:
+                    compressor.write(orjson.dumps(item))
+                    compressor.write(b"\n")
+    else:
+        with open(file_path, "w", encoding="utf-8") as f:
+            for item in data:
+                f.write(orjson.dumps(item).decode("utf-8") + "\n")
+
+
+class TestCheckRecordFieldsInSectionsFiles(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        self.temp_path = Path(self.temp_dir)
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir)
+
+    def test_valid_section_with_required_fields_passes(self):
+        """Test that a valid section with all required fields passes validation."""
+        section = "source"
+        required_fields = ["id", "text"]
+        part_dir = self.temp_path / section / "part1"
+        part_dir.mkdir(parents=True)
+
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                section: {"part1": {"suffix": ".jsonl"}},
+            }
+        )
+
+        test_data = [{"id": "test1", "text": "sample text"}]
+        _create_test_jsonl_file(part_dir / "part1.000.jsonl", test_data)
+
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
+            _check_record_fields_in_sections_files(metadata, section, required_fields)
+            mock_logger.warning.assert_not_called()
+
+    def test_section_with_missing_required_field_raises_error(self):
+        """Test that missing required field raises ValueError."""
+        section = "source"
+        required_fields = ["id", "text"]
+        part_dir = self.temp_path / section / "part1"
+        part_dir.mkdir(parents=True)
+
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                section: {"part1": {"suffix": ".jsonl"}},
+                "suffix": ".jsonl",
+            }
+        )
+
+        test_data = [{"id": "test1"}]  # Missing 'text' field
+        _create_test_jsonl_file(part_dir / "part1.000.jsonl", test_data)
+
+        with self.assertRaises(ValueError) as context:
+            _check_record_fields_in_sections_files(metadata, section, required_fields)
+        self.assertIn("part1", str(context.exception))
+        self.assertIn("text", str(context.exception))
+
+    def test_section_with_none_required_field_raises_error(self):
+        """Test that None value for the required field raises ValueError."""
+        section = "source"
+        required_fields = ["id", "text"]
+        part_dir = self.temp_path / section / "part1"
+        part_dir.mkdir(parents=True)
+
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                section: {"part1": {"suffix": ".jsonl"}},
+                "suffix": ".jsonl",
+            }
+        )
+
+        test_data = [{"id": "test1", "text": None}]  # None value for required field
+        _create_test_jsonl_file(part_dir / "part1.000.jsonl", test_data)
+
+        with self.assertRaises(ValueError) as context:
+            _check_record_fields_in_sections_files(metadata, section, required_fields)
+        self.assertIn("part1", str(context.exception))
+        self.assertIn("text", str(context.exception))
+
+    def test_section_directory_not_exists_warns(self):
+        """Test that non-existent section directory generates warning."""
+        section = "source"
+        required_fields = ["id", "text"]
+
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                section: {"part1": {"suffix": ".jsonl"}},
+            }
+        )
+
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
+            _check_record_fields_in_sections_files(metadata, section, required_fields)
+            mock_logger.warning.assert_called_once()
+            self.assertIn(f"`{section}` data not created", str(mock_logger.warning.call_args))
+
+    def test_optional_fields_found_in_records_no_warning(self):
+        """Test that optional fields found in records don't generate warning."""
+        section = "source"
+        required_fields = ["id", "text"]
+        optional_fields = ["metadata", "score"]
+        part_dir = self.temp_path / section / "part1"
+        part_dir.mkdir(parents=True)
+
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                section: {"part1": {"suffix": ".jsonl"}},
+                "suffix": ".jsonl",
+            }
+        )
+
+        test_data = [{"id": "test1", "text": "sample", "metadata": {"key": "value"}, "score": 0.95}]
+        _create_test_jsonl_file(part_dir / "part1.000.jsonl", test_data)
+
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
+            _check_record_fields_in_sections_files(metadata, section, required_fields, optional_fields)
+            mock_logger.warning.assert_not_called()
+
+    def test_optional_fields_not_found_warns(self):
+        """Test that missing optional fields generate warning."""
+        section = "source"
+        required_fields = ["id", "text"]
+        optional_fields = ["metadata", "score"]
+        part_dir = self.temp_path / section / "part1"
+        part_dir.mkdir(parents=True)
+
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                section: {"part1": {"suffix": ".jsonl"}},
+                "suffix": ".jsonl",
+            }
+        )
+
+        test_data = [{"id": "test1", "text": "sample"}]  # Missing optional fields
+        _create_test_jsonl_file(part_dir / "part1.000.jsonl", test_data)
+
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
+            _check_record_fields_in_sections_files(metadata, section, required_fields, optional_fields)
+            mock_logger.warning.assert_called()
+            warning_message = str(mock_logger.warning.call_args)
+            self.assertIn("expected fields", warning_message.lower())
+            self.assertIn("metadata", warning_message)
+            self.assertIn("score", warning_message)
+
+    def test_multiple_parts_all_valid_passes(self):
+        """Test that multiple parts with valid records pass validation."""
+        section = "source"
+        required_fields = ["id", "text"]
+        section_dir = self.temp_path / section
+        section_dir.mkdir()
+
+        for part_name in ["part1", "part2", "part3"]:
+            part_dir = section_dir / part_name
+            part_dir.mkdir()
+            test_data = [{"id": f"{part_name}_id", "text": f"{part_name} text"}]
+            _create_test_jsonl_file(part_dir / f"{part_name}.000.jsonl.zst", test_data)
+
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                section: {"part1": {}, "part2": {}, "part3": {}},
+            }
+        )
+
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
+            _check_record_fields_in_sections_files(metadata, section, required_fields)
+            mock_logger.warning.assert_not_called()
+
+    def test_missing_part_file_raises_error(self):
+        """Test that missing part file raises ValueError."""
+        section = "source"
+        required_fields = ["id", "text"]
+        part_dir = self.temp_path / section / "part1"
+        part_dir.mkdir(parents=True)
+
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                section: {"part1": {"suffix": ".jsonl"}},
+            }
+        )
+
+        # Don't create any files - should raise error
+        with self.assertRaises(ValueError) as context:
+            _check_record_fields_in_sections_files(metadata, section, required_fields)
+        self.assertIn("No source files found", str(context.exception))
+        self.assertIn("part1", str(context.exception))
+
+    def test_empty_part_file_reads_next_file(self):
+        """Test that empty part file reads next available file with data."""
+        section = "source"
+        required_fields = ["id", "text"]
+        part_dir = self.temp_path / section / "part1"
+        part_dir.mkdir(parents=True)
+
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                section: {"part1": {"suffix": ".jsonl"}},
+                "suffix": ".jsonl",
+            }
+        )
+
+        # Create empty first file and valid second file
+        _create_test_jsonl_file(part_dir / "part1.000.jsonl", [])
+        valid_data = [{"id": "test1", "text": "sample text"}]
+        _create_test_jsonl_file(part_dir / "part1.001.jsonl", valid_data)
+
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
+            _check_record_fields_in_sections_files(metadata, section, required_fields)
+            mock_logger.warning.assert_not_called()
+
+    def test_all_part_files_empty_raises_error(self):
+        """Test that when all part files are empty, appropriate error is raised."""
+        section = "source"
+        required_fields = ["id", "text"]
+        part_dir = self.temp_path / section / "part1"
+        part_dir.mkdir(parents=True)
+
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                section: {"part1": {"suffix": ".jsonl"}},
+                "suffix": ".jsonl",
+            }
+        )
+
+        # Create multiple empty files
+        _create_test_jsonl_file(part_dir / "part1.000.jsonl", [])
+        _create_test_jsonl_file(part_dir / "part1.001.jsonl", [])
+        _create_test_jsonl_file(part_dir / "part1.002.jsonl", [])
+
+        with self.assertRaises(ValueError) as context:
+            _check_record_fields_in_sections_files(metadata, section, required_fields)
+        self.assertIn("Cannot read a record", str(context.exception))
+        self.assertIn("part1", str(context.exception))
+
+    def test_section_with_no_parts_raises_error(self):
+        """Test that section with no parts defined raises ValueError."""
+        section = "source"
+        required_fields = ["id", "text"]
+        section_dir = self.temp_path / section
+        section_dir.mkdir()
+
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                section: {},
+            }
+        )
+
+        with self.assertRaises(ValueError) as context:
+            _check_record_fields_in_sections_files(metadata, section, required_fields)
+        self.assertIn("no parts defined", str(context.exception))
+
+    def test_optional_fields_found_across_different_parts(self):
+        """Test that optional fields found across different parts don't generate warning."""
+        section = "source"
+        required_fields = ["id", "text"]
+        optional_fields = ["metadata", "score"]
+        section_dir = self.temp_path / section
+        section_dir.mkdir()
+
+        part1_dir = section_dir / "part1"
+        part1_dir.mkdir()
+        part2_dir = section_dir / "part2"
+        part2_dir.mkdir()
+
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                section: {"part1": {"suffix": ".jsonl"}, "part2": {"suffix": ".jsonl"}},
+                "suffix": ".jsonl",
+            }
+        )
+
+        # Part1 has metadata, Part2 has score
+        test_data1 = [{"id": "test1", "text": "sample1", "metadata": {"key": "value"}}]
+        test_data2 = [{"id": "test2", "text": "sample2", "score": 0.95}]
+        _create_test_jsonl_file(part1_dir / "part1.000.jsonl", test_data1)
+        _create_test_jsonl_file(part2_dir / "part2.000.jsonl", test_data2)
+
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
+            _check_record_fields_in_sections_files(metadata, section, required_fields, optional_fields)
+            mock_logger.warning.assert_not_called()
+
+    def test_empty_optional_fields_list_no_warning(self):
+        """Test that empty optional fields list doesn't generate warning."""
+        section = "source"
+        required_fields = ["id", "text"]
+        part_dir = self.temp_path / section / "part1"
+        part_dir.mkdir(parents=True)
+
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                section: {"part1": {"suffix": ".jsonl"}},
+                "suffix": ".jsonl",
+            }
+        )
+
+        test_data = [{"id": "test1", "text": "sample text"}]
+        _create_test_jsonl_file(part_dir / "part1.000.jsonl", test_data)
+
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
+            _check_record_fields_in_sections_files(metadata, section, required_fields)
+            mock_logger.warning.assert_not_called()
+
+
+class TestCheckAllSourceParts(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        self.temp_path = Path(self.temp_dir)
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_default_section_with_metadata_fields(self):
+        """Test _check_all_source_parts with default section and basic metadata fields."""
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                "id": "custom_id",
+                "text": "custom_text",
+                "source": {
+                    "part1": {"annotations": ["propella-4b", "doc_scores"]},
+                    "part2": {"annotations": ["web-register"]},
+                },
+                "propella-4b": {"some": "config"},
+                "doc_scores": {"some": "config"},
+                "web-register": {"some": "config"},
+            }
+        )
+
+        with patch("training_data_packer.mode.lint._check_record_fields_in_sections_files") as mock_check:
+            with patch("training_data_packer.mode.lint._check_annotations_config"):
+                _check_all_source_parts(metadata)
+
+                mock_check.assert_called_once()
+                call_args = mock_check.call_args
+
+                self.assertEqual(call_args[0][0], metadata)
+                self.assertEqual(call_args[0][1], "source")
+                self.assertEqual(call_args[0][2], ["custom_id", "custom_text"])
+                self.assertEqual(set(call_args[0][3]), {"propella-4b", "doc_scores", "web-register"})
+
+    def test_parallel_mode_with_parallel_fields(self):
+        """Test _check_all_source_parts with parallel mode configuration."""
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                "parallel": {
+                    "source": {
+                        "text": "src_text_field",
+                        "language": "src_lang_field",
+                    },
+                    "target": {
+                        "text": "tgt_text_field",
+                        "language": "tgt_lang_field",
+                    },
+                },
+                "source": {
+                    "part1": {"annotations": ["propella-4b"]},
+                },
+                "propella-4b": {"some": "config"},
+            }
+        )
+
+        with patch("training_data_packer.mode.lint._check_record_fields_in_sections_files") as mock_check:
+            with patch("training_data_packer.mode.lint._check_annotations_config"):
+                _check_all_source_parts(metadata)
+
+                mock_check.assert_called_once()
+                call_args = mock_check.call_args
+                expected_fields = ["src_text_field", "src_lang_field", "tgt_text_field", "tgt_lang_field"]
+                self.assertEqual(call_args[0][2], expected_fields)
+
+    def test_with_uuid_section_excludes_id_field(self):
+        """Test _check_all_source_parts excludes id field when uuid section exists."""
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                "uuid": {"default": {"input": "source"}},
+                "id": "custom_id",
+                "text": "custom_text",
+                "source": {
+                    "part1": {"annotations": []},
+                },
+            }
+        )
+
+        with patch("training_data_packer.mode.lint._check_record_fields_in_sections_files") as mock_check:
+            with patch("training_data_packer.mode.lint._check_annotations_config"):
+                _check_all_source_parts(metadata)
+
+                call_args = mock_check.call_args[0]
+                self.assertEqual(call_args[2], ["custom_text"])
+
+    def test_custom_section_parameter(self):
+        """Test _check_all_source_parts with custom section name."""
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                "id": "test_id",
+                "text": "test_text",
+                "nugget": {
+                    "part1": {"annotations": ["doc_scores"]},
+                },
+                "doc_scores": {"some": "config"},
+            }
+        )
+
+        with patch("training_data_packer.mode.lint._check_record_fields_in_sections_files") as mock_check:
+            with patch("training_data_packer.mode.lint._check_annotations_config"):
+                _check_all_source_parts(metadata, "nugget")
+
+                call_args = mock_check.call_args[0]
+                self.assertEqual(call_args[1], "nugget")
+                self.assertEqual(call_args[2], ["test_id", "test_text"])
+                self.assertEqual(set(call_args[3]), {"doc_scores"})
+
+    def test_empty_annotations_list(self):
+        """Test _check_all_source_parts when parts have no annotations."""
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                "id": "test_id",
+                "text": "test_text",
+                "source": {
+                    "part1": {"annotations": []},
+                    "part2": {},
+                },
+            }
+        )
+
+        with patch("training_data_packer.mode.lint._check_record_fields_in_sections_files") as mock_check:
+            with patch("training_data_packer.mode.lint._check_annotations_config"):
+                _check_all_source_parts(metadata)
+
+                call_args = mock_check.call_args[0]
+                self.assertEqual(call_args[2], ["test_id", "test_text"])
+                self.assertEqual(call_args[3], set())
+
+    def test_multiple_parts_with_mixed_annotations(self):
+        """Test _check_all_source_parts with multiple parts having various annotation combinations."""
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                "id": "test_id",
+                "text": "test_text",
+                "source": {
+                    "part1": {"annotations": ["propella-4b", "doc_scores"]},
+                    "part2": {"annotations": ["propella-4b"]},
+                    "part3": {"annotations": ["web-register", "bsc-edu"]},
+                },
+                "propella-4b": {"some": "config"},
+                "doc_scores": {"some": "config"},
+                "web-register": {"some": "config"},
+                "bsc-edu": {"some": "config"},
+            }
+        )
+
+        with patch("training_data_packer.mode.lint._check_record_fields_in_sections_files") as mock_check:
+            with patch("training_data_packer.mode.lint._check_annotations_config"):
+                _check_all_source_parts(metadata)
+
+                call_args = mock_check.call_args[0]
+                expected_annotations = {"propella-4b", "doc_scores", "web-register", "bsc-edu"}
+                self.assertEqual(set(call_args[3]), expected_annotations)
+
+    def test_default_metadata_values(self):
+        """Test _check_all_source_parts uses default values when id/text not specified."""
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                "source": {
+                    "part1": {"annotations": ["propella-4b"]},
+                },
+                "propella-4b": {"some": "config"},
+            }
+        )
+
+        with patch("training_data_packer.mode.lint._check_record_fields_in_sections_files") as mock_check:
+            with patch("training_data_packer.mode.lint._check_annotations_config"):
+                _check_all_source_parts(metadata)
+
+                call_args = mock_check.call_args[0]
+                self.assertEqual(call_args[2], [DEFAULT_ID, DEFAULT_TEXT])
+
+    def test_parallel_with_default_values(self):
+        """Test _check_all_source_parts parallel mode with default values."""
+        metadata = Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                "parallel": {},
+                "source": {
+                    "part1": {"annotations": []},
+                },
+            }
+        )
+
+        with patch("training_data_packer.mode.lint._check_record_fields_in_sections_files") as mock_check:
+            with patch("training_data_packer.mode.lint._check_annotations_config"):
+                _check_all_source_parts(metadata)
+
+                call_args = mock_check.call_args[0]
+                expected_fields = [SRC_TEXT_DEFAULT, SRC_LANGUAGE_DEFAULT, TGT_TEXT_DEFAULT, TGT_LANGUAGE_DEFAULT]
+                self.assertEqual(call_args[2], expected_fields)
