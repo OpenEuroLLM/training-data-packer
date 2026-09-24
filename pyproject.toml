@@ -59,6 +59,13 @@ target-version = "py314"
 [tool.ruff.lint]
 ignore = [
     "C417",  # Unnecessary `map` or `filter` where a comprehension could be used
+    "D100", # Missing docstring in public module
+    "D101", # Missing docstring in public class
+    "D102", # Missing docstring in public method
+    "D103", # Missing docstring in public function
+    "D104", # Missing docstring in public package
+    "D105", # Missing docstring in magic method
+    "D107", # Missing docstring in __init__
 ]
 select = [
     "E",    # pycodestyle errors
@@ -68,6 +75,10 @@ select = [
     "B",    # flake8-bugbear
     "C4",   # flake8-comprehensions
     "UP",   # pyupgrade
+    "D", # Doc style
+    "RUF", # Ruff specific rules.
+    "PLC", # Pylint
+    "PLE", # Pylint
 ]
 
 [tool.ruff.lint.per-file-ignores]

@@ -4,9 +4,7 @@ from typing import Any
 
 
 class FilterOnBlocklist:
-    """
-    Filter for blocklist. Filters out documents with ids in blocklist.
-    """
+    """Filter for blocklist. Filters out documents with ids in blocklist."""
 
     def __init__(self, name: str, block_list: set[Any]):
         self.counter = 0
@@ -14,8 +12,8 @@ class FilterOnBlocklist:
         self.block_list = {str(x) for x in block_list}
 
     def get_metrics(self):
-        """
-        Returns metrics of the filter.
+        """Get metric for the filter.
+
         :return: Dictionary with metrics.
         """
         return {
@@ -26,8 +24,8 @@ class FilterOnBlocklist:
         }
 
     def filter(self, data_iterator: Iterable[dict[str, Any]]):
-        """
-        Filters out documents with ids in blocklist.
+        """Filter out documents with ids in blocklist.
+
         :param data_iterator: Iterator over documents.
         :return: Iterator over filtered documents.
         """

@@ -50,7 +50,8 @@ def parallel_package_pipeline(
     piis: Iterable[dict[str, Any]],
     contaminations: Iterable[dict[str, Any]],
 ) -> tuple[Iterable[dict[str, Any]], list[dict[str, Any]]]:
-    """
+    """Execute parallel package processing pipeline.
+
     Executes a parallel package processing pipeline that generates synthetic
     identifiers if required, applies filters based on PII and contamination
     blocklists, merges parallel language data components into documents, and
@@ -76,7 +77,7 @@ def parallel_package_pipeline(
 
 def package_file(src_file: Path, metadata: Metadata) -> None:
     collection_dir = metadata["_internal.collection_dir"]
-    part_config, part_name = get_matching_part(metadata, src_file, section_name="release")
+    part_config, _ = get_matching_part(metadata, src_file, section_name="release")
     if part_config is None:
         logger.info(f"Skipping {src_file}, does not match any release part")
         return
@@ -153,6 +154,7 @@ def package_file(src_file: Path, metadata: Metadata) -> None:
         pii_masker,
         contamination_filter,
         block_filter,
+        sampled_metrics,
         *parallel_metrics,
         writer,
     )

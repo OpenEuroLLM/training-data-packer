@@ -24,7 +24,8 @@ def read_sampler_fn(filename: Path | None):
 
 
 def convert_to_type(dictionary: dict[str, str]) -> dict[str, str | int | float]:
-    """
+    """Try convert string dictionary to int/float.
+
     Attempts to convert the values of the input dictionary into appropriate
     numeric types. The function iterates through the key-value pairs of the
     provided dictionary and attempts to convert each value to an integer.
@@ -32,20 +33,17 @@ def convert_to_type(dictionary: dict[str, str]) -> dict[str, str | int | float]:
     to a float. If both conversions raise a ValueError, the original value
     is retained in the output dictionary.
 
-    Args:
-        dictionary (dict): A dictionary containing the values to
+    :param dictionary (dict): A dictionary containing the values to
             be converted. Keys can be of any hashable type, and values are
             expected to be strings or numeric representations suitable for
             conversion.
 
-    Returns:
-        dict: A new dictionary containing the same keys as the input, but
+    returns dict: A new dictionary containing the same keys as the input, but
             with values converted to integers, floats, or left as strings
             based on their parseability.
     """
     out = {}
-    for k in dictionary:
-        value = dictionary[k]
+    for k, value in dictionary.items():
         try:
             out[k] = int(value)
             continue
@@ -61,6 +59,8 @@ def convert_to_type(dictionary: dict[str, str]) -> dict[str, str | int | float]:
 
 
 class DynamicSampler:
+    """Sampler class sampling with an external python file."""
+
     def __init__(self, filename, sample_fn_parameters, name="DynamicSampler"):
         self._sampler_ratio_fn = read_sampler_fn(filename)
         self._parameters = convert_to_type(sample_fn_parameters)

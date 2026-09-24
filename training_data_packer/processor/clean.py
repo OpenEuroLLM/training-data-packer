@@ -33,4 +33,4 @@ def field_scrubber_factory(data_iterator: Iterable[dict[str, Any]], part_config:
         return data_iterator
     else:
         scrub_keys = set(part_config["scrub"])
-        return map(lambda x: {k: v for k, v in x.items() if k not in scrub_keys}, data_iterator)  # noqa: C417
+        return map(lambda x: {k: v for k, v in x.items() if k not in scrub_keys}, data_iterator)

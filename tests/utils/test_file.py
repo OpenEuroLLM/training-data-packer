@@ -12,21 +12,21 @@ from training_data_packer.utils import file
 
 
 def _create_test_jsonl(path: Path, data: list) -> None:
-    """Helper to create a JSONL file for testing."""
+    """Create a JSONL file for testing."""
     with open(path, "w", encoding="utf-8") as f:
         for item in data:
             f.write(orjson.dumps(item).decode("utf-8") + "\n")
 
 
 def _create_test_gzip_jsonl(path: Path, data: list) -> None:
-    """Helper to create a gzipped JSONL file for testing."""
+    """Create a gzipped JSONL file for testing."""
     with gzip.open(path, "wt", encoding="utf-8") as f:
         for item in data:
             f.write(orjson.dumps(item).decode("utf-8") + "\n")
 
 
 def _create_test_zst_jsonl(path: Path, data: list) -> None:
-    """Helper to create a zstandard compressed JSONL file for testing."""
+    """Create a zstandard-compressed JSONL file for testing."""
     cctx = zstd.ZstdCompressor()
     with open(path, "wb") as f:
         with cctx.stream_writer(f) as compressor:
@@ -294,7 +294,7 @@ class TestPrepareOutputFile(unittest.TestCase):
         shutil.rmtree(self.temp_dir)
 
     def test_output_file_exists(self):
-        """When the output file exists, should return False for should_continue"""
+        """When the output file exists, should return False for should_continue."""
         output_file = self.temp_path / "output.jsonl"
         output_file.touch()
 
@@ -304,7 +304,7 @@ class TestPrepareOutputFile(unittest.TestCase):
         self.assertFalse(should_continue)
 
     def test_temp_file_exists(self):
-        """When a temp file exists, should clean it up and return True for should_continue"""
+        """When a temp file exists, should clean it up and return True for should_continue."""
         output_file = self.temp_path / "output.jsonl"
         temp_file = self.temp_path / ".output.jsonl"
         temp_file.touch()
@@ -316,7 +316,7 @@ class TestPrepareOutputFile(unittest.TestCase):
         self.assertFalse(temp_file.exists())
 
     def test_neither_file_exists(self):
-        """When neither file exists, should create directory and return True for should_continue"""
+        """When neither file exists, should create directory and return True for should_continue."""
         output_file = self.temp_path / "subdir" / "output.jsonl"
 
         tmp_path, should_continue = file.prepare_output_file(output_file)

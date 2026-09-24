@@ -80,7 +80,8 @@ def process_record(
     threshold: float = 0.4,
     exclude_hybrids: bool = True,
 ) -> list[dict[str, Any]]:
-    """
+    """Sample a single record based on doc_scores and registers.
+
     Takes one record and decides whether it should be included or excluded. If included decide amount
     of upsampling.
     :param record: record to process

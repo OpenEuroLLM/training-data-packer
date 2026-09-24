@@ -12,9 +12,7 @@ from training_data_packer.utils.metrics import read_metrics_from_file
 
 class TestProcessFileIntegration(unittest.TestCase):
     def test_process_skip_existing_file(self):
-        """
-        Test that process_file skips files that already exist in the output directory.
-        """
+        """Test that process_file skips files that already exist in the output directory."""
         with TemporaryDirectory() as test_dir:
             metadata = Metadata({"id": "id", "suffix": ".jsonl.zst"})
             source_name = "test_file.jsonl.zst"
@@ -33,9 +31,7 @@ class TestProcessFileIntegration(unittest.TestCase):
             self.assertEqual(result[0], {"id": "initial", "value": 999})
 
     def test_process_structure(self):
-        """
-        Test merge two shards of propella data into one.
-        """
+        """Test merge two shards of propella data into one."""
         test_data = Path("tests/resources/integration/propella_merge")
         with TemporaryDirectory() as tmpdir:
             workdir = Path(tmpdir).joinpath("workdir")

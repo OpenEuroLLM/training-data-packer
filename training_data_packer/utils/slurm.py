@@ -15,7 +15,15 @@ def _get_my_partition_tasks(files: list[Any], task_count: int, task_id: int) -> 
 
 
 def get_my_slurm_tasks(files: list[Any]) -> list[Any]:
-    """Returns the subset of files to be processed by current slurm array task id."""
+    """Get selection of files to be processed by current slurm array task id.
+
+    Args:
+        files: List of files to be partitioned.
+
+    Returns:
+        The subset of files to be processed by current slurm array task id.
+
+    """
     task_count = os.environ["SLURM_ARRAY_TASK_COUNT"]
     task_id = os.environ["SLURM_ARRAY_TASK_ID"]
     task_files = _get_my_partition_tasks(files, int(task_count), int(task_id))
@@ -30,7 +38,8 @@ def schedule_files(
     workers: int = 1,
     slurm: bool = False,
 ):
-    """
+    """Schedule files for processing.
+
     Schedules the execution of a specific function across a list of files,
     supporting both sequential and parallel execution modes as well as integration
     with SLURM job arrays.
@@ -46,6 +55,7 @@ def schedule_files(
 
     Args:
         all_files: List of file paths that are candidates for processing.
+        metadata: Metadata configuration.
         function: Callable that accepts a single file path argument and performs
             the desired operations.
         workers: Number of parallel worker processes to utilize. If set to 1,
@@ -59,6 +69,7 @@ def schedule_files(
 
     Returns:
         None
+
     """
     if slurm:
         task_files = get_my_slurm_tasks(all_files)

@@ -15,7 +15,8 @@ from training_data_packer.utils.misc import get_dict_value, hash_factory, lang_t
 
 
 class ParallelLanguageMerger:
-    """
+    """Facilitates the merging of parallel language documents.
+
     Facilitates the merging of parallel language documents into a unified text
     format with unique identification.
 
@@ -46,8 +47,8 @@ class ParallelLanguageMerger:
         self._documents_per_batch = get_dict_value(part_config, "parallel.count", default=PARALLEL_COUNT_DEFAULT)
 
     def get_metrics(self):
-        """
-        Returns metrics of the mapper.
+        """Get metrics for the mapper.
+
         :return: Dictionary with metrics.
         """
         return {
@@ -55,7 +56,8 @@ class ParallelLanguageMerger:
         }
 
     def get_mapper(self) -> Callable[[list[dict[Any]]], dict[Any]]:
-        """
+        """Get mapper to merge language pairs.
+
         Constructs and returns a processing function designed to transform a list
         of raw document dictionaries into a standardized format. The generated
         function concatenates source and target language texts with their respective
@@ -99,9 +101,7 @@ class ParallelLanguageMerger:
 
 
 class ParallelSyntheticId:
-    """
-    Create a synthetic ID of a language pair.
-    """
+    """Create a synthetic ID of a language pair."""
 
     def __init__(
         self,
@@ -116,8 +116,8 @@ class ParallelSyntheticId:
         self._id_fn = lambda doc: hash_fn(f"{doc[source_text_col]}{doc[target_text_col]}")
 
     def get_metrics(self):
-        """
-        Returns metrics of the mapper.
+        """Get metrics for the mapper.
+
         :return: Dictionary with metrics.
         """
         return {self._metric_name: {"processed_records": self._processed_records}}

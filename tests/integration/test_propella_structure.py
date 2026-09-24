@@ -12,8 +12,8 @@ from training_data_packer.utils.file import GenericJsonlReader
 
 class TestPropellaStructure(unittest.TestCase):
     def test_propella_structure_basic(self):
-        """
-        Test basic propella structure processing.
+        """Test basic propella structure processing.
+
         Source has 4 records (id1, id2, id3, id4).
         Propella has records for id1, id2, id4.
         id3 is not in propella and should be written as {"id": "id3"}.
@@ -51,9 +51,7 @@ class TestPropellaStructure(unittest.TestCase):
             self.assertEqual({"key": "value4"}, id4_record["propella-4b"]["metadata"])
 
     def test_propella_structure_skip_existing(self):
-        """
-        Test that existing output files are skipped.
-        """
+        """Test that existing output files are skipped."""
         test_data = Path("tests/resources/integration/propella_structure")
         with TemporaryDirectory() as tmpdir:
             workdir = Path(tmpdir).joinpath("workdir")
@@ -77,7 +75,8 @@ class TestPropellaStructure(unittest.TestCase):
             self.assertEqual("existing", result[0]["id"])
 
     def test_propella_structure_deduplicated_ids(self):
-        """
+        """Test duplicate IDs.
+
         Test that duplicate IDs in source are handled correctly.
         Each record is processed independently, so duplicates should produce duplicates.
         """

@@ -17,8 +17,8 @@ IPV4_PRIVATE_BLOCKS = [
 
 
 def _has_overlapping_ranges(pii_records: list[dict[str, Any]]) -> bool:
-    """
-    Check if the pii_records has overlapping ranges-
+    """Check if the pii_records has overlapping ranges.
+
     :param pii_records: PII records, sorted from the last in doc to the first.
     :return: True if any pii_records has overlapping ranges, False otherwise.
     """
@@ -31,8 +31,8 @@ def _has_overlapping_ranges(pii_records: list[dict[str, Any]]) -> bool:
 def _merge_overlapping_ranges(
     pii_records: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """
-    Merge overlapping ranges of pii_records
+    """Merge overlapping ranges of pii_records.
+
     :param pii_records: Reverse on position on sorted list.
     :return: Pii records where overlaps are merged and set of types overlapping.
     """
@@ -57,8 +57,8 @@ def _merge_overlapping_ranges(
 
 
 def _remove_duplicates_inplace(records: list[Any]) -> list[Any]:
-    """
-    Remove duplicate items in sorted list.
+    """Remove duplicate items in sorted list.
+
     This exists to be able to remove duplicates when list is a set of dictionaries (non hashable).
     :param records:
     :return: List without duplicates.
@@ -75,8 +75,7 @@ def _remove_duplicates_inplace(records: list[Any]) -> list[Any]:
 
 
 def _replace_segment(text: str, start_pos: int, end_pos: int, new_segment: str) -> str:
-    """
-    Replace segment of text with new segment.
+    """Replace segment of text with new segment.
 
     :param text: Original text
     :param start_pos: Start position of segment to replace
@@ -95,8 +94,7 @@ def _replace_segment(text: str, start_pos: int, end_pos: int, new_segment: str) 
 
 
 def _scramble_string(text: str) -> str:
-    """
-    Scramble string by replacing each character with a random character of the same type.
+    """Scramble string by replacing each character with a random character of the same type.
 
     :param text: Input string to be scrambled
     :return: Scrambled string
@@ -123,7 +121,8 @@ def _scramble_string(text: str) -> str:
 
 
 def _scramble_ip_address(text: str) -> str:
-    """
+    """Scramble ip address.
+
     Identifies if an IP is v4 or v6 and replaces it with a
     random address from the respective private/local range.
     """
@@ -164,7 +163,8 @@ def _split_email(email):
 
 
 def _mask_email_address(document: dict[str, Any], pii_record: dict[str, Any]) -> dict[str, Any]:
-    """
+    """Mask email address.
+
     Masking an email address by replacing it with a random email address.
     :param document: Document to mask.
     :param pii_record: Pii record containing position of email address in document.
@@ -187,7 +187,8 @@ def _mask_email_address(document: dict[str, Any], pii_record: dict[str, Any]) ->
 
 
 def _mask_with_scrambled_string(document: dict[str, Any], pii_record: dict[str, Any]) -> dict[str, Any]:
-    """
+    """Mask string.
+
     Masking a string in document by replacing it with a scrambled string.
     :param document: Document to mask.
     :param pii_record: Pii record containing position of string in document.
@@ -201,7 +202,8 @@ def _mask_with_scrambled_string(document: dict[str, Any], pii_record: dict[str, 
 
 
 def _mask_bitcoin_address(document: dict[str, Any], pii_record: dict[str, Any]) -> dict[str, Any]:
-    """
+    """Mask bitcoin address.
+
     Masking a bitcoin address in document by replacing it with a scrambled string, keping bitcoin prefix.
     :param document: Document to mask.
     :param pii_record: Pii record containing position of bitcoin address in document.
@@ -227,7 +229,8 @@ def _mask_bitcoin_address(document: dict[str, Any], pii_record: dict[str, Any]) 
 
 
 def _mask_ip_address(document: dict[str, Any], pii_record: dict[str, Any]) -> dict[str, Any]:
-    """
+    """Mask IP address in document.
+
     Masking an IP address in document by replacing it with a scrambled IP address. Supports both IPv4 and IPv6.
     :param document: Document to mask.
     :param pii_record: Pii record containing position of IP address in document.
@@ -245,10 +248,11 @@ def _mask_ip_address(document: dict[str, Any], pii_record: dict[str, Any]) -> di
 
 
 def multilingual_mask_document(
-    document: dict[str, Any], pii_records: list[dict[str, Any]], mask_fields: None | list[str] = None
+    document: dict[str, Any], pii_records: list[dict[str, Any]], mask_fields: list[str] | None = None
 ) -> dict[str, Any]:
-    """
-    Masking a complete document. Masking pii records in document by replacing them with scrambled values.
+    """Masking a complete document.
+
+     Masking pii records in document by replacing them with scrambled values.
     :param document: Document to mask.
     :param pii_records: List of pii records to mask.
     :param mask_fields: Not used!!! List of fields/labels to mask. Case-sensitive. None means a
@@ -288,10 +292,11 @@ def multilingual_mask_document(
 
 
 def openai_mask_document(
-    document: dict[str, Any], pii_records: list[dict[str, Any]], mask_fields: None | list[str] = None
+    document: dict[str, Any], pii_records: list[dict[str, Any]], mask_fields: list[str] | None = None
 ) -> dict[str, Any]:
-    """
-    Masking a complete document. Masking pii records are produced py OpenAIPrivacy tool and wrapper.
+    """Masking a complete document.
+
+    Masking pii records are produced py OpenAIPrivacy tool and wrapper.
     Masking pii records in document by replacing them with scrambled values.
     :param document: Document to mask.
     :param pii_records: List of pii records to mask.
@@ -340,14 +345,15 @@ def openai_mask_document(
 
 
 class PIIMasker:
-    """
-    Masker for PII records in documents. Masks PII records in documents by replacing them with scrambled values.
+    """Masker for PII records in documents.
+
+    Masks PII records in documents by replacing them with scrambled values.
     """
 
     def __init__(
         self,
         masker_fn=multilingual_mask_document,
-        part_config: None | dict[str, Any] = None,
+        part_config: dict[str, Any] | None = None,
         metric_name: str = "pii_masker",
     ) -> None:
         self._metric_name = metric_name
@@ -361,8 +367,8 @@ class PIIMasker:
             logger.info(f"Metadata declare following labels for masking: {', '.join(self._mask_fields)}")
 
     def get_metrics(self):
-        """
-        Returns metrics of the masker.
+        """Get metrics for the masker.
+
         :return: Dictionary with metrics.
         """
         return {
@@ -373,7 +379,8 @@ class PIIMasker:
         }
 
     def get_masker(self, pii_iter: Iterable[dict[str, Any]]) -> Callable[[dict[str, Any]], dict[str, Any]]:
-        """
+        """Get a mask function.
+
         Takes an iterator of PII records. Prepare them into a dict of document id to list of pii records for
         the document. Preparation to merge overlapping PII records and remove duplicates.
         :param pii_iter: Iterator of PII records.

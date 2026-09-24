@@ -30,7 +30,8 @@ class Metadata(UserDict):
         return glom.delete(self.data, key)
 
     def get(self, key: str, default=None):
-        """
+        """Get a value from the metadata.
+
         Retrieve a specific value from the provided metadata structure using a
         dot-notation key for deep access. It supports array in both the form [i] and .i.
         :param key: A string representing the path to the target value, supporting
@@ -49,8 +50,8 @@ class Metadata(UserDict):
         return match[0].value
 
     def get_all_part_names(self, section: str, include_path: bool = False) -> list[str]:
-        """
-        Returns all part names from metadata.
+        """Return all part names from metadata.
+
         :param section: Section to start looking for partnames from.
         :param include_path: Include section-path in the returned names. e.g. "v3.train".
         :return: List of part names.
@@ -71,21 +72,13 @@ class Metadata(UserDict):
         return part_names
 
     def get_part(self, part_path: str) -> dict[str, Any]:
-        """
-        Retrieves a specific part of the data structure based on the given path.
+        """Retrieve a specific part of the data structure based on the given path.
 
-        Parameters:
-            part_path: str
-                A dot-separated string indicating the path to the desired part of the data structure.
+        :param part_path str: A dot-separated string indicating the path to the desired part of the data structure.
+        :return dict[str, Any]: A dictionary representing the part of the data structure fetched using the
+        provided path, in union with default values for section.
+        :raises ValueError: If the provided path does not include exactly two elements separated by a dot.
 
-        Returns:
-            dict[str, Any]:
-                A dictionary representing the part of the data structure fetched using the provided path,
-                in union with default values for section.
-
-        Raises:
-            ValueError:
-                If the provided path does not include exactly two elements separated by a dot.
         """
 
         def _get_path_to_related_default(part_path: str) -> str:
@@ -103,8 +96,8 @@ class Metadata(UserDict):
 
 
 def get_shard_size_documents(part_config: dict[str, Any]) -> int:
-    """
-    Returns shard size in documents from part config.
+    """Return shard size in documents from part config.
+
     Interprets extensions bd and md, billion and million documents.
     :param part_config: Part config dictionary.
     :return: Shard size in documents.
@@ -141,8 +134,8 @@ def _get_pre_section_part(
 def get_matching_part(
     metadata: Metadata, src_file_name: Path, section_name: str = "release"
 ) -> tuple[None, None] | tuple[dict, str]:
-    """
-    Returns matching part config and part name from metadata for given source file name.
+    """Get matching part config and part name from metadata for given source file name.
+
     :param metadata: Metadata dictionary.
     :param src_file_name: Source file name.
     :param section_name: Name of section to looks for parts information. Default is release.

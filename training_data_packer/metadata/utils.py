@@ -10,7 +10,8 @@ from training_data_packer.metadata.schema import Validator
 
 
 def read_metadata(file_path: Path, log_content: bool = True) -> Metadata:
-    """
+    """Read metadata from file.
+
     Reads metadata from file and returns it as Metadata object.
     All field values are strings.
     :param file_path: Path to metadata file.

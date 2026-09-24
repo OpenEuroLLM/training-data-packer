@@ -10,8 +10,9 @@ import zstandard as zstd
 from loguru import logger
 
 
-def find_files(source_dir: Path, suffix: str, part: None | str = None) -> list[Path]:
-    """
+def find_files(source_dir: Path, suffix: str, part: str | None = None) -> list[Path]:
+    """Return all files matching suffix criteria.
+
     Returns all files, not hidden, under source_dir, following symlinks
     :param source_dir: Dir to find files in
     :param suffix: expected file suffix.
@@ -25,7 +26,8 @@ def find_files(source_dir: Path, suffix: str, part: None | str = None) -> list[P
 
 
 def get_subdirectories(directory: str | Path) -> list[Path]:
-    """
+    """Get all immediate subdirectories.
+
     Returns all immediate subdirectories of the given directory (non-recursive)
     :param directory: Directory to search for subdirectories
     :return: List of Path objects to subdirectories. Sorted.
@@ -49,11 +51,9 @@ def prepare_output_file(out_file: Path) -> tuple[Path, bool]:
     Creates temporary file path, cleans up old temporary files, and ensures
     output directory exists. Returns tuple of (temp_output_path, should_continue).
 
-    Args:
-        out_file: Target output file path
+    :param out_file: Target output file path
+    :return: tuple[Path, bool]: (temporary file path, whether processing should continue)
 
-    Returns:
-        tuple[Path, bool]: (temporary file path, whether processing should continue)
     """
     tmp_out_file = out_file.parent.joinpath("." + out_file.name)
     if out_file.exists():
@@ -66,8 +66,7 @@ def prepare_output_file(out_file: Path) -> tuple[Path, bool]:
 
 
 class GenericJsonlReader:
-    """
-    Reader for jsonline files, compressed or not
+    """Reader for jsonline files, compressed or not.
 
     Following extensions and compressions are supported:
     * .jsonl.zst, .jsonl.zstd - ZStandard
@@ -125,6 +124,8 @@ class GenericJsonlReader:
 
 
 class JsonlZstWriter:
+    """Writer of jsonline compressed as ZStandard."""
+
     def __init__(
         self,
         output_file_name: str | Path,

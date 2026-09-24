@@ -9,24 +9,21 @@ from training_data_packer.metadata.defaults import DEFAULT_HASH_ID, DEFAULT_ID, 
 
 
 class SourceToPropellaMapper:
-    """
-    Initializes the SourceToPropellaMapper with the provided metadata,
-    lookup function, and metric name.
-
-    :param id_field: Name of the id field.
-    :param lookup_fn: Function responsible for looking up Propella records
-        based on an ID. It accepts an ID and returns a list of matching
-        records.
-    :param metric_name: The key name used to store the metrics in the
-        dictionary returned by the get_metrics method.
-    """
-
     def __init__(
         self,
         metadata: Metadata,
         lookup_fn: Callable[[Any], dict[str, Any]],
         metric_name: str = "propella_matching",
     ):
+        """Create SourceToPropellaMapper.
+
+        :param id_field: Name of the id field.
+        :param lookup_fn: Function responsible for looking up Propella records
+            based on an ID. It accepts an ID and returns a list of matching
+            records.
+        :param metric_name: The key name used to store the metrics in the
+            dictionary returned by the get_metrics method.
+        """
         self._metric_name = metric_name
         self._processed_records = 0
         self._unmatched_records = 0
@@ -42,8 +39,8 @@ class SourceToPropellaMapper:
             self._id_hash_fn = None
 
     def get_metrics(self):
-        """
-        Returns metrics of the mapper.
+        """Get metrics for the mapper.
+
         :return: Dictionary with metrics.
         """
         return {
@@ -54,7 +51,8 @@ class SourceToPropellaMapper:
         }
 
     def get_mapper(self):
-        """
+        """Get mapper to map source data to Propella records.
+
         Returns a mapper that for each element it get lookup the object with same id
         using lookup_fn and returns it
         :return: function lookup objects
@@ -93,8 +91,8 @@ class MergePropellaRecords:
         self._no_match = 0
 
     def get_metrics(self):
-        """
-        Returns metrics of the mapper.
+        """Get metrics from the mapper.
+
         :return: Dictionary with metrics.
         """
         return {
@@ -106,7 +104,8 @@ class MergePropellaRecords:
         }
 
     def get_mapper(self):
-        """
+        """Get a mapper to merge propella records.
+
         Generates and returns a mapper function designed to process and align multiple
         document entries based on an id. The returned function validates
         that all provided dictionaries reference the same entity ID. It iterates
@@ -156,10 +155,9 @@ class MergePropellaRecords:
 
 
 def propella_annotate_factory(
-    in_iter: Iterable[dict[str, Any]], propella_data_iter: None | Iterable[dict[str, Any]]
+    in_iter: Iterable[dict[str, Any]], propella_data_iter: Iterable[dict[str, Any]] | None
 ) -> Iterable[dict[str, Any]]:
-    """
-    Annotate in_iter with propella data from propella_data_iter.
+    """Annotate in_iter with propella data from propella_data_iter.
 
     :param in_iter: An iterable of dictionaries representing the primary data
         objects requiring potential annotation.

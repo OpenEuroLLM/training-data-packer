@@ -59,7 +59,7 @@ def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: in
             out_f.close()
 
 
-def process(collection_dir: Path, part: None | str = None, workers: int = 1, slurm: bool = False):
+def process(collection_dir: Path, part: str | None = None, workers: int = 1, slurm: bool = False):
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
     metadata["_internal"]["mode"] = "release"
     input_dir = collection_dir.joinpath("release-raw")
@@ -110,35 +110,34 @@ def process(collection_dir: Path, part: None | str = None, workers: int = 1, slu
             for n, job in enumerate(jobs):
                 if job.exception() is not None:
                     logger.error(f"There were an exception thrown for release {task_parts[n]}: {job.exception()}")
+    elif parts == ["default"]:
+        metadata["suffix"] = DEFAULT_SUFFIX
+        files = find_files(input_dir, metadata.get("suffix", DEFAULT_SUFFIX))
+        docs_per_shard = get_shard_size_documents(metadata["release.default"])
+        merge(
+            files,
+            output_dir,
+            docs_per_shard,
+            PREFIX_DEFAULT,
+        )
     else:
-        if parts == ["default"]:
+        for part_name in task_parts:
+            part_config, _ = get_matching_part(metadata, part_name)
+            if part_config is None:
+                logger.error(f"Could not find config for part {part_name}")
+                raise ValueError(f"Could not find config for part {part_name}")
+            logger.info(f"Processing part {part_name} with config {part_config}")
+            flat_output = part_config["pack"] == "flat"
             metadata["suffix"] = DEFAULT_SUFFIX
-            files = find_files(input_dir, metadata.get("suffix", DEFAULT_SUFFIX))
-            docs_per_shard = get_shard_size_documents(metadata["release.default"])
+            files = find_files(input_dir.joinpath(part_name), metadata.get("suffix", DEFAULT_SUFFIX))
+            logger.info(f"Processing part {part_name} with {len(files)} files")
+            docs_per_shard = get_shard_size_documents(part_config)
             merge(
                 files,
-                output_dir,
+                output_dir if flat_output else output_dir.joinpath(part_name),
                 docs_per_shard,
-                PREFIX_DEFAULT,
+                part_config.get("prefix", PREFIX_DEFAULT),
             )
-        else:
-            for part_name in task_parts:
-                part_config, _ = get_matching_part(metadata, part_name)
-                if part_config is None:
-                    logger.error(f"Could not find config for part {part_name}")
-                    raise ValueError(f"Could not find config for part {part_name}")
-                logger.info(f"Processing part {part_name} with config {part_config}")
-                flat_output = part_config["pack"] == "flat"
-                metadata["suffix"] = DEFAULT_SUFFIX
-                files = find_files(input_dir.joinpath(part_name), metadata.get("suffix", DEFAULT_SUFFIX))
-                logger.info(f"Processing part {part_name} with {len(files)} files")
-                docs_per_shard = get_shard_size_documents(part_config)
-                merge(
-                    files,
-                    output_dir if flat_output else output_dir.joinpath(part_name),
-                    docs_per_shard,
-                    part_config.get("prefix", PREFIX_DEFAULT),
-                )
 
 
 def main():

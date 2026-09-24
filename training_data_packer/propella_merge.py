@@ -52,7 +52,8 @@ def process(collection_dir: Path, part: str = "", workers=1, slurm: bool = False
 
 
 def process_file(metadata: Metadata, source_name: str, propella_dir: Path):
-    """
+    """Process and merges JSONL files.
+
     Processes and merges JSONL files from subdirectories within the specified
     propella directory. The function constructs the output path and checks for
     existence to avoid redundant processing. It establishes a list of read
@@ -70,6 +71,7 @@ def process_file(metadata: Metadata, source_name: str, propella_dir: Path):
                          search for source files and the target location for the
                          merged output.
     :return: None
+
     """
     new_name = change_suffix(
         source_name,

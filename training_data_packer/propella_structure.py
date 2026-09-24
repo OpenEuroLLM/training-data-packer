@@ -17,8 +17,8 @@ from training_data_packer.utils.slurm import get_my_slurm_tasks
 
 
 def process(collection_dir: Path, propella_dir: Path, part: str = "", slurm: bool = False) -> None:
-    """
-    Process all files in collection_dir/source.
+    """Process all files in collection_dir/source.
+
     For each record, if its ID exists in propella_dir parquet files, write it to the
     output within the collection_dir.
     """

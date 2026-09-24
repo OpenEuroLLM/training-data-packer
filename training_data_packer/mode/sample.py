@@ -41,7 +41,7 @@ def process(
 
 def sample_file(src_file: Path, metadata: Metadata) -> None:
     collection_dir = metadata["_internal.collection_dir"]
-    part_config, part_name = get_matching_part(metadata, src_file, section_name="sample")
+    part_config, _ = get_matching_part(metadata, src_file, section_name="sample")
     if part_config is None:
         logger.info(f"Skipping {src_file}, does not match a release part")
         return

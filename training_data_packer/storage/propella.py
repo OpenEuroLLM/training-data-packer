@@ -1,6 +1,4 @@
-"""
-Query functions for Propella parquet storage.
-"""
+"""Query functions for Propella parquet storage."""
 
 import re
 from pathlib import Path
@@ -13,15 +11,12 @@ _FIELD_NAME_RE = re.compile(r"^[a-zA-Z0-9_]+$")
 
 
 def get_lookup_fn(parquet_path: str | Path, field: str):
-    """
-    Creates a function query a directory of parquet files or a single parquet file
-    on a given field and return matching records.
+    """Get function to query parquet files on a given field and return matching records.
 
     :param parquet_path: Path to directory containing parquet files or path to one parquet file.
     :param field: Field name to query on (alphanumeric and underscore only).
     :return: Function to lookup values in parquet files.
     """
-
     if not _FIELD_NAME_RE.match(field):
         raise ValueError(f"Invalid field name '{field}': only alphanumeric characters and underscores are allowed.")
 
@@ -72,8 +67,8 @@ def get_lookup_fn(parquet_path: str | Path, field: str):
     }
 
     def lookup(value: Any) -> list[dict[str, Any]]:
-        """
-        Query in-memory dictionary for matching records.
+        """Query in-memory dictionary for matching records.
+
         :param value: Value to match against field.
         :return: List of documents matching value.
         """

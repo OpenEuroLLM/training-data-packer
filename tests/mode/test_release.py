@@ -129,7 +129,7 @@ class TestParallelPackagePipeline(unittest.TestCase):
             },
         ]
 
-        result, metrics = parallel_package_pipeline(src_data, metadata, part_config, piis, contaminations)
+        result, _ = parallel_package_pipeline(src_data, metadata, part_config, piis, contaminations)
         result = list(result)
         self.assertOnOf(expect_on_of, result)
 
@@ -179,7 +179,7 @@ class TestParallelPackagePipeline(unittest.TestCase):
             },
         ]
 
-        result, metrics = parallel_package_pipeline(src_data, metadata, part_config, piis, contaminations)
+        result, _ = parallel_package_pipeline(src_data, metadata, part_config, piis, contaminations)
         result = list(result)
         self.assertEqual(1, len(result))
         self.assertOnOf(expect_on_of, result)
@@ -228,7 +228,7 @@ class TestParallelPackagePipeline(unittest.TestCase):
             },
         ]
 
-        result, metrics = parallel_package_pipeline(src_data, metadata, part_config, piis, contaminations)
+        result, _ = parallel_package_pipeline(src_data, metadata, part_config, piis, contaminations)
         result = list(result)
         self.assertEqual(1, len(result))
         self.assertOnOf(expect_on_of, result)
@@ -282,7 +282,7 @@ class TestParallelPackagePipeline(unittest.TestCase):
             },
         ]
 
-        result, metrics = parallel_package_pipeline(src_data, metadata, part_config, piis, contaminations)
+        result, _ = parallel_package_pipeline(src_data, metadata, part_config, piis, contaminations)
         result = list(result)
         self.assertEqual(1, len(result))
         self.assertOnOf(expect_on_of, result)
@@ -333,7 +333,7 @@ class TestParallelPackagePipeline(unittest.TestCase):
             },
         ]
 
-        result, metrics = parallel_package_pipeline(src_data, metadata, part_config, piis, contaminations)
+        result, _ = parallel_package_pipeline(src_data, metadata, part_config, piis, contaminations)
         result = list(result)
         self.assertEqual(1, len(result))
         self.assertOnOf(expect_on_of, result)
@@ -387,7 +387,7 @@ class TestParallelPackagePipeline(unittest.TestCase):
             },
         ]
 
-        result, metrics = parallel_package_pipeline(src_data, metadata, part_config, piis, contaminations)
+        result, _ = parallel_package_pipeline(src_data, metadata, part_config, piis, contaminations)
         result = list(result)
         self.assertEqual(1, len(result))
         self.assertOnOf(expect_on_of, result)

@@ -47,3 +47,30 @@ uv run oellm-propella-merge
 - Format the code with `uv run ruff format`
 - Check coding style with `uv run ruff check`
 - Run tests with `uv run --with pytest pytest`
+
+## Code style guidelines
+
+- Follow pep-8
+- Prefer duble quote(")
+- Use space as indent style
+- Have an new line end of file
+- Use magic trailing commas
+- Prefix private functions with underscore(_)
+-
+
+## Documentation
+
+- Write doc strings for functions, classes and modules.
+- First line of docstring should be in imperative mood.
+- Write doc strings in reST style, for example:
+
+```python
+"""This is a reST style.
+
+:param param1: this is a first param
+:param param2: this is a second param
+:returns: this is a description of what is returned
+:raises keyError: raises an exception
+
+"""
+```

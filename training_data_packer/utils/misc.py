@@ -20,7 +20,8 @@ def hash_factory(hash_algo: str) -> Callable[[str], str]:
 
 
 def lang_to_name(lang: str) -> str:
-    """
+    """Get full language name from a language code.
+
     Retrieves the full language name corresponding to the provided language code or locale string.
     The input string is processed by splitting on underscores to isolate the primary language
     identifier, which is then used to retrieve the associated name attribute from the Lang
@@ -31,28 +32,20 @@ def lang_to_name(lang: str) -> str:
     :return: The descriptive name of the language corresponding to the primary code extracted from
              the input.
     """
-    return Lang(lang.split("_")[0]).name
+    return Lang(lang.split("_", maxsplit=1)[0]).name
 
 
 def merge_hierarchy_dicts(dict_a, dict_b):
-    """
+    """Recursively merges two dictionaries.
+
     Recursively merges two dictionaries, `dict_a` and `dict_b`, by combining their keys and values.
     `dict_a`has precedence over `dict_b`.
 
-    Parameters:
-    dict_a: dict
-        The first dictionary to merge.
+    :param dict_a dict: The first dictionary to merge.
+    :param dict_b dict: The second dictionary to merge.
+    :return dict: A new dictionary containing the merged result of `dict_a` and `dict_b`.
+    :raise TypeError: If either `dict_a` or `dict_b` is not a dictionary.
 
-    dict_b: dict
-        The second dictionary to merge.
-
-    Returns:
-    dict
-        A new dictionary containing the merged result of `dict_a` and `dict_b`.
-
-    Raises:
-    TypeError
-        If either `dict_a` or `dict_b` is not a dictionary.
     """
     if isinstance(dict_a, dict) and isinstance(dict_b, dict):
         a_and_b = set(dict_a).intersection(dict_b)
@@ -70,7 +63,8 @@ def merge_hierarchy_dicts(dict_a, dict_b):
 
 
 def get_dict_value(dictionary: dict[str, Any], key: str, default: Any = None) -> Any:
-    """
+    """Get one value matching the JSONPath key or get default value.
+
     Retrieves a specific value from a nested dictionary structure using a
     JSONPath expression. This function utilizes the jsonpath_ng library to
     parse the provided key and search the dictionary. It is designed to
@@ -92,6 +86,7 @@ def get_dict_value(dictionary: dict[str, Any], key: str, default: Any = None) ->
     Raises:
         KeyError: If the JSONPath expression yields multiple matches,
             preventing the return of a single unambiguous value.
+
     """
     expr = jsonpath_ng.parse(key)
     match = expr.find(dictionary)
@@ -103,7 +98,8 @@ def get_dict_value(dictionary: dict[str, Any], key: str, default: Any = None) ->
 
 
 def get_dict_values(dictionary: dict[str, Any], key: str) -> Any:
-    """
+    """Get all values matching the JSONPath key.
+
     Retrieves a multiple values from a nested dictionary structure using a
     JSONPath expression. This function utilizes the jsonpath_ng library to
     parse the provided key and search the dictionary. It is designed to
@@ -117,6 +113,7 @@ def get_dict_values(dictionary: dict[str, Any], key: str) -> Any:
     Returns:
         List of values corresponding to the unique match found by the JSONPath
         expression, or the default value if no matches are present.
+
     """
     expr = jsonpath_ng.parse(key)
     match = expr.find(dictionary)
