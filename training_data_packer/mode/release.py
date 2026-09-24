@@ -49,7 +49,7 @@ def parallel_package_pipeline(
     part_config: dict[str, Any],
     piis: Iterable[dict[str, Any]],
     contaminations: Iterable[dict[str, Any]],
-) -> Iterable[dict[str, Any]]:
+) -> tuple[Iterable[dict[str, Any]], list[dict[str, Any]]]:
     """
     Executes a parallel package processing pipeline that generates synthetic
     identifiers if required, applies filters based on PII and contamination
@@ -76,25 +76,33 @@ def parallel_package_pipeline(
 
 def package_file(src_file: Path, metadata: Metadata) -> None:
     collection_dir = metadata["_internal.collection_dir"]
-    contamination_file = calculate_file_path(src_file, metadata, collection_dir.joinpath("nemo-curator"))
-    pii_file = calculate_file_path(src_file, metadata, collection_dir.joinpath("openai-privacy-filter"))
-    out_file = calculate_file_path(src_file, metadata, collection_dir.joinpath("release-raw"))
+    part_config, part_name = get_matching_part(metadata, src_file, section_name="release")
+    if part_config is None:
+        logger.info(f"Skipping {src_file}, does not match any release part")
+        return
 
+    out_file = calculate_file_path(src_file, metadata, collection_dir.joinpath("release-raw"))
     tmp_out_file, cont = prepare_output_file(out_file)
     if not cont:
         # File is already processed. Do not process it again
         logger.info(f"Skipping {out_file}, already exists")
         return
 
+    # Decide what annotations to process
+    annotations = part_config.get("annotations", [])
+    if "nemo-curator" in annotations:
+        contamination_file = calculate_file_path(src_file, metadata, collection_dir.joinpath("nemo-curator"))
+    else:
+        contamination_file = None
+    if "openai-privacy-filter" in annotations:
+        pii_file = calculate_file_path(src_file, metadata, collection_dir.joinpath("openai-privacy-filter"))
+    else:
+        pii_file = None
+
     contamination_filter = None
     block_filter = None
     pii_masker = None
     parallel_metrics = []
-
-    part_config, part_name = get_matching_part(metadata, src_file, section_name="release")
-    if part_config is None:
-        logger.info(f"Skipping {src_file}, does not match a release part")
-        return
 
     is_parallel_text = metadata.get("_internal.parallel", False)
 

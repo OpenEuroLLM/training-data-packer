@@ -41,28 +41,29 @@ def process(
 
 def sample_file(src_file: Path, metadata: Metadata) -> None:
     collection_dir = metadata["_internal.collection_dir"]
-    propella_file = calculate_file_path(src_file, metadata, collection_dir.joinpath("propella-4b"))
-    out_file = calculate_file_path(src_file, metadata, collection_dir.joinpath("sample"))
+    part_config, part_name = get_matching_part(metadata, src_file, section_name="sample")
+    if part_config is None:
+        logger.info(f"Skipping {src_file}, does not match a release part")
+        return
 
+    out_file = calculate_file_path(src_file, metadata, collection_dir.joinpath("sample"))
     tmp_out_file, cont = prepare_output_file(out_file)
     if not cont:
         # File is already processed. Do not process it again
         logger.info(f"Skipping {out_file}, already exists")
         return
 
-    part_config, part_name = get_matching_part(metadata, src_file, section_name="sample")
-    if part_config is None:
-        logger.info(f"Skipping {src_file}, does not match a release part")
-        return
+    annotations = part_config.get("annotations", [])
+    if "propella-4b" in annotations:
+        propella_file = calculate_file_path(src_file, metadata, collection_dir.joinpath("propella-4b"))
+    else:
+        propella_file = None
 
     src_reader = GenericJsonlReader(src_file)
     align_iter = AlignFieldNames(src_reader.read(), metadata)
     scrub_iter = field_scrubber_factory(align_iter, part_config)
 
-    propella_data_iter = None
-    if propella_file.exists():
-        propella_data_iter = GenericJsonlReader(propella_file).read()
-    propella_iter = propella_annotate_factory(scrub_iter, propella_data_iter)
+    propella_iter = propella_annotate_factory(scrub_iter, GenericJsonlReader(propella_file).read())
 
     if "sample" in metadata:
         sampled_iter, sampler_metrics = sampler_factory(propella_iter, metadata, src_file, section_name="sample")
