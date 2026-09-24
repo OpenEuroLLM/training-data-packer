@@ -83,7 +83,7 @@ You must have `uv` installed, see [uv-homepage](https://docs.astral.sh/uv/).
 
 Check out this [repo](https://github.com/OpenEuroLLM/training-data-packer#) and do:
 ```shell
-uv sync --extra dev
+uv sync --dev
 uv run pre-commit install
 ```
 

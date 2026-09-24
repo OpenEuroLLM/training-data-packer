@@ -3,7 +3,7 @@
 ## Setup
 
 ```bash
-uv sync --extra dev
+uv sync --dev
 uv run pre-commit install
 ```
 
