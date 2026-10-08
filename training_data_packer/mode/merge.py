@@ -1,20 +1,20 @@
 import io
 import os
 from collections.abc import Iterable
-from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import zstandard as zstd
 from loguru import logger
 
 from training_data_packer.metadata import (
+    Metadata,
     get_matching_part,
     get_shard_size_documents,
     read_metadata,
 )
 from training_data_packer.metadata.defaults import DEFAULT_SUFFIX, PREFIX_DEFAULT
 from training_data_packer.utils.file import find_files
-from training_data_packer.utils.slurm import get_my_slurm_tasks
+from training_data_packer.utils.slurm import schedule_files
 
 
 def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: int, file_prefix: str):
@@ -58,6 +58,28 @@ def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: in
             out_f.close()
 
 
+def merge_part(part_name: str, metadata: Metadata):
+    collection_dir = metadata.get("_internal.collection_dir")
+    input_dir = collection_dir.joinpath("release-raw")
+    output_dir = collection_dir.joinpath("release")
+    part_config, _ = get_matching_part(metadata, part_name)
+    if part_config is None:
+        logger.error(f"Could not find config for part {part_name}")
+        raise ValueError(f"Could not find config for part {part_name}")
+    logger.info(f"Processing part {part_name} with config {part_config}")
+    flat_output = part_config["pack"] == "flat"
+    metadata["suffix"] = DEFAULT_SUFFIX
+    files = find_files(input_dir.joinpath(part_name), metadata.get("suffix", DEFAULT_SUFFIX))
+    logger.info(f"Processing part {part_name} with {len(files)} files")
+    docs_per_shard = get_shard_size_documents(part_config)
+    merge(
+        files,
+        output_dir if flat_output else output_dir.joinpath(part_name),
+        docs_per_shard,
+        part_config.get("prefix", PREFIX_DEFAULT),
+    )
+
+
 def process(collection_dir: Path, part: str | None = None, workers: int = 1, slurm: bool = False) -> bool:
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
     metadata["_internal"]["mode"] = "merge"
@@ -81,45 +103,7 @@ def process(collection_dir: Path, part: str | None = None, workers: int = 1, slu
         parts = ["default"]
         logger.info("All parts will be flatten into one. This will run single threaded.")
 
-    if slurm:
-        task_parts = get_my_slurm_tasks(parts)
-    else:
-        logger.info("Not a SLURM task, processing all files")
-        task_parts = parts
-
-    if workers > 1:
-        jobs = []
-        with ProcessPoolExecutor(max_workers=workers) as executor:
-            for part_name in task_parts:
-                part_config, _ = get_matching_part(metadata, part_name)
-                if part_config is None:
-                    logger.error(f"Could not find config for part {part_name}")
-                    raise ValueError(f"Could not find config for part {part_name}")
-                logger.info(f"Processing part {part_name} with config {part_config}")
-                flat_output = part_config["pack"] == "flat"
-                metadata["suffix"] = DEFAULT_SUFFIX
-                files = find_files(input_dir.joinpath(part_name), metadata.get("suffix", DEFAULT_SUFFIX))
-                logger.info(f"Processing part {part_name} with {len(files)} files")
-                docs_per_shard = get_shard_size_documents(part_config)
-                job = executor.submit(
-                    merge,
-                    files,
-                    output_dir if flat_output else output_dir.joinpath(part_name),
-                    docs_per_shard,
-                    part_config.get("prefix", PREFIX_DEFAULT),
-                )
-                jobs.append(job)
-            executor.shutdown()
-            fail = False
-            for n, job in enumerate(jobs):
-                if job.exception() is not None:
-                    logger.error(f"There were an exception thrown for release {task_parts[n]}: {job.exception()}")
-                    fail = True
-            if fail:
-                return False
-            else:
-                return True
-    elif parts == ["default"]:
+    if parts == ["default"]:
         metadata["suffix"] = DEFAULT_SUFFIX
         files = find_files(input_dir, metadata.get("suffix", DEFAULT_SUFFIX))
         docs_per_shard = get_shard_size_documents(metadata["release.default"])
@@ -131,21 +115,7 @@ def process(collection_dir: Path, part: str | None = None, workers: int = 1, slu
         )
         return True
     else:
-        for part_name in task_parts:
-            part_config, _ = get_matching_part(metadata, part_name)
-            if part_config is None:
-                logger.error(f"Could not find config for part {part_name}")
-                raise ValueError(f"Could not find config for part {part_name}")
-            logger.info(f"Processing part {part_name} with config {part_config}")
-            flat_output = part_config["pack"] == "flat"
-            metadata["suffix"] = DEFAULT_SUFFIX
-            files = find_files(input_dir.joinpath(part_name), metadata.get("suffix", DEFAULT_SUFFIX))
-            logger.info(f"Processing part {part_name} with {len(files)} files")
-            docs_per_shard = get_shard_size_documents(part_config)
-            merge(
-                files,
-                output_dir if flat_output else output_dir.joinpath(part_name),
-                docs_per_shard,
-                part_config.get("prefix", PREFIX_DEFAULT),
-            )
-        return True
+        try:
+            schedule_files(parts, metadata, merge_part, workers, slurm)
+        except RuntimeError:
+            return False
