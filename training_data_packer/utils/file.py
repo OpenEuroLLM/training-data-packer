@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import orjson as json
+import pyarrow.parquet as pq
 import zstandard as zstd
 from loguru import logger
 
@@ -71,6 +72,7 @@ class GenericJsonlReader:
     Following extensions and compressions are supported:
     * .jsonl.zst, .jsonl.zstd - ZStandard
     * .jsonl.gz - GZip
+    * .parquet - Files in parquet format
     * .jsonl - Uncompressed files (fallback)
     """
 
@@ -109,6 +111,12 @@ class GenericJsonlReader:
                 for line in f:
                     self._lines += 1
                     yield json.loads(line)
+        elif self._input_file_name.suffix == ".parquet":
+            parquet_file = pq.ParquetFile(self._input_file_name)
+            for batch in parquet_file.iter_batches():
+                for line in batch.to_pylist():
+                    self._lines += 1
+                    yield line
         else:
             with open(self._input_file_name, "rb") as f:
                 for line in f:
