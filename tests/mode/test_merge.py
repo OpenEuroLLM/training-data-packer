@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from training_data_packer.merge import process
+from training_data_packer.mode.merge import process
 from training_data_packer.utils.file import GenericJsonlReader
 
 

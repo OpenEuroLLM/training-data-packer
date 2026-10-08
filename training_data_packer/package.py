@@ -2,7 +2,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from training_data_packer.mode import lint, release, sample
+from training_data_packer.mode import lint, merge, release, sample
 
 
 def main():
@@ -20,7 +20,11 @@ def main():
     )
     parser.add_argument("-p", "--part", help="Part to process, default is all")
     parser.add_argument(
-        "-m", "--mode", help="Mode to run packager in", default="release", choices=["lint", "release", "sample"]
+        "-m",
+        "--mode",
+        help="Mode to run packager in",
+        default="release",
+        choices=["lint", "release", "sample", "merge"],
     )
     args = parser.parse_args()
 
@@ -34,8 +38,11 @@ def main():
             release.process(Path(args.collection_dir), workers=args.workers, slurm=args.slurm, part=args.part)
         case "sample":
             sample.process(Path(args.collection_dir), workers=args.workers, slurm=args.slurm, part=args.part)
+        case "merge":
+            if not merge.process(Path(args.collection_dir), workers=args.workers, slurm=args.slurm, part=args.part):
+                sys.exit(2)
         case _:
-            raise ValueError(f"Undefined mode {args.mode}. Use one of: lint, sample, or release")
+            raise ValueError(f"Undefined mode {args.mode}. Use one of: lint, sample, release, or merge")
 
 
 if __name__ == "__main__":

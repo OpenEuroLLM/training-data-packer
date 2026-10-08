@@ -1,0 +1,121 @@
+import io
+import os
+from collections.abc import Iterable
+from pathlib import Path
+
+import zstandard as zstd
+from loguru import logger
+
+from training_data_packer.metadata import (
+    Metadata,
+    get_matching_part,
+    get_shard_size_documents,
+    read_metadata,
+)
+from training_data_packer.metadata.defaults import DEFAULT_SUFFIX, PREFIX_DEFAULT
+from training_data_packer.utils.file import find_files
+from training_data_packer.utils.slurm import schedule_files
+
+
+def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: int, file_prefix: str):
+    logger.info(f"Writing to directory {destination_dir}, using prefix {file_prefix}")
+    os.makedirs(destination_dir, exist_ok=True)
+
+    dctx = zstd.ZstdDecompressor()
+    cctx = zstd.ZstdCompressor(level=3)
+
+    file_idx = 0
+    docs_written = 0
+    out_f = None
+    writer = None
+
+    try:
+        for file_path in input_files:
+            with open(file_path, "rb") as in_f:
+                with dctx.stream_reader(in_f) as reader:
+                    text_stream = io.TextIOWrapper(reader, encoding="utf-8")
+                    for line in text_stream:
+                        if out_f is None or (docs_written >= docs_per_shard) or docs_written == 0:
+                            if out_f:
+                                writer.close()
+                                out_f.close()
+
+                            output_path = destination_dir.joinpath(f"{file_prefix}_{file_idx:04d}.jsonl.zst")
+                            if output_path.exists():
+                                logger.warning(f"File {output_path} already exists, aborting part merge")
+                                return
+                            out_f = open(output_path, "wb")
+                            writer = cctx.stream_writer(out_f)
+
+                            docs_written = 0
+                            file_idx += 1
+                        writer.write(line.encode("utf-8"))
+                        docs_written += 1
+    finally:
+        if writer:
+            writer.close()
+        if out_f:
+            out_f.close()
+
+
+def merge_part(part_name: str, metadata: Metadata):
+    collection_dir = metadata.get("_internal.collection_dir")
+    input_dir = collection_dir.joinpath("release-raw")
+    output_dir = collection_dir.joinpath("release")
+    part_config, _ = get_matching_part(metadata, part_name)
+    if part_config is None:
+        logger.error(f"Could not find config for part {part_name}")
+        raise ValueError(f"Could not find config for part {part_name}")
+    logger.info(f"Processing part {part_name} with config {part_config}")
+    flat_output = part_config["pack"] == "flat"
+    metadata["suffix"] = DEFAULT_SUFFIX
+    files = find_files(input_dir.joinpath(part_name), metadata.get("suffix", DEFAULT_SUFFIX))
+    logger.info(f"Processing part {part_name} with {len(files)} files")
+    docs_per_shard = get_shard_size_documents(part_config)
+    merge(
+        files,
+        output_dir if flat_output else output_dir.joinpath(part_name),
+        docs_per_shard,
+        part_config.get("prefix", PREFIX_DEFAULT),
+    )
+
+
+def process(collection_dir: Path, part: str | None = None, workers: int = 1, slurm: bool = False) -> bool:
+    metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
+    metadata["_internal"]["mode"] = "merge"
+    input_dir = collection_dir.joinpath("release-raw")
+    output_dir = collection_dir.joinpath("release")
+
+    if part is not None:
+        parts = [part]
+    else:
+        parts = metadata.get_all_part_names("release")
+    logger.info(f"Found {len(parts)} parts")
+
+    pack_method = metadata.get("release.default.pack")
+    if pack_method is None:
+        logger.error("Pack method not set, abort")
+        return False
+
+    if pack_method == "flat" and metadata.get(f"release.'{parts[0]}'.prefix", None) is None:
+        # This config requires single threaded
+        workers = 1
+        parts = ["default"]
+        logger.info("All parts will be flatten into one. This will run single threaded.")
+
+    if parts == ["default"]:
+        metadata["suffix"] = DEFAULT_SUFFIX
+        files = find_files(input_dir, metadata.get("suffix", DEFAULT_SUFFIX))
+        docs_per_shard = get_shard_size_documents(metadata["release.default"])
+        merge(
+            files,
+            output_dir,
+            docs_per_shard,
+            PREFIX_DEFAULT,
+        )
+        return True
+    else:
+        try:
+            schedule_files(parts, metadata, merge_part, workers, slurm)
+        except RuntimeError:
+            return False

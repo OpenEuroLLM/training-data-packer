@@ -6,9 +6,7 @@ The packer consists of the following tools:
 * `oellm-package-data` - Take source files and apply decontamination, PII-masking, and sampling. Each file
     in the source directory gets a correspondent file with the data processed. The tool is idempotent, if it fails,
     then run it again, and it will take of where it left. This is the main tool.
-    The tool contain three sub tools: `release` (default), `sample`, and `lint`.
-* `oellm-package-merge` - This shall run after oellm-package-data and deduces the number of files to simplify
-    tokenization and training.
+    The tool contain three sub tools: `lint`, `sample`, `release` (default), and `merge`.
 * `oellm-collect-metrics` - Collect and summarize metrics from a collection directory.
 * `oellm-propella-structure` - Structure Propella data based on source data structure. For each record in the
     source files, if its ID exists in the Propella data, it is written to the output. This arranges Propella
@@ -46,9 +44,9 @@ dataset-directory/
 ├── open-privacy-filter/ # PII annotation files mirroring source/ paths (documents PII spans to mask). Output from open-privacy-filter
 ├── nemo-curator/        # Contamination annotation files mirroring source/ paths (documents benchmark-contaminated records to remove). Output from Nemo-Curator
 ├── propella-4b/         # Optional Propella quality score parquet files used for quality filtering
-├── release-raw/         # Output of oellm-package-data: per-file processed data with PII masked, decontaminated, and sampled
-├── release/             # Output of oellm-package-merge: consolidated and merged files ready for tokenization
-└── sample/              # Files sampled on quality using propella-4b and other quality metrics
+├── release-raw/         # Output of oellm-package-data, mode release: per-file processed data with PII masked, decontaminated, and sampled
+├── release/             # Output of oellm-package-data, mode merge: consolidated and merged files ready for tokenization
+└── sample/              # Output of oellm-package-data, mode sample: files sampled on quality using propella-4b and other quality metrics
 ```
 
 ### Directory Roles and Data Flow
@@ -62,7 +60,7 @@ dataset-directory/
    - Reads `source/`, applies masking annotations from `pii/` and exclusions from `contamination/`, and writes the packaged files to **`release-raw/`**.
    - Output files in `release-raw/` preserve the directory hierarchy of `source/` and include hidden metric sidecars (`.*.metrics.json`).
 
-3. **Consolidation (`oellm-package-merge`):**
+3. **Consolidation (`oellm-package-data -m merge`):**
    - Reads files from **`release-raw/`** and merges smaller chunks into target-sized files in **`release/`**, maintaining path semantics while reducing file handle overhead for tokenization and pretraining.
 
 
@@ -138,7 +136,7 @@ Error logs must be fixed be for running the packager.
 On errors the linter returns a non-zero status code.
 
 
-### Merger: oellm-package-merge
+### Merger
 The merger reduces the number of files but still keeps semantics in paths, like language or quality.
 The merger uses the `metadata.yaml` in provided collection-directory.
 Input directory is the subdirectory `release-raw` and output to `release` subdirectory.
@@ -147,7 +145,7 @@ The merger run after `oellm-package-data`.
 
 To run local:
 ```shell
-uv run oellm-package-merge --collection-dir ${COLLECTION_DIR} --workers 1
+uv run oellm-package-data -m merge --collection-dir ${COLLECTION_DIR} --workers 1
 ```
 
 It can also run via slurm:

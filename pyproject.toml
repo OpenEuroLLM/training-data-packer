@@ -39,7 +39,6 @@ dev = [
 
 [project.scripts]
 oellm-package-data = "training_data_packer.package:main"
-oellm-package-merge = "training_data_packer.merge:main"
 oellm-collect-metrics = "training_data_packer.collect_metrics:main"
 oellm-propella-structure = "training_data_packer.propella_structure:main"
 oellm-propella-merge = "training_data_packer.propella_merge:main"

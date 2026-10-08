@@ -32,7 +32,7 @@ def get_my_slurm_tasks(files: list[Any]) -> list[Any]:
 
 
 def schedule_files(
-    all_files: list[os.PathLike],
+    all_work_items: list[os.PathLike | str],
     metadata: Metadata,
     function: Callable[[os.PathLike], None],
     workers: int = 1,
@@ -54,7 +54,7 @@ def schedule_files(
     raises a collective error if any individual task fails.
 
     Args:
-        all_files: List of file paths that are candidates for processing.
+        all_work_items: List of file paths, part names etc that are candidates for processing.
         metadata: Metadata configuration.
         function: Callable that accepts a single file path argument and performs
             the desired operations.
@@ -72,26 +72,26 @@ def schedule_files(
 
     """
     if slurm:
-        task_files = get_my_slurm_tasks(all_files)
+        task_work_items = get_my_slurm_tasks(all_work_items)
     else:
         logger.info("Not a SLURM task, processing all files")
-        task_files = all_files
+        task_work_items = all_work_items
 
     if workers > 1:
         jobs = []
         fail = False
         with ProcessPoolExecutor(max_workers=workers) as executor:
-            for src_file in task_files:
-                job = executor.submit(function, src_file, metadata)
+            for work_item in task_work_items:
+                job = executor.submit(function, work_item, metadata)
                 jobs.append(job)
             executor.shutdown(wait=True)
         for n, job in enumerate(jobs):
             if job.exception() is not None:
-                logger.error(f"There were an exception thrown for file {task_files[n]}: {job.exception()}")
+                logger.error(f"There were an exception thrown for file {task_work_items[n]}: {job.exception()}")
                 fail = True
         if fail:
             raise RuntimeError("One or more workers failed")
     else:
-        for src_file in task_files:
-            logger.debug(f"Processing file {src_file}")
-            function(src_file, metadata)
+        for work_item in task_work_items:
+            logger.debug(f"Processing file {work_item}")
+            function(work_item, metadata)
