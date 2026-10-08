@@ -17,6 +17,7 @@ from training_data_packer.metadata.defaults import (
     TGT_TEXT_DEFAULT,
 )
 from training_data_packer.metadata.schema import Validator
+from training_data_packer.processor.count import get_tokenizer
 from training_data_packer.processor.sample.sampler import read_sampler_fn
 from training_data_packer.utils.file import GenericJsonlReader, find_files
 from training_data_packer.utils.misc import get_dict_value, get_dict_values
@@ -58,6 +59,8 @@ def process(collection_dir: Path) -> bool:
             _check_all_source_parts(metadata, "nugget")
         elif collection_dir.joinpath("nugget").is_dir():
             raise ValueError("nugget directory exist but no section in metadata.")
+
+        _check_tokenizer(metadata)
     except ValueError as e:
         logger.error(f"Metadata is invalid: {e}")
         return False
@@ -452,3 +455,11 @@ def _check_sample_config(part_path: str, part_conf: dict[str, Any]) -> bool:
 
 def _get_all_annotations(metadata: Metadata) -> set[str]:
     return set(itertools.chain.from_iterable(get_dict_values(metadata.data, "$..annotations")))
+
+
+def _check_tokenizer(metadata: Metadata):
+    if "tokenizer" in metadata:
+        try:
+            get_tokenizer(metadata["tokenizer"])
+        except Exception as e:
+            ValueError(f"Cannot load tokenizer {metadata['tokenizer']}.", e)
