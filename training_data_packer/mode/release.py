@@ -25,11 +25,14 @@ from training_data_packer.utils.slurm import schedule_files
 
 def process(
     collection_dir: Path,
-    workers=1,
-    slurm: bool = False,
-    part: str | None = None,
+    args: dict[str, Any] | None = None,
 ) -> None:
     """Schedule release packaging for files to be delivered according to metadata in collection dir."""
+    if args is None:
+        args = {}
+    workers = args.get("workers", 1)
+    slurm = args.get("slurm", False)
+    part = args.get("part", None)
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
     metadata["_internal"]["mode"] = "release"
     source_dir = get_source_dir(metadata)

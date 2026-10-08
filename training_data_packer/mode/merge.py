@@ -2,6 +2,7 @@ import io
 import os
 from collections.abc import Iterable
 from pathlib import Path
+from typing import Any
 
 import zstandard as zstd
 from loguru import logger
@@ -80,7 +81,15 @@ def merge_part(part_name: str, metadata: Metadata):
     )
 
 
-def process(collection_dir: Path, part: str | None = None, workers: int = 1, slurm: bool = False) -> bool:
+def process(
+    collection_dir: Path,
+    args: dict[str, Any] | None = None,
+) -> bool:
+    if args is None:
+        args = {}
+    workers = args.get("workers", 1)
+    slurm = args.get("slurm", False)
+    part = args.get("part", None)
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
     metadata["_internal"]["mode"] = "merge"
     input_dir = collection_dir.joinpath("release-raw")

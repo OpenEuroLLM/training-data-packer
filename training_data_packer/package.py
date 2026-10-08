@@ -18,6 +18,11 @@ def main():
         help="Only process files for my slurm partition",
         action="store_true",
     )
+    parser.add_argument(
+        "--token-count",
+        help="Count tokens, slower processing",
+        action="store_true",
+    )
     parser.add_argument("-p", "--part", help="Part to process, default is all")
     parser.add_argument(
         "-m",
@@ -30,16 +35,16 @@ def main():
 
     match args.mode:
         case "lint":
-            if args.slurm or args.workers > 1 or args.part is not None:
-                raise ValueError("Lint mode does not support SLURM, multiple workers, or part selection")
+            if args.slurm or args.workers > 1 or args.part is not None or args.token_count:
+                raise ValueError("Lint mode does not support SLURM, multiple workers, part selection, or counting")
             if not lint.process(Path(args.collection_dir)):
                 sys.exit(1)
         case "release":
-            release.process(Path(args.collection_dir), workers=args.workers, slurm=args.slurm, part=args.part)
+            release.process(Path(args.collection_dir), args=vars(args))
         case "sample":
-            sample.process(Path(args.collection_dir), workers=args.workers, slurm=args.slurm, part=args.part)
+            sample.process(Path(args.collection_dir), args=vars(args))
         case "merge":
-            if not merge.process(Path(args.collection_dir), workers=args.workers, slurm=args.slurm, part=args.part):
+            if not merge.process(Path(args.collection_dir), args=vars(args)):
                 sys.exit(2)
         case _:
             raise ValueError(f"Undefined mode {args.mode}. Use one of: lint, sample, release, or merge")
