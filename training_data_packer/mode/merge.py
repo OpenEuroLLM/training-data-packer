@@ -1,4 +1,3 @@
-import argparse
 import io
 import os
 from collections.abc import Iterable
@@ -59,9 +58,9 @@ def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: in
             out_f.close()
 
 
-def process(collection_dir: Path, part: str | None = None, workers: int = 1, slurm: bool = False):
+def process(collection_dir: Path, part: str | None = None, workers: int = 1, slurm: bool = False) -> bool:
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
-    metadata["_internal"]["mode"] = "release"
+    metadata["_internal"]["mode"] = "merge"
     input_dir = collection_dir.joinpath("release-raw")
     output_dir = collection_dir.joinpath("release")
 
@@ -72,7 +71,11 @@ def process(collection_dir: Path, part: str | None = None, workers: int = 1, slu
     logger.info(f"Found {len(parts)} parts")
 
     pack_method = metadata.get("release.default.pack")
-    if pack_method == "flat" and metadata.get(f"release.{parts[0]}.prefix", None) is None:
+    if pack_method is None:
+        logger.error("Pack method not set, abort")
+        return False
+
+    if pack_method == "flat" and metadata.get(f"release.'{parts[0]}'.prefix", None) is None:
         # This config requires single threaded
         workers = 1
         parts = ["default"]
@@ -107,9 +110,15 @@ def process(collection_dir: Path, part: str | None = None, workers: int = 1, slu
                 )
                 jobs.append(job)
             executor.shutdown()
+            fail = False
             for n, job in enumerate(jobs):
                 if job.exception() is not None:
                     logger.error(f"There were an exception thrown for release {task_parts[n]}: {job.exception()}")
+                    fail = True
+            if fail:
+                return False
+            else:
+                return True
     elif parts == ["default"]:
         metadata["suffix"] = DEFAULT_SUFFIX
         files = find_files(input_dir, metadata.get("suffix", DEFAULT_SUFFIX))
@@ -120,6 +129,7 @@ def process(collection_dir: Path, part: str | None = None, workers: int = 1, slu
             docs_per_shard,
             PREFIX_DEFAULT,
         )
+        return True
     else:
         for part_name in task_parts:
             part_config, _ = get_matching_part(metadata, part_name)
@@ -138,30 +148,4 @@ def process(collection_dir: Path, part: str | None = None, workers: int = 1, slu
                 docs_per_shard,
                 part_config.get("prefix", PREFIX_DEFAULT),
             )
-
-
-def main():
-    parser = argparse.ArgumentParser(
-        prog="training-data-packer",
-        description="Pack training data from input directory to output directory.",
-    )
-    parser.add_argument("--collection-dir", help="Collection directory containing data", required=True)
-    parser.add_argument("-p", "--part", help="Part to process, default is all")
-    parser.add_argument("-w", "--workers", help="Number of workers, default is 1", type=int, default=1)
-    parser.add_argument(
-        "-s",
-        "--slurm",
-        help="Only process files for my slurm partition",
-        action="store_true",
-    )
-    args = parser.parse_args()
-    process(
-        Path(args.collection_dir),
-        args.part,
-        args.workers,
-        args.slurm,
-    )
-
-
-if __name__ == "__main__":
-    main()
+        return True
