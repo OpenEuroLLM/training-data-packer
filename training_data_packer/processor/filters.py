@@ -18,8 +18,8 @@ class FilterOnBlocklist:
         """
         return {
             self.name: {
-                "removed": self.counter,
-                "list_length": len(self.block_list),
+                "document_removed": self.counter,
+                "blocklist_length": len(self.block_list),
             }
         }
 

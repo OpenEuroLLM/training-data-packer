@@ -195,7 +195,7 @@ class TestGenericJsonlReader(unittest.TestCase):
         metrics = reader.get_metrics()
 
         self.assertIn("custom_counter", metrics)
-        self.assertEqual(metrics["custom_counter"]["lines_read"], 2)
+        self.assertEqual(metrics["custom_counter"]["document_read"], 2)
 
     def test_get_metrics(self):
         """Test getting metrics after reading."""
@@ -207,7 +207,7 @@ class TestGenericJsonlReader(unittest.TestCase):
         list(reader.read())
         metrics = reader.get_metrics()
 
-        expected_metrics = {"test_input": {"lines_read": 5}}
+        expected_metrics = {"test_input": {"document_read": 5}}
         self.assertEqual(metrics, expected_metrics)
 
     def test_get_metrics_default_counter_name(self):
@@ -221,7 +221,7 @@ class TestGenericJsonlReader(unittest.TestCase):
         metrics = reader.get_metrics()
 
         self.assertIn("input", metrics)
-        self.assertEqual(metrics["input"]["lines_read"], 1)
+        self.assertEqual(metrics["input"]["document_read"], 1)
 
     def test_get_metrics_no_lines_read(self):
         """Test getting metrics when no lines were read."""
@@ -231,7 +231,7 @@ class TestGenericJsonlReader(unittest.TestCase):
         list(reader.read())
         metrics = reader.get_metrics()
 
-        self.assertEqual(metrics["input"]["lines_read"], 0)
+        self.assertEqual(metrics["input"]["document_read"], 0)
 
     def test_read_as_generator(self):
         """Test that read returns a generator and can be consumed multiple times."""

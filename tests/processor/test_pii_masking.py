@@ -741,8 +741,8 @@ class TestPIIMasker(unittest.TestCase):
             pii_masker.get_metrics(),
             {
                 "pii_masker": {
-                    "masked_documents": 1,
-                    "pii_documents": 1,
+                    "document_masked": 1,
+                    "pii_records": 1,
                 }
             },
         )

@@ -31,8 +31,8 @@ class TestPropellaProcessor(unittest.TestCase):
             result,
         )
         result_metrics = source_to_propella_mapper.get_metrics()
-        self.assertEqual(2, result_metrics["propella_matching"]["processed_records"])
-        self.assertEqual(1, result_metrics["propella_matching"]["unmatched_records"])
+        self.assertEqual(2, result_metrics["propella_matching"]["document_processed"])
+        self.assertEqual(1, result_metrics["propella_matching"]["document_unmatched"])
 
     def test_mapper_with_id_hash(self):
         source_data = [
@@ -70,8 +70,8 @@ class TestPropellaProcessor(unittest.TestCase):
             result,
         )
         result_metrics = source_to_propella_mapper.get_metrics()
-        self.assertEqual(2, result_metrics["propella_matching"]["processed_records"])
-        self.assertEqual(1, result_metrics["propella_matching"]["unmatched_records"])
+        self.assertEqual(2, result_metrics["propella_matching"]["document_processed"])
+        self.assertEqual(1, result_metrics["propella_matching"]["document_unmatched"])
 
     def test_mapper_with_id_hash_and_length(self):
         source_data = [
@@ -109,8 +109,8 @@ class TestPropellaProcessor(unittest.TestCase):
             result,
         )
         result_metrics = source_to_propella_mapper.get_metrics()
-        self.assertEqual(2, result_metrics["propella_matching"]["processed_records"])
-        self.assertEqual(1, result_metrics["propella_matching"]["unmatched_records"])
+        self.assertEqual(2, result_metrics["propella_matching"]["document_processed"])
+        self.assertEqual(1, result_metrics["propella_matching"]["document_unmatched"])
 
 
 class TestMergePropellaRecords(unittest.TestCase):

@@ -126,7 +126,7 @@ class GenericJsonlReader:
     def get_metrics(self):
         return {
             self._counter_name: {
-                "lines_read": self._lines,
+                "document_read": self._lines,
             }
         }
 
@@ -160,7 +160,7 @@ class JsonlZstWriter:
     def get_metrics(self):
         return {
             self._counter_name: {
-                "lines_written": self._lines,
+                "document_written": self._lines,
                 "size_bytes": self._size,
             }
         }

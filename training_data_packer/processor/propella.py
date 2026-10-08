@@ -45,8 +45,8 @@ class SourceToPropellaMapper:
         """
         return {
             self._metric_name: {
-                "processed_records": self._processed_records,
-                "unmatched_records": self._unmatched_records,
+                "document_processed": self._processed_records,
+                "document_unmatched": self._unmatched_records,
             }
         }
 
@@ -65,7 +65,7 @@ class SourceToPropellaMapper:
                 id = doc.get(self._id_field)
             propella_record = self._lookup_fn(id)
             self._processed_records += 1
-            if self._processed_records % 100_000 == 0:
+            if self._processed_records % 1_000_000 == 0:
                 logger.info(f"{self._processed_records} records processed")
             if propella_record is None:
                 self._unmatched_records += 1

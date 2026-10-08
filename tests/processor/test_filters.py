@@ -27,8 +27,8 @@ class TestFilterOnBlocklist(unittest.TestCase):
             to_test.get_metrics(),
             {
                 "test_filter": {
-                    "removed": 2,
-                    "list_length": 3,
+                    "document_removed": 2,
+                    "blocklist_length": 3,
                 }
             },
         )
