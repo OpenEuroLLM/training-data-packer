@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 import orjson
+import pyarrow
 import zstandard as zstd
 from parameterized import parameterized
 
@@ -23,6 +24,12 @@ def _create_test_gzip_jsonl(path: Path, data: list) -> None:
     with gzip.open(path, "wt", encoding="utf-8") as f:
         for item in data:
             f.write(orjson.dumps(item).decode("utf-8") + "\n")
+
+
+def _create_test_parquet(path: Path, data: list) -> None:
+    """Create a Parquet file for testing."""
+    table = pyarrow.Table.from_pylist(data)
+    pyarrow.parquet.write_table(table, path)
 
 
 def _create_test_zst_jsonl(path: Path, data: list) -> None:
@@ -60,6 +67,18 @@ class TestGenericJsonlReader(unittest.TestCase):
         test_data = [{"key": "value1"}, {"key": "value2"}, {"key": "value3"}]
         file_path = self.temp_path / "test.jsonl.gz"
         _create_test_gzip_jsonl(file_path, test_data)
+
+        reader = file.GenericJsonlReader(file_path)
+        result = list(reader.read())
+
+        self.assertEqual(result, test_data)
+        self.assertEqual(reader._lines, 3)
+
+    def test_read_parquet(self):
+        """Test reading from a parquet file."""
+        test_data = [{"key": "value1"}, {"key": "value2"}, {"key": "value3"}]
+        file_path = self.temp_path / "test.parquet"
+        _create_test_parquet(file_path, test_data)
 
         reader = file.GenericJsonlReader(file_path)
         result = list(reader.read())
