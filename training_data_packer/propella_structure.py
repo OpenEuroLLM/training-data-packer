@@ -21,6 +21,11 @@ def process(collection_dir: Path, propella_dir: Path, part: str = "", slurm: boo
 
     For each record, if its ID exists in propella_dir parquet files, write it to the
     output within the collection_dir.
+
+    :param collection_dir: collection directory containing ``metadata.yaml`` and ``source/``
+    :param propella_dir: directory containing the Propella parquet files
+    :param part: optional part to restrict processing to
+    :param slurm: process only the files assigned to the current SLURM array task
     """
     output_dir = collection_dir.joinpath("propella-4b").joinpath(part)
     source_dir = collection_dir.joinpath("source").joinpath(part)

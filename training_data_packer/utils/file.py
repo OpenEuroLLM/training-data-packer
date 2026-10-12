@@ -14,11 +14,12 @@ from loguru import logger
 def find_files(source_dir: Path, suffix: str, part: str | None = None) -> list[Path]:
     """Return all files matching suffix criteria.
 
-    Returns all files, not hidden, under source_dir, following symlinks
-    :param source_dir: Dir to find files in
-    :param suffix: expected file suffix.
-    :param part: Optional part if only parts of source_dir are needed.
-    :return: List of Path objects to files. Sorted.
+    Return all non-hidden files under source_dir, following symlinks.
+
+    :param source_dir: directory to find files in
+    :param suffix: expected file suffix
+    :param part: optional part, if only a part of source_dir is needed
+    :returns: sorted list of paths to the files
     """
     if part is None:
         return sorted(Path(source_dir).glob("**/[A-Za-z0-9]*" + suffix, recurse_symlinks=True))
@@ -29,9 +30,10 @@ def find_files(source_dir: Path, suffix: str, part: str | None = None) -> list[P
 def get_subdirectories(directory: str | Path) -> list[Path]:
     """Get all immediate subdirectories.
 
-    Returns all immediate subdirectories of the given directory (non-recursive)
-    :param directory: Directory to search for subdirectories
-    :return: List of Path objects to subdirectories. Sorted.
+    Return all immediate subdirectories of the given directory (non-recursive).
+
+    :param directory: directory to search for subdirectories
+    :returns: sorted list of paths to the subdirectories
     """
     path = Path(directory)
     if not path.is_dir():
@@ -49,12 +51,11 @@ def change_suffix(filename: str | Path, original_suffix, new_suffix) -> Path:
 def prepare_output_file(out_file: Path) -> tuple[Path, bool]:
     """Prepare output file path and check if processing should continue.
 
-    Creates temporary file path, cleans up old temporary files, and ensures
-    output directory exists. Returns tuple of (temp_output_path, should_continue).
+    Create the temporary file path, clean up old temporary files, and ensure the
+    output directory exists.
 
-    :param out_file: Target output file path
-    :return: tuple[Path, bool]: (temporary file path, whether processing should continue)
-
+    :param out_file: target output file path
+    :returns: tuple of the temporary file path and whether processing should continue
     """
     tmp_out_file = out_file.parent.joinpath("." + out_file.name)
     if out_file.exists():
@@ -67,13 +68,19 @@ def prepare_output_file(out_file: Path) -> tuple[Path, bool]:
 
 
 class GenericJsonlReader:
-    """Reader for jsonline files, compressed or not.
+    """Read JSON Lines files, compressed or not.
 
-    Following extensions and compressions are supported:
+    The following extensions and compressions are supported:
+
     * .jsonl.zst, .jsonl.zstd - ZStandard
     * .jsonl.gz - GZip
-    * .parquet - Files in parquet format
-    * .jsonl - Uncompressed files (fallback)
+    * .parquet - files in parquet format
+    * .jsonl - uncompressed files (fallback)
+
+    :param input_file_name: path to the file to read
+    :param encoding: text encoding of the file
+    :param chunk_size: size of the chunks read from the file
+    :param counter_name: key used for the metrics
     """
 
     def __init__(
@@ -132,7 +139,12 @@ class GenericJsonlReader:
 
 
 class JsonlZstWriter:
-    """Writer of jsonline compressed as ZStandard."""
+    """Write JSON Lines compressed as ZStandard.
+
+    :param output_file_name: path to the file to write
+    :param chunk_size: size of the chunks written to the file
+    :param counter_name: key used for the metrics
+    """
 
     def __init__(
         self,

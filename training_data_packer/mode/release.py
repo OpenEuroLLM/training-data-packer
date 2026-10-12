@@ -28,7 +28,12 @@ def process(
     collection_dir: Path,
     args: dict[str, Any] | None = None,
 ) -> None:
-    """Schedule release packaging for files to be delivered according to metadata in collection dir."""
+    """Schedule release packaging for files to be delivered according to metadata in collection dir.
+
+    :param collection_dir: collection directory containing ``metadata.yaml``
+    :param args: command line options, e.g. ``workers``, ``slurm``, ``part`` and ``token_count``
+    :raises ValueError: if no source files are found
+    """
     if args is None:
         args = {}
     workers = args.get("workers", 1)
@@ -55,12 +60,17 @@ def parallel_package_pipeline(
     piis: Iterable[dict[str, Any]],
     contaminations: Iterable[dict[str, Any]],
 ) -> tuple[Iterable[dict[str, Any]], list[dict[str, Any]]]:
-    """Execute parallel package processing pipeline.
+    """Build the package processing pipeline for parallel data.
 
-    Executes a parallel package processing pipeline that generates synthetic
-    identifiers if required, applies filters based on PII and contamination
-    blocklists, merges parallel language data components into documents, and
-    collects performance metrics
+    Generate synthetic identifiers if required, filter on PII and contamination blocklists,
+    and merge parallel language data into documents.
+
+    :param src_iter: source records
+    :param metadata: metadata of the collection
+    :param part_config: configuration of the part being packaged
+    :param piis: PII records whose ids are blocked
+    :param contaminations: contamination records whose ids are blocked
+    :returns: tuple of the merged document iterator and the processors to collect metrics from
     """
     if "id" not in metadata:
         parallel_synthetic_id = ParallelSyntheticId(metadata)

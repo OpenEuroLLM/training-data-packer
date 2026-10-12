@@ -75,9 +75,8 @@ class TestPropellaStructure(unittest.TestCase):
             self.assertEqual("existing", result[0]["id"])
 
     def test_propella_structure_deduplicated_ids(self):
-        """Test duplicate IDs.
+        """Test that duplicate IDs in source are handled correctly.
 
-        Test that duplicate IDs in source are handled correctly.
         Each record is processed independently, so duplicates should produce duplicates.
         """
         test_data = Path("tests/resources/integration/propella_structure")

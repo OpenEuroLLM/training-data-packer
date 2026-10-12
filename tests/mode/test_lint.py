@@ -651,7 +651,11 @@ class TestCheckAnnotationSection(unittest.TestCase):
 
 
 def _create_test_jsonl_file(file_path: Path, data: list) -> None:
-    """Create a JSONL file with data for testing."""
+    """Create a JSONL file with data for testing.
+
+    :param file_path: path to the file to create
+    :param data: records to write
+    """
     if file_path.suffix == ".zst":
         cctx = zstd.ZstdCompressor()
         with open(file_path, "wb") as f:

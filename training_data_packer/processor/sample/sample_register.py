@@ -50,7 +50,11 @@ REGISTER_COEFF = {
 
 
 def _calc_wds_coeff(wds):
-    """Polynomial for WDS scaling."""
+    """Calculate the polynomial for WDS scaling.
+
+    :param wds: WDS score
+    :returns: the scaling coefficient
+    """
     return 0.0213 * (wds**3) - 0.4113 * (wds**2) + 2.9626 * wds - 7.1492
 
 
@@ -82,13 +86,14 @@ def process_record(
 ) -> list[dict[str, Any]]:
     """Sample a single record based on doc_scores and registers.
 
-    Takes one record and decides whether it should be included or excluded. If included decide amount
+    Decide whether the record is included or excluded and, if included, the amount
     of upsampling.
+
     :param record: record to process
-    :param length_limit: required length for text to be included
-    :param threshold: Threshold on labels to be included.
-    :param exclude_hybrids: Whether include with multiple labels or not.
-    :return: list of records to be included
+    :param length_limit: minimum text length for the record to be included
+    :param threshold: probability threshold for a label to be assigned
+    :param exclude_hybrids: exclude records with multiple labels
+    :returns: the record repeated according to upsampling, or an empty list if excluded
     """
     # 1. Length Filter
     if len(record.get("text", "")) < length_limit:

@@ -24,23 +24,14 @@ def read_sampler_fn(filename: Path | None):
 
 
 def convert_to_type(dictionary: dict[str, str]) -> dict[str, str | int | float]:
-    """Try convert string dictionary to int/float.
+    """Try to convert string dictionary values to int or float.
 
-    Attempts to convert the values of the input dictionary into appropriate
-    numeric types. The function iterates through the key-value pairs of the
-    provided dictionary and attempts to convert each value to an integer.
-    If the conversion to an integer fails, it attempts to convert the value
-    to a float. If both conversions raise a ValueError, the original value
-    is retained in the output dictionary.
+    Each value is converted to an integer if possible, otherwise to a float. If both
+    conversions fail, the original value is kept.
 
-    :param dictionary (dict): A dictionary containing the values to
-            be converted. Keys can be of any hashable type, and values are
-            expected to be strings or numeric representations suitable for
-            conversion.
-
-    returns dict: A new dictionary containing the same keys as the input, but
-            with values converted to integers, floats, or left as strings
-            based on their parseability.
+    :param dictionary: dictionary with values to convert
+    :returns: a new dictionary with the same keys and values converted to integers,
+        floats, or left as strings
     """
     out = {}
     for k, value in dictionary.items():
@@ -59,7 +50,12 @@ def convert_to_type(dictionary: dict[str, str]) -> dict[str, str | int | float]:
 
 
 class DynamicSampler:
-    """Sampler class sampling with an external python file."""
+    """Sample with a function from an external Python file.
+
+    :param filename: path to the Python file with the sampler function
+    :param sample_fn_parameters: parameters passed to the sampler function
+    :param name: key used for the metrics
+    """
 
     def __init__(self, filename, sample_fn_parameters, name="DynamicSampler"):
         self._sampler_ratio_fn = read_sampler_fn(filename)

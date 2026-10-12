@@ -52,26 +52,17 @@ def process(collection_dir: Path, part: str = "", workers=1, slurm: bool = False
 
 
 def process_file(metadata: Metadata, source_name: str, propella_dir: Path):
-    """Process and merges JSONL files.
+    """Merge a JSONL file from all Propella subdirectories.
 
-    Processes and merges JSONL files from subdirectories within the specified
-    propella directory. The function constructs the output path and checks for
-    existence to avoid redundant processing. It establishes a list of read
-    iterators for the source file found in every subdirectory, merges the
-    corresponding records using an ID extracted from the provided metadata, and
-    writes the compressed result atomically via a temporary file. Furthermore,
-    it collects metric data from each subdirectory, aggregates them, and persists
-    the collected metrics to a file.
+    Read the source file from every subdirectory of the Propella directory, merge the
+    records on the id field from the metadata, and write the compressed result
+    atomically via a temporary file. Skip processing if the output already exists.
+    The metrics of each subdirectory are aggregated and written to a file.
 
-    :param metadata: Dictionary containing configuration data used to extract
-                     the necessary ID for merging records.
-    :param source_name: The name of the file to be processed across subdirectories
-                        and used for the final output destination.
-    :param propella_dir: The directory path containing the subdirectories to
-                         search for source files and the target location for the
-                         merged output.
-    :return: None
-
+    :param metadata: metadata of the collection, used to find the id field
+    :param source_name: name of the file to process in each subdirectory, and of the output file
+    :param propella_dir: directory containing the subdirectories to merge, and the target
+        location for the merged output
     """
     new_name = change_suffix(
         source_name,

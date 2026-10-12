@@ -12,11 +12,13 @@ from training_data_packer.metadata.schema import Validator
 def read_metadata(file_path: Path, log_content: bool = True) -> Metadata:
     """Read metadata from file.
 
-    Reads metadata from file and returns it as Metadata object.
+    Read metadata from file, validate it, and return it as a Metadata object.
     All field values are strings.
-    :param file_path: Path to metadata file.
-    :param log_content: Log metadata read.
-    :return: Metadata dictionary.
+
+    :param file_path: path to the metadata file
+    :param log_content: log the metadata content that was read
+    :returns: the metadata
+    :raises ValueError: if the metadata fails schema validation
     """
     with open(file_path) as file:
         data = file.read()

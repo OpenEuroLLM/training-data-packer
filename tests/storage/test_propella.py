@@ -10,7 +10,11 @@ from training_data_packer.storage.propella import get_lookup_fn
 
 
 def _create_parquet_file(path: Path, data: list[dict]) -> None:
-    """Create a parquet file from data for testing."""
+    """Create a parquet file from data for testing.
+
+    :param path: path to the file to create
+    :param data: records to write
+    """
     table_data: dict[str, list] = {}
     for row in data:
         for key, value in row.items():

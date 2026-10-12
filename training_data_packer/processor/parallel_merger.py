@@ -15,16 +15,19 @@ from training_data_packer.utils.misc import get_dict_value, hash_factory, lang_t
 
 
 class ParallelLanguageMerger:
-    """Facilitates the merging of parallel language documents.
+    """Merge parallel language documents.
 
-    Facilitates the merging of parallel language documents into a unified text
-    format with unique identification.
+    Merge batches of parallel language documents into a unified text format with
+    unique identification. Source and target language pairs are formatted, and the
+    order within each pair is optionally randomized. A unique ID is calculated for
+    the merged content using a hash function. Processing metrics, such as the count
+    of processed and written records, are tracked.
 
-    This class is responsible for taking batches of parallel data, formatting
-    the source and target language pairs, and optionally randomizing the order
-    of these pairs within the text. It calculates a unique ID for the merged
-    content using a hash function. Additionally, it tracks processing metrics
-    such as the count of processed and written records.
+    :param metadata: metadata of the collection
+    :param part_config: configuration of the part being merged
+    :param flip_fn: function deciding whether to flip the order of a pair; defaults to
+        a random flip with the probability configured in ``parallel.flip``
+    :param metric_name: key used for the metrics
     """
 
     def __init__(
@@ -49,7 +52,7 @@ class ParallelLanguageMerger:
     def get_metrics(self):
         """Get metrics for the mapper.
 
-        :return: Dictionary with metrics.
+        :returns: dictionary with metrics
         """
         return {
             self._metric_name: {
@@ -61,16 +64,12 @@ class ParallelLanguageMerger:
     def get_mapper(self) -> Callable[[list[dict[Any]]], dict[Any]]:
         """Get mapper to merge language pairs.
 
-        Constructs and returns a processing function designed to transform a list
-        of raw document dictionaries into a standardized format. The generated
-        function concatenates source and target language texts with their respective
-        language names, generates a unified text block from these pairs, and
-        computes a unique identifier for the resulting content based on a hash
-        function.
+        The mapper transforms a list of documents into a single document. It concatenates
+        source and target language texts with their language names, and computes a unique
+        id for the resulting content using a hash function.
 
-        :return: A callable object that processes a list of documents and returns a
-            single dictionary containing the formatted text and a unique ID.
-        :rtype: Callable[[list[dict[Any]]], dict[Any]]
+        :returns: function that maps a list of documents to a single dictionary with the
+            formatted text and a unique id
         """
 
         def mapper(docs: list[dict[Any]]) -> dict[Any]:
@@ -104,7 +103,11 @@ class ParallelLanguageMerger:
 
 
 class ParallelSyntheticId:
-    """Create a synthetic ID of a language pair."""
+    """Create a synthetic ID of a language pair.
+
+    :param metadata: metadata of the collection
+    :param metric_name: key used for the metrics
+    """
 
     def __init__(
         self,
@@ -121,7 +124,7 @@ class ParallelSyntheticId:
     def get_metrics(self):
         """Get metrics for the mapper.
 
-        :return: Dictionary with metrics.
+        :returns: dictionary with metrics
         """
         return {self._metric_name: {"document_processed": self._processed_records}}
 
