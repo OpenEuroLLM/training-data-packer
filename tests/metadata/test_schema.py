@@ -4,8 +4,8 @@ from importlib import resources
 import pytest
 from parameterized import parameterized
 
+import tests.helpers.metadata
 import tests.resources.metadata
-import tests.test_utils.metadata
 from training_data_packer.metadata import read_metadata
 from training_data_packer.metadata.schema import Validator
 
