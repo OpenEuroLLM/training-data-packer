@@ -9,9 +9,7 @@ from training_data_packer.metadata import Metadata
 
 
 def _get_my_partition_tasks(files: list[Any], task_count: int, task_id: int) -> list[Any]:
-    size, rest = divmod(len(files), task_count)
-    grouped_files = [files[i * size + min(i, rest) : (i + 1) * size + min(i + 1, rest)] for i in range(task_count)]
-    return grouped_files[task_id - 1]
+    return files[task_id - 1 :: task_count]
 
 
 def get_my_slurm_tasks(files: list[Any]) -> list[Any]:
@@ -48,7 +46,7 @@ def schedule_files(
     :raises RuntimeError: if one or more worker processes fail
     """
     if slurm:
-        task_work_items = get_my_slurm_tasks(all_work_items)
+        task_work_items = all_work_items
     else:
         logger.info("Not a SLURM task, processing all files")
         task_work_items = all_work_items
