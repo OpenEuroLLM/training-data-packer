@@ -17,12 +17,10 @@ class SourceToPropellaMapper:
     ):
         """Create SourceToPropellaMapper.
 
-        :param id_field: Name of the id field.
-        :param lookup_fn: Function responsible for looking up Propella records
-            based on an ID. It accepts an ID and returns a list of matching
-            records.
-        :param metric_name: The key name used to store the metrics in the
-            dictionary returned by the get_metrics method.
+        :param metadata: metadata of the collection, used to find the id, text and hash fields
+        :param lookup_fn: function that looks up Propella records by id, returning a list of
+            matching records
+        :param metric_name: key used for the metrics returned by :meth:`get_metrics`
         """
         self._metric_name = metric_name
         self._processed_records = 0
@@ -41,7 +39,7 @@ class SourceToPropellaMapper:
     def get_metrics(self):
         """Get metrics for the mapper.
 
-        :return: Dictionary with metrics.
+        :returns: dictionary with metrics
         """
         return {
             self._metric_name: {
@@ -53,9 +51,10 @@ class SourceToPropellaMapper:
     def get_mapper(self):
         """Get mapper to map source data to Propella records.
 
-        Returns a mapper that for each element it get lookup the object with same id
-        using lookup_fn and returns it
-        :return: function lookup objects
+        For each document, the mapper looks up the Propella record with the same id using
+        ``lookup_fn`` and returns it.
+
+        :returns: function that maps a source document to its Propella record
         """
 
         def mapper(doc: dict[Any]) -> dict[Any]:
@@ -91,9 +90,9 @@ class MergePropellaRecords:
         self._no_match = 0
 
     def get_metrics(self):
-        """Get metrics from the mapper.
+        """Get metrics for the mapper.
 
-        :return: Dictionary with metrics.
+        :returns: dictionary with metrics
         """
         return {
             self._metric_name: {
@@ -104,23 +103,16 @@ class MergePropellaRecords:
         }
 
     def get_mapper(self):
-        """Get a mapper to merge propella records.
+        """Get a mapper to merge Propella records.
 
-        Generates and returns a mapper function designed to process and align multiple
-        document entries based on an id. The returned function validates
-        that all provided dictionaries reference the same entity ID. It iterates
-        through the input to locate the first document containing data beyond the
-        identifier key, treating subsequent data sources as duplicates. The mapper
-        updates internal tracking counters for processed rows, duplicates, and
-        non-matching entries during execution.
+        The mapper aligns multiple records with the same id. It returns the first record
+        containing data other than the id, treating subsequent records with data as
+        duplicates. It updates counters for processed rows, duplicates and rows with only
+        an id.
 
-        :return: A callable that takes a list of dictionaries and returns a single
-            dictionary. The function validates ID alignment across the input list. It
-            returns the first record found containing data other than the ID. If
-            multiple records contain data, it returns a dictionary with only the ID.
-            If no data is found, it returns a dictionary with only the ID. It raises
-            a ValueError if the identifiers in the documents do not align.
-        :rtype: Callable[[list[dict[Any]]], dict[Any]]
+        :returns: function that maps a list of records to a single record. If no record,
+            or more than one record, contains data, a record with only the id is returned.
+            The function raises ValueError if the ids of the records do not align.
         """
 
         def mapper(docs: list[dict[Any]]) -> dict[Any]:
@@ -157,17 +149,13 @@ class MergePropellaRecords:
 def propella_annotate_factory(
     in_iter: Iterable[dict[str, Any]], propella_data_iter: Iterable[dict[str, Any]] | None
 ) -> Iterable[dict[str, Any]]:
-    """Annotate in_iter with propella data from propella_data_iter.
+    """Annotate in_iter with Propella data from propella_data_iter.
 
-    :param in_iter: An iterable of dictionaries representing the primary data
-        objects requiring potential annotation.
-    :param propella_data_iter: An optional iterable of dictionaries sourced from
-        Propella. If provided, its length must match the input iterable to allow
-        for strict alignment.
-
-    :return: An iterable of dictionaries that includes the merged Propella data
-        under 'propella-4b' where applicable, or the original data if the Propella
-        iterator is None.
+    :param in_iter: records to annotate
+    :param propella_data_iter: Propella records, aligned with ``in_iter``. If given, its
+        length must match ``in_iter``.
+    :returns: records with the Propella data merged under ``propella-4b`` where
+        applicable, or ``in_iter`` unchanged if ``propella_data_iter`` is None
     """
     if propella_data_iter is not None:
 

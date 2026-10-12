@@ -13,9 +13,11 @@ _FIELD_NAME_RE = re.compile(r"^[a-zA-Z0-9_]+$")
 def get_lookup_fn(parquet_path: str | Path, field: str):
     """Get function to query parquet files on a given field and return matching records.
 
-    :param parquet_path: Path to directory containing parquet files or path to one parquet file.
-    :param field: Field name to query on (alphanumeric and underscore only).
-    :return: Function to lookup values in parquet files.
+    :param parquet_path: path to a directory containing parquet files, or to one parquet file
+    :param field: field name to query on (alphanumeric and underscore only)
+    :returns: tuple of the function to look up values, and the metrics of the loaded data
+    :raises ValueError: if the field name is invalid
+    :raises FileNotFoundError: if no parquet files are found
     """
     if not _FIELD_NAME_RE.match(field):
         raise ValueError(f"Invalid field name '{field}': only alphanumeric characters and underscores are allowed.")
@@ -69,8 +71,8 @@ def get_lookup_fn(parquet_path: str | Path, field: str):
     def lookup(value: Any) -> list[dict[str, Any]]:
         """Query in-memory dictionary for matching records.
 
-        :param value: Value to match against field.
-        :return: List of documents matching value.
+        :param value: value to match against the field
+        :returns: documents matching the value, or None if there is no match
         """
         return lookup_dict.get(value, None)
 

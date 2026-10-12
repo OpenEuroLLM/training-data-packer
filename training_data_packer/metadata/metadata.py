@@ -32,14 +32,13 @@ class Metadata(UserDict):
     def get(self, key: str, default=None):
         """Get a value from the metadata.
 
-        Retrieve a specific value from the provided metadata structure using a
-        dot-notation key for deep access. It supports array in both the form [i] and .i.
-        :param key: A string representing the path to the target value, supporting
-                    dot notation for nested access.
-        :param default: An optional fallback value to be returned if the specified
-                        key path does not exist within the metadata.
-        :return: The value extracted from the metadata corresponding to the given
-                 key, or the default value if the key is not resolved.
+        Retrieve a value using a dot-notation key for deep access. Array indices are supported
+        both as ``[i]`` and ``.i``.
+
+        :param key: path to the target value, in dot notation for nested access
+        :param default: value to return if the key path does not exist in the metadata
+        :returns: the value at the key path, or the default if the key is not resolved
+        :raises ValueError: if the key matches more than one value
         """
         expr = jsonpath_ng.parse(key)
         match = expr.find(self.data)
@@ -52,9 +51,9 @@ class Metadata(UserDict):
     def get_all_part_names(self, section: str, include_path: bool = False) -> list[str]:
         """Return all part names from metadata.
 
-        :param section: Section to start looking for partnames from.
-        :param include_path: Include section-path in the returned names. e.g. "v3.train".
-        :return: List of part names.
+        :param section: section to start looking for part names from
+        :param include_path: include the section path in the returned names, e.g. "v3.train"
+        :returns: list of part names
         """
         reserved_part_names = ["default"]
 
@@ -72,13 +71,11 @@ class Metadata(UserDict):
         return part_names
 
     def get_part(self, part_path: str) -> dict[str, Any]:
-        """Retrieve a specific part of the data structure based on the given path.
+        """Get a part of the metadata, merged with the defaults of its section.
 
-        :param part_path str: A dot-separated string indicating the path to the desired part of the data structure.
-        :return dict[str, Any]: A dictionary representing the part of the data structure fetched using the
-        provided path, in union with default values for section.
-        :raises ValueError: If the provided path does not include exactly two elements separated by a dot.
-
+        :param part_path: dot-separated path to the part, typically ``section.part-name``
+        :returns: the part configuration, merged with the default values for the section
+        :raises ValueError: if the path matches more than one entry in the metadata
         """
 
         def _get_path_to_related_default(part_path: str) -> str:
@@ -98,9 +95,11 @@ class Metadata(UserDict):
 def get_shard_size_documents(part_config: dict[str, Any]) -> int:
     """Return shard size in documents from part config.
 
-    Interprets extensions bd and md, billion and million documents.
-    :param part_config: Part config dictionary.
-    :return: Shard size in documents.
+    Interpret the suffixes ``bd``, ``md`` and ``d`` as billion, million and single documents.
+
+    :param part_config: part config dictionary
+    :returns: shard size in documents
+    :raises ValueError: if the shard size has an unknown suffix
     """
     shard_size = part_config["shard"]
     if shard_size.endswith("bd"):
@@ -136,10 +135,10 @@ def get_matching_part(
 ) -> tuple[None, None] | tuple[dict, str]:
     """Get matching part config and part name from metadata for given source file name.
 
-    :param metadata: Metadata dictionary.
-    :param src_file_name: Source file name.
-    :param section_name: Name of section to looks for parts information. Default is release.
-    :return: Tuple of part config and part name.
+    :param metadata: metadata to search
+    :param src_file_name: source file name
+    :param section_name: name of the section to look for parts in
+    :returns: tuple of part config and part name, or ``(None, None)`` if no part matches
     """
     section = metadata[section_name]
     if "default" in section:

@@ -11,7 +11,6 @@ def _fake_tokenizer(name: str = "fake/tokenizer") -> MagicMock:
 
     :param name: name reported by the tokenizer
     :returns: mocked tokenizer
-
     """
     tokenizer = MagicMock()
     tokenizer.name_or_path = name

@@ -70,18 +70,14 @@ def process(collection_dir: Path) -> bool:
 def _check_annotation_section(metadata: Metadata, annotation: str) -> None:
     """Validate annotation section.
 
-    Validates annotation section of the metadata. An annotation section is a section
-    referenced by other parts via the `annotations` field.
+    Validate an annotation section of the metadata. An annotation section is a section
+    referenced by other parts via the ``annotations`` field.
 
-    Args:
-        metadata: Metadata object to validate.
-        annotation: Identifier for the specific annotation section to validate e.g., propella-4b.
-
-    Raises:
-        ValueError: If the annotation section is defined in the metadata but not used in
+    :param metadata: metadata to validate
+    :param annotation: name of the annotation section to validate, e.g. ``propella-4b``
+    :raises ValueError: if the annotation section is defined in the metadata but not used in
         any annotations field, or if a directory for the annotation exists on the filesystem
-        without a corresponding definition in the metadata.
-
+        without a corresponding definition in the metadata
     """
     directory = Path(metadata.get("_internal.collection_dir")).joinpath(annotation)
     if annotation in metadata:
@@ -100,7 +96,11 @@ def _check_input_in_section(metadata: Metadata, section: str) -> None:
 
 
 def _check_sample_section(metadata: Metadata) -> None:
-    """Validate the sample section of the metadata."""
+    """Validate the sample section of the metadata.
+
+    :param metadata: metadata to validate
+    :raises ValueError: if the sample section or its parts are invalid
+    """
     section = "sample"
     fields = [metadata.get("id", DEFAULT_ID), metadata.get("text", DEFAULT_TEXT)]
     _check_input_in_section(metadata, section)
@@ -116,7 +116,11 @@ def _check_sample_section(metadata: Metadata) -> None:
 
 
 def _check_uuid_section(metadata: Metadata) -> None:
-    """Validate the uuid section of the metadata."""
+    """Validate the uuid section of the metadata.
+
+    :param metadata: metadata to validate
+    :raises ValueError: if the uuid section is invalid
+    """
     section = "uuid"
     fields = [metadata.get("id", DEFAULT_ID)]
     _check_input_in_section(metadata, section)
@@ -124,7 +128,12 @@ def _check_uuid_section(metadata: Metadata) -> None:
 
 
 def _check_all_source_parts(metadata: Metadata, section: str = "source") -> None:
-    """Check all parts in a section that is a source to another section."""
+    """Check all parts in a section that is a source to another section.
+
+    :param metadata: metadata to validate
+    :param section: name of the section to check
+    :raises ValueError: if a part has an unknown annotation or its records lack required fields
+    """
     if "parallel" in metadata:
         fields = [
             metadata.get("parallel.source.text", SRC_TEXT_DEFAULT),
@@ -170,23 +179,18 @@ def _check_record_fields_in_sections_files(
 ) -> None:
     """Check if records match requirements in metadata.
 
-    Works on a section, subdirectory under collection_dir, and verifies:
-    * For each part, the first file and first record in the file have all required fields
-    * For the union of all parts, at least any parts the first file and first record contain optional field.
+    Work on a section, a subdirectory under collection_dir, and verify that:
 
-    If an optional field does not exist, a warning is logged.
+    * for each part, the first record in the first non-empty file has all required fields
+    * across all parts, each optional field is present in at least one of the checked records
 
-    If the sections directory does not exist, a warning is logged.
+    If an optional field does not exist, or the section directory does not exist, a warning is logged.
 
-    Args:
-        metadata: Metadata object containing section definitions.
-        section: Section name to validate.
-        required_fields: List of required field names that must be present in every record and not None.
-        optional_fields: List of field names that should be present in at least one record across the section.
-
-    Raises:
-        ValueError: If a required field is missing or has value None in any checked record.
-
+    :param metadata: metadata containing section definitions
+    :param section: name of the section to validate
+    :param required_fields: field names that must be present and not None in every checked record
+    :param optional_fields: field names that should be present in at least one record across the section
+    :raises ValueError: if a required field is missing or None in any checked record
     """
     directory = Path(metadata.get("_internal.collection_dir")).joinpath(section)
     if not directory.exists():
@@ -215,12 +219,24 @@ def _check_record_fields_in_sections_files(
 
 
 def _build_part_path(section: str, part_name: str) -> str:
-    """Build an escaped JSONpath string of section and part name."""
+    """Build an escaped JSONPath string of section and part name.
+
+    :param section: name of the section
+    :param part_name: name of the part
+    :returns: the escaped JSONPath to the part
+    """
     return f'{section}."{part_name}"' if "'" in part_name else f"{section}.'{part_name}'"
 
 
 def _check_parts_and_dirs_match(directory: Path, part_names: list[str]) -> bool:
-    """Find if there are subdirectories not matching part names."""
+    """Find if there are subdirectories not matching part names.
+
+    Log a warning for each mismatch.
+
+    :param directory: section directory to check
+    :param part_names: names of the parts defined for the section
+    :returns: True if directories and part names match, False otherwise
+    """
     part_dirs = {str(p.relative_to(directory)) for p in directory.rglob("*") if p.is_dir()}
 
     allowed_dirs = set(part_names)
@@ -264,20 +280,13 @@ def _get_one_record_from_section_dir(directory: Path, part: str, suffix: Any) ->
 def _check_fields_in_record(part: str, record: dict[str, Any], fields: list[str]):
     """Validate fields in a record.
 
-    Validates that the provided dictionary record contains all the specified fields
-    and that these fields hold non-null values. If any field is missing or its value
-    is None, an error is logged and a ValueError is raised.
+    Validate that the record contains all the given fields and that they hold non-null
+    values. If any field is missing or None, an error is logged.
 
-    Args:
-        part: String identifier for the logical section or part associated with
-            the data, used in logging and error messages to aid debugging.
-        record: Dictionary object containing the data to be validated.
-        fields: List of string keys that must exist in the record.
-
-    Raises:
-        ValueError: If any key from the field list is not found in the record or
-            maps to a None value.
-
+    :param part: name of the part the record belongs to, used in log and error messages
+    :param record: the record to validate
+    :param fields: names of the fields that must exist in the record
+    :raises ValueError: if any field is missing from the record or maps to None
     """
     for field in fields:
         if get_dict_value(record, field, None) is None:
@@ -287,10 +296,11 @@ def _check_fields_in_record(part: str, record: dict[str, Any], fields: list[str]
 def _check_all_release_parts(metadata: Metadata) -> None:
     """Validate all parts under release section.
 
-    Performs validation and configuration checks for all parts under the release section
-    in metadata
+    Perform validation and configuration checks for all parts under the release section
+    in metadata.
 
-    :param metadata: metadata
+    :param metadata: metadata to validate
+    :raises ValueError: if any part fails validation
     """
     for part in metadata.get_all_part_names("release"):
         part_path = _build_part_path("release", part)
@@ -304,18 +314,12 @@ def _check_all_release_parts(metadata: Metadata) -> None:
 def _check_release_part(part_path: str, metadata: Metadata) -> None:
     """Validate part under release section.
 
-    Performs validation and configuration checks for a specific part under the release section
+    Perform validation and configuration checks for a specific part under the release section
     identified by its path.
 
-    :param part_path: Path to part in metadata. Typically, `section.part-name`.
-    :param metadata: metadata
-
-    Raises:
-        ValueError: If validation fails.
-
-    Returns:
-        None
-
+    :param part_path: path to the part in metadata, typically ``section.part-name``
+    :param metadata: metadata to validate
+    :raises ValueError: if validation fails
     """
     part_settings = metadata.get_part(part_path)
     Validator().validate_release_part(part_settings)
@@ -325,24 +329,15 @@ def _check_release_part(part_path: str, metadata: Metadata) -> None:
 
 
 def _check_pack_config(part_path: str, part_conf: dict[str, Any]):
-    """Validate the package configuration.
+    """Validate the pack configuration.
 
-    Validates the pack configuration dictionary for a specific part based on the
-    pack mode, ensuring that required keys are present and the configuration is
-    valid for the specified mode.
+    Validate the pack configuration of a part based on the pack mode, ensuring that
+    required keys are present and the configuration is valid for the mode.
 
-    Args:
-        part_path: Path to part in metadata. Typically, `section.part-name`.
-        part_conf: A dictionary containing the configuration data, which must include a
-            "pack" key indicating the mode and corresponding configuration options
-            depending on that mode.
-
-    Raises:
-        ValueError: If validation fails
-
-    Returns:
-        None
-
+    :param part_path: path to the part in metadata, typically ``section.part-name``
+    :param part_conf: configuration of the part, with a "pack" key indicating the mode
+        and the options for that mode
+    :raises ValueError: if validation fails
     """
     match part_conf["pack"]:
         case "flat":
@@ -358,7 +353,13 @@ def _check_pack_config(part_path: str, part_conf: dict[str, Any]):
 
 
 def _check_no_sample_specific_fields(part_path: str, part_conf: dict[str, Any], invalid_fields: set[str]) -> None:
-    """Ensure only valid fields for the current sample mode are present."""
+    """Ensure only valid fields for the current sample mode are present.
+
+    :param part_path: path to the part in metadata, typically ``section.part-name``
+    :param part_conf: configuration of the part
+    :param invalid_fields: fields that must not be set in the current sample mode
+    :raises ValueError: if any of the invalid fields is set
+    """
     found_invalid = invalid_fields & set(part_conf.keys())
     if found_invalid:
         raise ValueError(
@@ -372,28 +373,15 @@ def _check_annotations_config(
 ) -> None:
     """Validate annotations.
 
-    Validates annotations defined in the part settings against a set of allowed
-    values and ensures that each annotation references a valid section in the
-    metadata.
+    Validate the annotations of a part against a set of allowed values and ensure that
+    each annotation references a valid section in the metadata.
 
-    Args:
-        part_path: Identifier for the part being checked, utilized to provide
-            context in error messages.
-        part_settings: Configuration containing the definitions to be validated,
-            specifically looking for an 'annotations' key.
-        metadata: Object acting as the source of truth for available sections,
-            ensuring all annotations point to valid entries.
-        allowed_annotations: Approved keys that are permitted for use in the
-            configuration.
-
-    Raises:
-        ValueError: If the part configuration includes annotations that are not
-            in the allowed set or if any annotation fails to map to a section in
-            the metadata.
-
-    Returns:
-        None
-
+    :param part_path: path to the part in metadata, used in error messages
+    :param part_settings: configuration of the part, with an optional "annotations" key
+    :param metadata: metadata holding the available sections
+    :param allowed_annotations: annotations permitted for the part
+    :raises ValueError: if the part has annotations that are not allowed, or if any
+        annotation does not map to a section in the metadata
     """
     part_annotations = set(part_settings.get("annotations", []))
     disallowed_annotations = part_annotations - allowed_annotations
@@ -407,22 +395,14 @@ def _check_annotations_config(
 def _check_sample_config(part_path: str, part_conf: dict[str, Any]) -> bool:
     """Validate the sample configuration.
 
-    Validates the sample configuration dictionary for a specific part based on the
-    sampling mode, ensuring that required keys are present and the configuration is
-    valid for the specified mode.
+    Validate the sample configuration of a part based on the sampling mode, ensuring
+    that required keys are present and the configuration is valid for the mode.
 
-    Args:
-        part_path: Path to part in metadata. Typically, `section.part-name`.
-        part_conf: A dictionary containing the configuration data, which must include a
-            "sample" key indicating the mode and corresponding configuration options
-            depending on that mode.
-
-    Raises:
-        ValueError: If validation fails
-
-    Returns:
-        True if sample configuration appears consistent.
-
+    :param part_path: path to the part in metadata, typically ``section.part-name``
+    :param part_conf: configuration of the part, with a "sample" key indicating the mode
+        and the options for that mode
+    :returns: True if the sample configuration appears consistent
+    :raises ValueError: if validation fails
     """
     match part_conf["sample"]:
         case "full":

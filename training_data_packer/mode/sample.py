@@ -25,7 +25,12 @@ def process(
     collection_dir: Path,
     args: dict[str, Any] | None = None,
 ) -> None:
-    """Schedule sampling for files to be sampled according to metadata in collection dir."""
+    """Schedule sampling for files to be sampled according to metadata in collection dir.
+
+    :param collection_dir: collection directory containing ``metadata.yaml``
+    :param args: command line options, e.g. ``workers``, ``slurm``, ``part`` and ``token_count``
+    :raises ValueError: if no source files are found
+    """
     if args is None:
         args = {}
     workers = args.get("workers", 1)

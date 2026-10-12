@@ -17,12 +17,8 @@ def _get_my_partition_tasks(files: list[Any], task_count: int, task_id: int) -> 
 def get_my_slurm_tasks(files: list[Any]) -> list[Any]:
     """Get selection of files to be processed by current slurm array task id.
 
-    Args:
-        files: List of files to be partitioned.
-
-    Returns:
-        The subset of files to be processed by current slurm array task id.
-
+    :param files: files to partition
+    :returns: the subset of files to be processed by the current slurm array task
     """
     task_count = os.environ["SLURM_ARRAY_TASK_COUNT"]
     task_id = os.environ["SLURM_ARRAY_TASK_ID"]
@@ -40,36 +36,16 @@ def schedule_files(
 ):
     """Schedule files for processing.
 
-    Schedules the execution of a specific function across a list of files,
-    supporting both sequential and parallel execution modes as well as integration
-    with SLURM job arrays.
+    Run a function on each work item, sequentially or in parallel. If ``slurm`` is set,
+    only the items assigned to the current SLURM array task are processed. With more
+    than one worker, items are distributed over a process pool.
 
-    This function determines the set of files to process based on the provided
-    parameters. If the SLURM flag is enabled, it filters the input list to match
-    the specific tasks assigned to the current job step; otherwise, it processes
-    all provided files. The execution strategy depends on the number of workers
-    specified: a count greater than one utilizes a process pool to distribute
-    tasks in parallel, while a count of one processes files sequentially. In the
-    event of parallel execution, the function monitors the worker processes and
-    raises a collective error if any individual task fails.
-
-    Args:
-        all_work_items: List of file paths, part names etc that are candidates for processing.
-        metadata: Metadata configuration.
-        function: Callable that accepts a single file path argument and performs
-            the desired operations.
-        workers: Number of parallel worker processes to utilize. If set to 1,
-            processing occurs sequentially. Defaults to 1.
-        slurm: Flag indicating whether to filter files based on the current SLURM
-            task ID. Defaults to False.
-
-    Raises:
-        RuntimeError: If the workers parameter is greater than one and one or
-            more worker processes fail during execution.
-
-    Returns:
-        None
-
+    :param all_work_items: file paths, part names, etc. that are candidates for processing
+    :param metadata: metadata of the collection
+    :param function: function called with a work item and the metadata
+    :param workers: number of parallel worker processes; 1 means sequential processing
+    :param slurm: process only the items assigned to the current SLURM array task
+    :raises RuntimeError: if one or more worker processes fail
     """
     if slurm:
         task_work_items = get_my_slurm_tasks(all_work_items)

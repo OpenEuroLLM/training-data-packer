@@ -34,7 +34,7 @@ class Count:
     def get_metrics(self):
         """Get metrics for the mapper.
 
-        :return: Dictionary with metrics.
+        :returns: dictionary with metrics
         """
         metrics = {
             "documents": self._documents,
