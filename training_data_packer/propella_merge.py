@@ -67,7 +67,7 @@ def process_file(metadata: Metadata, source_name: str, propella_dir: Path):
     new_name = change_suffix(
         source_name,
         metadata.get("source.default.suffix", metadata.get("suffix", DEFAULT_SUFFIX)),
-        metadata.get("annotations.propella-4b.suffix", metadata.get("suffix", DEFAULT_SUFFIX)),
+        metadata.get("propella-4b.suffix", metadata.get("suffix", DEFAULT_SUFFIX)),
     )
     out_file_name = propella_dir.joinpath(new_name)
 

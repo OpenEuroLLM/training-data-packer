@@ -33,7 +33,7 @@ def get_lookup_fn(parquet_path: str | Path, field: str):
         raise FileNotFoundError(f"'{parquet_path}' is not a valid directory nor file.")
 
     lookup_dict: dict[Any, list[dict[str, Any]]] = {}
-    logger.info("Reading parquet files: {','.join(parquet_files)")
+    logger.info(f"Reading parquet files: {parquet_files}")
     duplicated_keys = set()
     rows_read = 0
     missing_id_field = 0

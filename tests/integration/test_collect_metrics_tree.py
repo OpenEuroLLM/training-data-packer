@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import yaml
 
-import tests.test_utils.metadata
+import tests.helpers.metadata
 from training_data_packer.collect_metrics import main
 from training_data_packer.metadata.metadata import Metadata
 from training_data_packer.utils import misc
@@ -25,7 +25,7 @@ class TestCollectMetricsTree(unittest.TestCase):
                         "release": {"default": {"pack": "tree"}, "part1": {}, "part2": {}},
                         "source": {"part1": {}, "part2": {}},
                     },
-                    tests.test_utils.metadata.minimal_metadata_dict,
+                    tests.helpers.metadata.minimal_metadata_dict,
                 )
             )
             with open(tmp_path / "metadata.yaml", "w") as f:

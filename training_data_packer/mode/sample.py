@@ -54,7 +54,7 @@ def sample_file(src_file: Path, metadata: Metadata) -> None:
     collection_dir = metadata["_internal.collection_dir"]
     part_config, _ = get_matching_part(metadata, src_file, section_name="sample")
     if part_config is None:
-        logger.info(f"Skipping {src_file}, does not match a release part")
+        logger.info(f"Skipping {src_file}, does not match a sample part")
         return
 
     out_file = calculate_file_path(src_file, metadata, collection_dir.joinpath("sample"))

@@ -37,7 +37,7 @@ def aggregate_metrics(metrics_list: list[dict[str, Any]]) -> dict[str, Any]:
                 elif isinstance(value, str):
                     if key in summary[section_name]:
                         if summary[section_name][key] != value:
-                            summary[section_name][key] = {value, summary[section_name][key]}
+                            summary[section_name][key] = set(value).union(summary[section_name][key])
                         else:
                             pass  # If value is same as already collect, just keep as is.
                     else:

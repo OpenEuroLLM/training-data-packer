@@ -165,10 +165,10 @@ def _split_email(email):
         domain = parts[2].strip()
         return username, domain, separator
     else:
-        raise ValueError("Invalid email {email}")
+        raise ValueError(f"Invalid email {email}")
 
 
-def _mask_email_address(document: dict[str, Any], pii_record: dict[str, Any], cache=dict[str, str]) -> dict[str, Any]:
+def _mask_email_address(document: dict[str, Any], pii_record: dict[str, Any], cache: dict[str, str]) -> dict[str, Any]:
     """Mask email address.
 
     Mask an email address by replacing it with a random email address.

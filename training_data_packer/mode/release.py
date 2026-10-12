@@ -166,7 +166,6 @@ def package_file(src_file: Path, metadata: Metadata) -> None:
 
     writer = JsonlZstWriter(tmp_out_file)
     writer.write(counted_iter)
-    os.rename(tmp_out_file, out_file)
     metrics_collection = metrics.collect_metrics(
         src_reader,
         pii_masker,
@@ -179,3 +178,4 @@ def package_file(src_file: Path, metadata: Metadata) -> None:
     )
     metrics_filename = out_file.parent.joinpath("." + out_file.name + ".metrics.json")
     metrics.write_metrics_to_file(metrics_collection, metrics_filename)
+    os.rename(tmp_out_file, out_file)
