@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Any
 
 from loguru import logger
 
@@ -11,6 +12,7 @@ from training_data_packer.metadata import (
     get_source_dir,
     read_metadata,
 )
+from training_data_packer.processor import count
 from training_data_packer.processor.clean import AlignFieldNames, field_scrubber_factory
 from training_data_packer.processor.propella import propella_annotate_factory
 from training_data_packer.processor.sample.sampler import sampler_factory
@@ -21,13 +23,17 @@ from training_data_packer.utils.slurm import schedule_files
 
 def process(
     collection_dir: Path,
-    workers=1,
-    slurm: bool = False,
-    part: str | None = None,
+    args: dict[str, Any] | None = None,
 ) -> None:
     """Schedule sampling for files to be sampled according to metadata in collection dir."""
+    if args is None:
+        args = {}
+    workers = args.get("workers", 1)
+    slurm = args.get("slurm", False)
+    part = args.get("part", None)
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
     metadata["_internal"]["mode"] = "sample"
+    metadata["_internal"]["token_count"] = args.get("token_count", False)
     source_dir = get_source_dir(metadata)
     src_suffix = get_in_suffix(metadata, "sample")
     all_files = find_files(source_dir, src_suffix, part)
@@ -70,12 +76,16 @@ def sample_file(src_file: Path, metadata: Metadata) -> None:
     else:
         raise ValueError("Metadata does not contain sample section.")
 
+    counter = count.Count(metadata)
+    counted_iter = counter.get_iterator(sampled_iter)
+
     writer = JsonlZstWriter(tmp_out_file)
-    writer.write(sampled_iter)
+    writer.write(counted_iter)
     os.rename(tmp_out_file, out_file)
     metrics_collection = metrics.collect_metrics(
         src_reader,
         sampler_metrics,
+        counter,
         writer,
     )
     metrics_filename = out_file.parent.joinpath("." + out_file.name + ".metrics.json")

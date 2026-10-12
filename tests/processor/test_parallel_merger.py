@@ -45,7 +45,7 @@ class TestParallelLanguageMerger(unittest.TestCase):
     def test_get_metrics_initial(self):
         merger = ParallelLanguageMerger(self.metadata, {})
         metrics = merger.get_metrics()
-        expected = {"parallel_merger_matching": {"processed_records": 0, "written_records": 0}}
+        expected = {"parallel_merger_matching": {"document_processed": 0, "document_written": 0}}
         self.assertEqual(metrics, expected)
 
     def test_mapper_single_document(self):
@@ -187,7 +187,7 @@ class TestParallelSyntheticId(unittest.TestCase):
         to_test = ParallelSyntheticId(Metadata({}))
         result = to_test.get_mapper()(doc)
         self.assertEqual("ecefffc59192dd7f300f750650a3d21e7a2ea1c9854552ab2f83c7fb4986a08b", result["id"])
-        self.assertEqual({"parallel_synthetic_id": {"processed_records": 1}}, to_test.get_metrics())
+        self.assertEqual({"parallel_synthetic_id": {"document_processed": 1}}, to_test.get_metrics())
 
     def test_create_synthetic_id_mapper_alternativ_fields(self):
         doc = {"field1": "foo bar", "field2": "gazonk"}
@@ -206,7 +206,7 @@ class TestParallelSyntheticId(unittest.TestCase):
         to_test = ParallelSyntheticId(metadata)
         result = to_test.get_mapper()(doc)
         self.assertEqual("ecefffc59192dd7f300f750650a3d21e7a2ea1c9854552ab2f83c7fb4986a08b", result["id"])
-        self.assertEqual({"parallel_synthetic_id": {"processed_records": 1}}, to_test.get_metrics())
+        self.assertEqual({"parallel_synthetic_id": {"document_processed": 1}}, to_test.get_metrics())
 
 
 if __name__ == "__main__":

@@ -74,10 +74,10 @@ class DynamicSampler:
     def get_metrics(self):
         return {
             self._name: {
-                "lines_read": self._metric_lines_processed,
-                "lines_written": self._metric_lines_produced,
-                "lines_not_kept": self._metric_lines_removed,
-                "lines_upsampled": self._metric_lines_upsampled,
+                "document_read": self._metric_lines_processed,
+                "document_written": self._metric_lines_produced,
+                "document_removed": self._metric_lines_removed,
+                "document_upsampled": self._metric_lines_upsampled,
                 "sampler_ratio_exceptions": self._sampler_ratio_fn_exceptions,
             }
         }

@@ -43,6 +43,11 @@
       "minLength": 1,
       "default": ".jsonl.zst"
     },
+    "tokenizer": {
+      "type": "string",
+      "description": "Tokenizer to use.",
+      "minLength": 1
+    },
     "release": {
       "type": "object",
       "description": "Object describing detail of how release packaging is done.",

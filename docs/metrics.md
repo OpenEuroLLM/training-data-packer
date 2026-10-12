@@ -7,22 +7,23 @@ The metric file looks like:
 ```json
 {
   "input": {
-    "lines_read": 75094
+    "document_read": 75094
   },
   "pii_masker": {
-    "masked_documents": 1731,
+    "document_documents": 1731,
     "pii_documents": 124204
   },
   "contamination": {
-    "removed": 13,
-    "list_length": 4377
+    "document_removed": 13,
+    "blocklist_length": 4377
   },
   "block_list": {
-    "list_length": 1,
-    "removed": 1
+    "document_removed": 1,
+    "blocklist_length": 1
   },
   "output": {
-    "lines_written": 75081
+    "document_written": 75081,
+    "size_bytes": 8402134
   }
 }
 ```
@@ -34,37 +35,63 @@ To collect and summarize metrics for an entire collection, use the `oellm-collec
 uv run oellm-collect-metrics --collection-dir ${COLLECTION_DIR}
 ```
 
-This will read all `.filename.metrics.json` files in the `release_raw` directory and its subdirectories, 
+This will read all `.filename.metrics.json` files in the `release_raw` directory and its subdirectories,
 sum up all numeric values, and write a summary to `metrics.json` in the `release_raw` directory.
 
-If `metadata.yaml` has `release.default.pack` set to `tree`, the tool will instead create a `metrics.json` 
+If `metadata.yaml` has `release.default.pack` set to `tree`, the tool will instead create a `metrics.json`
 file for each release section (except `default`) in their respective subdirectories under `release_raw`.
 
 ## Metric description
 
-### input.lines_read
-Number of lines read from input file.
+### Input
+* `document_read` - Number of documents read from file
 
-### pii_masker.masked_documents
-Number of documents where PII was masked.
 
-### pii_masker.pii_documents
-Number of unique documents in pii data. If everything match it shall be equal to
-`pii_masker.masked_documents`.
+### Count
+* `documents` - Number of documents, if last in chain it shall be same as output.
+* `segments` - Number of document segments, correspond to number of new lines.
+* `tokens` - Number of tokens, tokenizer used described in `tokenizer` field.
+* `tokenizer` - Name of tokenizer used.
+* `characters` - Number of characters.
+* `unique_keys` - Number of unique document keys. Ideally same as documents.
 
-### contamination.removed
-Number of documents removed due to contamination. 
 
-### contamination.list_length
-Number of documents in contamination data. If everything match it shall be equal to
-`contamination.removed`.
+### Dynamic sampler
+* `document_read` - Documents read into the sampler.
+* `document_written` - Number document output by the sampler.
+* `document_removed` - Documents removed by sampler.
+* `document_upsampled` - Document upsampled by sampler.
+* `sampler_ratio_exceptions` - Number of exceptions from sampler. Ideally 0.
 
-### block_list.removed
-Number of documents removed due to blocklist. 
+### Filter
+This metric record is the same for contamination and blocklist.
+* `document_removed` - Number of documents removed.
+* `blocklist_length` - Number of documents in the filter list. If everything align, it shall be equal to
+`document_removed`.
 
-### block_list.list_length
-Length of block list in `metadata.yaml`. If everything match it shall be equal to
-`block_list.removed`.
+If `document_removed` greater than `blocklist_length` it is a sign of key duplication.
+If `document_removed` are less than `blocklist_length` it is an indication of indata is not all documents.
 
-### output.lines_written
-Number of lines written in output.
+### Parallel synthetic ID
+Metric of synthetic id has been generated for parallel languages.
+* `document_processed` - Number of document processed.
+
+### Parallel merger
+* `document_processed` - Language pair processed.
+* `document_written` - Document written from parallel merger.
+
+Quote between `document_processed` and `document_written` shall be close to `parallel.count` in metadata.
+It will not be exact since number of documents may not be even divided by count.
+
+### PII-masking
+* `document_masked` - Number of documents PII was masked.
+* `pii_records` - Number of unique document id in PII data.
+
+If document ids are unique and PII records are stored by part, `document_masked` and `pii_records` will be the same.
+
+### Propella
+* `document_processed` - Documents processed with propella data.
+* `document_unmatched` - Number of documents with no matching propella data.
+
+### Output
+* `document_written` - Number of documents written to output file.

@@ -52,7 +52,10 @@ class ParallelLanguageMerger:
         :return: Dictionary with metrics.
         """
         return {
-            self._metric_name: {"processed_records": self._processed_records, "written_records": self._written_records}
+            self._metric_name: {
+                "document_processed": self._processed_records,
+                "document_written": self._written_records,
+            }
         }
 
     def get_mapper(self) -> Callable[[list[dict[Any]]], dict[Any]]:
@@ -120,7 +123,7 @@ class ParallelSyntheticId:
 
         :return: Dictionary with metrics.
         """
-        return {self._metric_name: {"processed_records": self._processed_records}}
+        return {self._metric_name: {"document_processed": self._processed_records}}
 
     def get_mapper(self) -> Callable[[dict[str, Any]], dict[str, Any]]:
 

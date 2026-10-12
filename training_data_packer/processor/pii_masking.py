@@ -398,8 +398,8 @@ class PIIMasker:
         """
         return {
             self._metric_name: {
-                "masked_documents": self._masked_documents,
-                "pii_documents": self._pii_documents,
+                "document_masked": self._masked_documents,
+                "pii_records": self._pii_documents,
             }
         }
 

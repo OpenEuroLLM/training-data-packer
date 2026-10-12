@@ -13,6 +13,7 @@ from training_data_packer.metadata import (
     get_source_dir,
     read_metadata,
 )
+from training_data_packer.processor import count
 from training_data_packer.processor.clean import AlignFieldNames, field_scrubber_factory
 from training_data_packer.processor.filters import FilterOnBlocklist
 from training_data_packer.processor.parallel_merger import ParallelLanguageMerger, ParallelSyntheticId
@@ -25,13 +26,17 @@ from training_data_packer.utils.slurm import schedule_files
 
 def process(
     collection_dir: Path,
-    workers=1,
-    slurm: bool = False,
-    part: str | None = None,
+    args: dict[str, Any] | None = None,
 ) -> None:
     """Schedule release packaging for files to be delivered according to metadata in collection dir."""
+    if args is None:
+        args = {}
+    workers = args.get("workers", 1)
+    slurm = args.get("slurm", False)
+    part = args.get("part", None)
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
     metadata["_internal"]["mode"] = "release"
+    metadata["_internal"]["token_count"] = args.get("token_count", False)
     source_dir = get_source_dir(metadata)
     src_suffix = get_in_suffix(metadata, "release")
     all_files = find_files(source_dir, src_suffix, part)
@@ -146,8 +151,11 @@ def package_file(src_file: Path, metadata: Metadata) -> None:
         filtered_iter = scrub_iter
     sampled, sampled_metrics = sampler_factory(filtered_iter, metadata, src_file)
 
+    counter = count.Count(metadata)
+    counted_iter = counter.get_iterator(sampled)
+
     writer = JsonlZstWriter(tmp_out_file)
-    writer.write(sampled)
+    writer.write(counted_iter)
     os.rename(tmp_out_file, out_file)
     metrics_collection = metrics.collect_metrics(
         src_reader,
@@ -155,6 +163,7 @@ def package_file(src_file: Path, metadata: Metadata) -> None:
         contamination_filter,
         block_filter,
         sampled_metrics,
+        counter,
         *parallel_metrics,
         writer,
     )
