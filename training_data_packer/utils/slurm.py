@@ -8,6 +8,19 @@ from loguru import logger
 from training_data_packer.metadata import Metadata
 
 
+def is_slurm_job() -> bool:
+    """Check if the current process is running inside a SLURM job."""
+    return os.environ.get("SLURM_ARRAY_TASK_ID") is not None
+
+
+def get_array_task_id() -> int:
+    return int(os.environ["SLURM_ARRAY_TASK_ID"])
+
+
+def get_array_task_count() -> int:
+    return int(os.environ["SLURM_ARRAY_TASK_COUNT"])
+
+
 def _get_my_partition_tasks(files: list[Any], task_count: int, task_id: int) -> list[Any]:
     return files[task_id - 1 :: task_count]
 
@@ -18,9 +31,9 @@ def get_my_slurm_tasks(files: list[Any]) -> list[Any]:
     :param files: files to partition
     :returns: the subset of files to be processed by the current slurm array task
     """
-    task_count = os.environ["SLURM_ARRAY_TASK_COUNT"]
-    task_id = os.environ["SLURM_ARRAY_TASK_ID"]
-    task_files = _get_my_partition_tasks(files, int(task_count), int(task_id))
+    task_count = get_array_task_count()
+    task_id = get_array_task_id()
+    task_files = _get_my_partition_tasks(files, task_count, task_id)
     logger.info(f"Slurm task id: {task_id} of {task_count}, processing {len(task_files)} files")
     return task_files
 
@@ -46,7 +59,7 @@ def schedule_files(
     :raises RuntimeError: if one or more worker processes fail
     """
     if slurm:
-        task_work_items = all_work_items
+        task_work_items = get_my_slurm_tasks(all_work_items)
     else:
         logger.info("Not a SLURM task, processing all files")
         task_work_items = all_work_items

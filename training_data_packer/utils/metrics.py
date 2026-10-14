@@ -50,3 +50,31 @@ def aggregate_metrics(metrics_list: list[dict[str, Any]]) -> dict[str, Any]:
                 else:
                     logger.warning(f"Could not manage {section_name}.{key}: {value}")
     return summary
+
+
+def merge_metrics(work_dir: Path, dest_dir: Path | None = None):
+    def _collect_metrics_for_dir(output_file: Path):
+        logger.info(f"Collecting metrics from {work_dir}")
+
+        metrics_files = list(work_dir.rglob(".*.metrics.json"))
+        logger.info(f"Found {len(metrics_files)} metrics files")
+
+        all_metrics = []
+        for metrics_file in metrics_files:
+            try:
+                with open(metrics_file) as f:
+                    all_metrics.append(json.loads(f.read()))
+            except Exception as e:
+                logger.error(f"Failed to read {metrics_file}: {e}")
+
+        if not all_metrics:
+            logger.warning(f"No metrics files found in {work_dir}")
+            return
+
+        summary = aggregate_metrics(all_metrics)
+        write_metrics_to_file(summary, output_file)
+        logger.info(f"Summary written to {output_file}")
+
+    if dest_dir is None:
+        dest_dir = work_dir
+    _collect_metrics_for_dir(dest_dir.joinpath("metrics.json"))

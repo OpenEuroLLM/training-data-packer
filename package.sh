@@ -17,4 +17,4 @@ else
 fi
 export LOGURU_LEVEL=INFO
 
-time uv run oellm-package-data --collection-dir ${COLLECTION_DIR} $MODE --workers 8 --slurm
+time uv run oellm-package-data --collection-dir ${COLLECTION_DIR} $MODE --workers 8

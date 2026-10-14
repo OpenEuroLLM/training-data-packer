@@ -19,9 +19,8 @@ from training_data_packer.processor.filters import FilterOnBlocklist
 from training_data_packer.processor.parallel_merger import ParallelLanguageMerger, ParallelSyntheticId
 from training_data_packer.processor.pii_masking import PIIMasker, openai_mask_document
 from training_data_packer.processor.sample.sampler import sampler_factory
-from training_data_packer.utils import metrics
+from training_data_packer.utils import metrics, slurm
 from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, find_files, prepare_output_file
-from training_data_packer.utils.slurm import schedule_files
 
 
 def process(
@@ -31,13 +30,12 @@ def process(
     """Schedule release packaging for files to be delivered according to metadata in collection dir.
 
     :param collection_dir: collection directory containing ``metadata.yaml``
-    :param args: command line options, e.g. ``workers``, ``slurm``, ``part`` and ``token_count``
+    :param args: command line options, e.g. ``workers``, ``part`` and ``token_count``
     :raises ValueError: if no source files are found
     """
     if args is None:
         args = {}
     workers = args.get("workers", 1)
-    slurm = args.get("slurm", False)
     part = args.get("part", None)
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
     metadata["_internal"]["mode"] = "release"
@@ -50,7 +48,7 @@ def process(
         raise ValueError("No files detected")
     logger.info(f"Found {len(all_files)} files")
 
-    schedule_files(all_files, metadata, package_file, workers, slurm)
+    slurm.schedule_files(all_files, metadata, package_file, workers, slurm.is_slurm_job())
 
 
 def parallel_package_pipeline(

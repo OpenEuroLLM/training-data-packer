@@ -13,12 +13,6 @@ def main():
     parser.add_argument("--collection-dir", help="Directory for collection", required=True)
     parser.add_argument("-w", "--workers", help="Number of workers, default is 1", type=int, default=1)
     parser.add_argument(
-        "-s",
-        "--slurm",
-        help="Only process files for my slurm partition",
-        action="store_true",
-    )
-    parser.add_argument(
         "--token-count",
         help="Count tokens, slower processing",
         action="store_true",
@@ -36,7 +30,7 @@ def main():
     match args.mode:
         case "lint":
             if args.slurm or args.workers > 1 or args.part is not None or args.token_count:
-                raise ValueError("Lint mode does not support SLURM, multiple workers, part selection, or counting")
+                raise ValueError("Lint mode does not support multiple workers, part selection, or counting")
             if not lint.process(Path(args.collection_dir)):
                 sys.exit(1)
         case "release":
