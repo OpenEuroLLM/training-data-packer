@@ -28,6 +28,9 @@ If it times out just rerun again; you can even change the array size on re-runs.
 6. Check data in `release-raw` directory under the provided path. There are also hidden metric files.
 7. Start the merge step to reduce number of files: `sbatch --array=0-9 ./merge.sh /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0`
 8. Check data in `release` directory under the provided path.
+
+Steps 5 and 7 can be submitted together: `./package_and_merge.sh /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0 0-4 0-9`.
+The merge job (array `0-9`) only starts if every task of the package job (array `0-4`) succeeds.
 9. Move logs from `logs` directory within the directory where you checked out the code into `/scratch/project_465002530/training/collection/flag/log/release`
 
 The three first steps are a one time operation or when you update the packager.
@@ -152,6 +155,14 @@ It can also run via slurm:
 ```shell
 sbatch --array=0-9 ./merge.sh \
     /scratch/project_465002530/training/collection/baby/nemotron-cc-opus-1.1
+```
+
+To package in the default `release` mode and merge in one go, submit both jobs with a dependency.
+The arguments are the collection directory, the package array and the merge array.
+The merge job only starts if every package task succeeds; otherwise it is cancelled.
+```shell
+./package_and_merge.sh \
+    /scratch/project_465002530/training/collection/baby/nemotron-cc-opus-1.1 0-49 0-9
 ```
 
 ### Propella Structure: oellm-propella-structure
