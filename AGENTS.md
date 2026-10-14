@@ -32,7 +32,7 @@ uv run oellm-package-data --collection-dir <dir> --mode merge    # release-raw/ 
 uv run oellm-collect-metrics --help
 ```
 
-`lint` mode does not accept `--slurm`, `--workers`, `--part`, or `--token-count`.
+`lint` mode does not accept `--workers`, `--part`, or `--token-count`.
 The `*.sh` scripts in the repo root are SLURM wrappers for the LUMI cluster, so don't run them locally.
 
 ## Project layout

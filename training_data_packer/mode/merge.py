@@ -14,8 +14,9 @@ from training_data_packer.metadata import (
     read_metadata,
 )
 from training_data_packer.metadata.defaults import DEFAULT_SUFFIX, PREFIX_DEFAULT
+from training_data_packer.utils import slurm
 from training_data_packer.utils.file import find_files
-from training_data_packer.utils.slurm import schedule_files
+from training_data_packer.utils.metrics import merge_metrics
 
 
 def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: int, file_prefix: str):
@@ -79,6 +80,8 @@ def merge_part(part_name: str, metadata: Metadata):
         docs_per_shard,
         part_config.get("prefix", PREFIX_DEFAULT),
     )
+    if not flat_output:
+        merge_metrics(input_dir.joinpath(part_name), output_dir.joinpath(part_name))
 
 
 def process(
@@ -88,7 +91,6 @@ def process(
     if args is None:
         args = {}
     workers = args.get("workers", 1)
-    slurm = args.get("slurm", False)
     part = args.get("part", None)
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
     metadata["_internal"]["mode"] = "merge"
@@ -113,19 +115,25 @@ def process(
         logger.info("All parts will be flatten into one. This will run single threaded.")
 
     if parts == ["default"]:
-        metadata["suffix"] = DEFAULT_SUFFIX
-        files = find_files(input_dir, metadata.get("suffix", DEFAULT_SUFFIX))
-        docs_per_shard = get_shard_size_documents(metadata["release.default"])
-        merge(
-            files,
-            output_dir,
-            docs_per_shard,
-            PREFIX_DEFAULT,
-        )
+        if (slurm.is_slurm_job() and slurm.get_array_task_id() == 1) or not slurm.is_slurm_job():
+            metadata["suffix"] = DEFAULT_SUFFIX
+            files = find_files(input_dir, metadata.get("suffix", DEFAULT_SUFFIX))
+            docs_per_shard = get_shard_size_documents(metadata["release.default"])
+            merge(
+                files,
+                output_dir,
+                docs_per_shard,
+                PREFIX_DEFAULT,
+            )
+            merge_metrics(input_dir, output_dir)
+        else:
+            logger.info(f"Only one task is allowed for this merge. My task id is {slurm.get_array_task_id()}")
         return True
     else:
         try:
-            schedule_files(parts, metadata, merge_part, workers, slurm)
+            slurm.schedule_files(parts, metadata, merge_part, workers, slurm.is_slurm_job())
+            if not slurm.is_slurm_job() or (slurm.is_slurm_job() and slurm.get_array_task_id() == 1):
+                merge_metrics(input_dir, output_dir)
             return True
         except RuntimeError:
             return False

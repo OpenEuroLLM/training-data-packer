@@ -23,6 +23,7 @@ dependencies = [
     "referencing>=0.37.0",
     "jsonpath-ng>=1.8.0",
     "glom>=25.12.0",
+    "slurm>=0.5.1",
 ]
 
 [project.urls]

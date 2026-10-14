@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.14"
 
 [[package]]
@@ -819,6 +819,18 @@ wheels = [
 ]
 
 [[package]]
+name = "slurm"
+version = "0.5.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyyaml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f1/08/a045abc2dcd3e375ee52ef6d2bdc29949c8f0a6af7e9aab6e9a3de70c474/slurm-0.5.1.tar.gz", hash = "sha256:07402f1c77884489d24337f9db28c02265a8846152fa44eb18f8b3de31e6850f", size = 11354, upload-time = "2022-05-30T00:27:55.328Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9c/b7/4fd9afa7ae7732ee9283cbfdeced5b5d9300af44bcfca46ee911542d945f/slurm-0.5.1-py3-none-any.whl", hash = "sha256:aa73fb80c80436f29bc652e2459e740a8932128ab92d3c8107c30e7a383d84e1", size = 11657, upload-time = "2022-05-30T00:27:53.702Z" },
+]
+
+[[package]]
 name = "tokenizers"
 version = "0.22.2"
 source = { registry = "https://pypi.org/simple" }
@@ -873,6 +885,7 @@ dependencies = [
     { name = "referencing" },
     { name = "scipy" },
     { name = "scipy-stubs" },
+    { name = "slurm" },
     { name = "transformers" },
     { name = "zstandard" },
 ]
@@ -900,6 +913,7 @@ requires-dist = [
     { name = "referencing", specifier = ">=0.37.0" },
     { name = "scipy", specifier = ">=1.17.1" },
     { name = "scipy-stubs", specifier = "~=1.17.1" },
+    { name = "slurm", specifier = ">=0.5.1" },
     { name = "transformers", specifier = "~=5.14.1" },
     { name = "zstandard", specifier = ">=0.25.0" },
 ]

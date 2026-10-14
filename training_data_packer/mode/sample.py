@@ -16,9 +16,8 @@ from training_data_packer.processor import count
 from training_data_packer.processor.clean import AlignFieldNames, field_scrubber_factory
 from training_data_packer.processor.propella import propella_annotate_factory
 from training_data_packer.processor.sample.sampler import sampler_factory
-from training_data_packer.utils import metrics
+from training_data_packer.utils import metrics, slurm
 from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, find_files, prepare_output_file
-from training_data_packer.utils.slurm import schedule_files
 
 
 def process(
@@ -34,7 +33,6 @@ def process(
     if args is None:
         args = {}
     workers = args.get("workers", 1)
-    slurm = args.get("slurm", False)
     part = args.get("part", None)
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
     metadata["_internal"]["mode"] = "sample"
@@ -47,7 +45,7 @@ def process(
         raise ValueError("No files detected")
     logger.info(f"Found {len(all_files)} files")
 
-    schedule_files(all_files, metadata, sample_file, workers, slurm)
+    slurm.schedule_files(all_files, metadata, sample_file, workers, slurm.is_slurm_job())
 
 
 def sample_file(src_file: Path, metadata: Metadata) -> None:
