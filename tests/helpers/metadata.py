@@ -1,1 +1,5 @@
-minimal_metadata_dict = {"name": "dataset name", "release": {"default": {"input": "source", "pack": "flat"}}}
+minimal_metadata_dict = {
+    "name": "dataset name",
+    "tokenizer": "dummy/tokenizer",
+    "release": {"default": {"input": "source", "pack": "flat"}},
+}

@@ -421,7 +421,8 @@
   },
   "required": [
     "name",
-    "release"
+    "release",
+    "tokenizer"
   ],
   "patternProperties": {
     "^_": {
