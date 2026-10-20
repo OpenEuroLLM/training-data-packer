@@ -88,6 +88,8 @@ uv run pre-commit install
 
 Tip is to do an `uv sync` evry time pulling from the repository.
 
+The software is tested on Linux and MacOS. These are the focus platforms. It is not tested on Windows.
+
 ## Run
 
 ### The packager: oellm-package-data
@@ -184,4 +186,13 @@ uv run oellm-propella-merge --collection-dir ${COLLECTION_DIR} --part ${part}
 Before checking in run tests, linting and formating:
 ```shell
 uv run pre-commit
+```
+
+### Test megatron similarity
+
+When working with tokenizer it is valuable to ensure compatibility with Megatron-LM.
+These tests are skipped if megatron not installed. To install megatron do:
+
+```shell
+uv sync --extra megatron
 ```

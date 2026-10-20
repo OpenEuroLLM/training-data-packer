@@ -1,4 +1,5 @@
 name: Test data
+tokenizer: dummy/tokenizer
 suffix: .jsonl.zst
 text: text
 id: id
