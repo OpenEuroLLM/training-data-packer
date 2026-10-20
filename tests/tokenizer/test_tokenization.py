@@ -26,6 +26,20 @@ class TestEncodedBatch:
         assert result.num_documents == 5
         assert result.num_empty == 3
 
+    def test_with_bos_prepends_to_every_document(self) -> None:
+        result = batch([1, 2], [3], [4, 5, 6]).with_bos(8)
+        assert split(result) == [[8, 1, 2], [8, 3], [8, 4, 5, 6]]
+        assert result.tokens.dtype == np.uint32
+
+    def test_with_bos_leaves_empty_documents_empty(self) -> None:
+        result = batch([], [1], [], [2, 3], []).with_bos(8)
+        assert result.lengths.tolist() == [0, 2, 0, 3, 0]
+        assert result.tokens.tolist() == [8, 1, 8, 2, 3]
+
+    def test_with_bos_and_eod_wrap_every_document(self) -> None:
+        result = batch([1, 2], [], [3]).with_bos(8).with_eod(9)
+        assert split(result) == [[8, 1, 2, 9], [], [8, 3, 9]]
+
     def test_with_eod_appends_to_every_document(self) -> None:
         result = batch([1, 2], [3], [4, 5, 6]).with_eod(9)
         assert split(result) == [[1, 2, 9], [3, 9], [4, 5, 6, 9]]
@@ -82,4 +96,5 @@ def test_real_hub_tokenizer() -> None:
 def test_default_openeurollm_tokenizer() -> None:
     encoder = GigatokenEncoder.load("openeurollm/tokenizer-256k-v2")
     assert encoder.vocab_size == 262144
+    assert encoder.token_to_id("<bos>") == 1
     assert encoder.token_to_id("<eos>") == 2
