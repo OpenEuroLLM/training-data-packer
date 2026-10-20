@@ -29,7 +29,7 @@ def main():
 
     match args.mode:
         case "lint":
-            if args.slurm or args.workers > 1 or args.part is not None or args.token_count:
+            if "slurm" in args or args.workers > 1 or args.part is not None or args.token_count:
                 raise ValueError("Lint mode does not support multiple workers, part selection, or counting")
             if not lint.process(Path(args.collection_dir)):
                 sys.exit(1)
