@@ -8,6 +8,7 @@ The packer consists of the following tools:
     then run it again, and it will take of where it left. This is the main tool.
     The tool contain three sub tools: `lint`, `sample`, `release` (default), and `merge`.
 * `oellm-collect-metrics` - Collect and summarize metrics from a collection directory.
+  This does also happens automatically when run `oellm-package-data` in mode `merge`.
 * `oellm-propella-structure` - Structure Propella data based on source data structure. For each record in the
     source files, if its ID exists in the Propella data, it is written to the output. This arranges Propella
     data in the same oßrder as source data.
@@ -65,6 +66,7 @@ dataset-directory/
 
 3. **Consolidation (`oellm-package-data -m merge`):**
    - Reads files from **`release-raw/`** and merges smaller chunks into target-sized files in **`release/`**, maintaining path semantics while reducing file handle overhead for tokenization and pretraining.
+   - Compile metrics
 
 
 ## Related projects
@@ -88,6 +90,8 @@ uv run pre-commit install
 ```
 
 Tip is to do an `uv sync` evry time pulling from the repository.
+
+The software is tested on Linux and MacOS. These are the focus platforms. It is not tested on Windows.
 
 ## Run
 
@@ -143,6 +147,7 @@ On errors the linter returns a non-zero status code.
 The merger reduces the number of files but still keeps semantics in paths, like language or quality.
 The merger uses the `metadata.yaml` in provided collection-directory.
 Input directory is the subdirectory `release-raw` and output to `release` subdirectory.
+Metrics computed during `release` are aggregated.
 
 The merger run after `oellm-package-data`.
 
@@ -192,4 +197,13 @@ uv run oellm-propella-merge --collection-dir ${COLLECTION_DIR} --part ${part}
 Before checking in run tests, linting and formating:
 ```shell
 uv run pre-commit
+```
+
+### Test megatron similarity
+
+When working with tokenizer it is valuable to ensure compatibility with Megatron-LM.
+These tests are skipped if megatron not installed. To install megatron do:
+
+```shell
+uv sync --extra megatron
 ```

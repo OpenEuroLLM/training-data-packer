@@ -133,6 +133,44 @@ class TestParallelPackagePipeline(unittest.TestCase):
         result = list(result)
         self.assertOnOf(expect_on_of, result)
 
+    def test_pii_hash_none(self):
+        src_data = [
+            {
+                "source_text": "Shall we play a game?",
+                "target_text": "Duam të luajmë?",
+                "src_lang": "eng_Latn",
+                "tgt_lang": "als_Latn",
+            },
+            {
+                "source_text": "Antarctica is the coldest place on Earth.",
+                "target_text": "Antarktida është kontinent më i ftohtë në tokë.",
+                "src_lang": "eng_Latn",
+                "tgt_lang": "als_Latn",
+            },
+        ]
+        metadata = Metadata(
+            {
+                "_internal": {"parallel": True},
+                "text": "text",
+                "parallel": {
+                    "input": "source",
+                    "source": {
+                        "text": "source_text",
+                        "language": "src_lang",
+                    },
+                    "target": {
+                        "text": "target_text",
+                        "language": "tgt_lang",
+                    },
+                },
+            }
+        )
+        part_config = {}
+        piis = iter([{"hash": None}])
+        contaminations = iter([])
+
+        self.assertRaises(ValueError, parallel_package_pipeline, src_data, metadata, part_config, piis, contaminations)
+
     def test_pii_without_id(self):
         src_data = [
             {
@@ -391,3 +429,44 @@ class TestParallelPackagePipeline(unittest.TestCase):
         result = list(result)
         self.assertEqual(1, len(result))
         self.assertOnOf(expect_on_of, result)
+
+    def test_contamination_with_None_id(self):
+        src_data = [
+            {
+                "id": "1",
+                "source_text": "Antarctica is the coldest place on Earth.",
+                "target_text": "Antarktida është kontinent më i ftohtë në tokë.",
+                "src_lang": "eng_Latn",
+                "tgt_lang": "als_Latn",
+            },
+            {
+                "id": "2",
+                "source_text": "Shall we play a game?",
+                "target_text": "Duam të luajmë?",
+                "src_lang": "eng_Latn",
+                "tgt_lang": "als_Latn",
+            },
+        ]
+        metadata = Metadata(
+            {
+                "_internal": {"parallel": True},
+                "id": "id",
+                "text": "text",
+                "parallel": {
+                    "input": "source",
+                    "source": {
+                        "text": "source_text",
+                        "language": "src_lang",
+                    },
+                    "target": {
+                        "text": "target_text",
+                        "language": "tgt_lang",
+                    },
+                },
+            }
+        )
+        part_config = {}
+        piis = iter([])
+        contaminations = iter([{"id": None}])
+
+        self.assertRaises(ValueError, parallel_package_pipeline, src_data, metadata, part_config, piis, contaminations)

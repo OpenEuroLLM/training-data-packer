@@ -747,6 +747,27 @@ class TestPIIMasker(unittest.TestCase):
             },
         )
 
+    def test_contamination_id_none(self):
+        pii_indata = [
+            {
+                "start_pos": 0,
+                "end_pos": 8,
+                "value": "5234 7894",
+                "id": None,
+                "name": "CREDIT_CARD",
+            },
+            {
+                "start_pos": 33,
+                "end_pos": 47,
+                "value": "foo@example.org",
+                "id": "1235",
+                "name": "EMAIL_ADDRESS",
+            },
+        ]
+        pii_indata_iter = iter(pii_indata)
+        pii_masker = pii_masking.PIIMasker()
+        self.assertRaises(ValueError, pii_masker.get_masker, pii_indata_iter)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -12,3 +12,7 @@ SRC_TEXT_DEFAULT = "source_text"
 TGT_LANGUAGE_DEFAULT = "tgt_lang"
 TGT_TEXT_DEFAULT = "target_text"
 PARALLEL_COUNT_DEFAULT = 40
+
+
+DEFAULT_BOS_TOKEN = "<bos>"
+DEFAULT_EOD_TOKEN = "<eos>"

@@ -19,9 +19,8 @@ from training_data_packer.processor.filters import FilterOnBlocklist
 from training_data_packer.processor.parallel_merger import ParallelLanguageMerger, ParallelSyntheticId
 from training_data_packer.processor.pii_masking import PIIMasker, openai_mask_document
 from training_data_packer.processor.sample.sampler import sampler_factory
-from training_data_packer.utils import metrics
+from training_data_packer.utils import metrics, slurm
 from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, find_files, prepare_output_file
-from training_data_packer.utils.slurm import schedule_files
 
 
 def process(
@@ -31,13 +30,12 @@ def process(
     """Schedule release packaging for files to be delivered according to metadata in collection dir.
 
     :param collection_dir: collection directory containing ``metadata.yaml``
-    :param args: command line options, e.g. ``workers``, ``slurm``, ``part`` and ``token_count``
+    :param args: command line options, e.g. ``workers``, ``part`` and ``token_count``
     :raises ValueError: if no source files are found
     """
     if args is None:
         args = {}
     workers = args.get("workers", 1)
-    slurm = args.get("slurm", False)
     part = args.get("part", None)
     metadata = read_metadata(collection_dir.joinpath("metadata.yaml"))
     metadata["_internal"]["mode"] = "release"
@@ -50,7 +48,7 @@ def process(
         raise ValueError("No files detected")
     logger.info(f"Found {len(all_files)} files")
 
-    schedule_files(all_files, metadata, package_file, workers, slurm)
+    slurm.schedule_files(all_files, metadata, package_file, workers, slurm.is_slurm_job())
 
 
 def parallel_package_pipeline(
@@ -81,6 +79,12 @@ def parallel_package_pipeline(
         synthetic_id_iter = src_iter
         pii_ids = {x["id"] for x in piis}
         contamination_ids = {x["id"] for x in AlignFieldNames(contaminations, metadata)}
+    if None in pii_ids:
+        logger.error("There are pii id:s that are Null/None.")
+        raise ValueError("There are pii id:s that are Null/None.")
+    if None in contamination_ids:
+        logger.error("There are pii id:s that are Null/None.")
+        raise ValueError("There are pii id:s that are Null/None.")
 
     pii_filter = FilterOnBlocklist("parallel-pii", pii_ids)
     contamination_filter = FilterOnBlocklist("parallel-contamination", contamination_ids)
@@ -148,6 +152,9 @@ def package_file(src_file: Path, metadata: Metadata) -> None:
             contamination_ids = {
                 x["id"] for x in AlignFieldNames(GenericJsonlReader(contamination_file).read(), metadata)
             }
+            if None in contamination_ids:
+                logger.error(f"There are contamination id:s that are Null/None in {contamination_file}")
+                raise ValueError(f"There are contamination id:s that are Null/None in {contamination_file}")
             contamination_filter = FilterOnBlocklist("contamination", contamination_ids)
             filtered_iter = contamination_filter.filter(pii_masked_iter)
         else:

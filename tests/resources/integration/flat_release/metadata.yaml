@@ -1,4 +1,5 @@
 name: HPLT 3.0
+tokenizer: dummy/tokenizer
 suffix: .jsonl.zst
 text: text
 id: id

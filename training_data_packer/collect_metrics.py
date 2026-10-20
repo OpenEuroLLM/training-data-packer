@@ -1,38 +1,8 @@
 import argparse
-import json
 from pathlib import Path
 
-from loguru import logger
-
 from training_data_packer.metadata import read_metadata
-from training_data_packer.utils import metrics
-
-
-def collect_metrics_for_dir(work_dir: Path, output_file: Path):
-    logger.info(f"Collecting metrics from {work_dir}")
-
-    metrics_files = list(work_dir.rglob(".*.metrics.json"))
-    logger.info(f"Found {len(metrics_files)} metrics files")
-
-    all_metrics = []
-    for metrics_file in metrics_files:
-        try:
-            with open(metrics_file) as f:
-                all_metrics.append(json.load(f))
-        except Exception as e:
-            logger.error(f"Failed to read {metrics_file}: {e}")
-
-    if not all_metrics:
-        logger.warning(f"No metrics files found in {work_dir}")
-        return
-
-    summary = metrics.aggregate_metrics(all_metrics)
-    metrics.write_metrics_to_file(summary, output_file)
-    logger.info(f"Summary written to {output_file}")
-
-
-def collect_metrics(work_dir: Path):
-    collect_metrics_for_dir(work_dir, work_dir.joinpath("metrics.json"))
+from training_data_packer.utils.metrics import merge_metrics
 
 
 def main():
@@ -53,10 +23,10 @@ def main():
             part_names = metadata.get_all_part_names("release")
             for part in part_names:
                 part_dir = release_raw_dir.joinpath(part)
-                collect_metrics(part_dir)
+                merge_metrics(part_dir)
 
     # Always collect metrics global.
-    collect_metrics(release_raw_dir)
+    merge_metrics(release_raw_dir)
 
 
 if __name__ == "__main__":

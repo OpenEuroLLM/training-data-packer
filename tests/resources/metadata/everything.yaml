@@ -1,5 +1,6 @@
 name: Everything
 catalogue: Everything
+tokenizer: dummy/tokenizer
 id: id
 text: text
 suffix: .jsonl.zst

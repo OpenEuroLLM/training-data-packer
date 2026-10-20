@@ -23,6 +23,9 @@ dependencies = [
     "referencing>=0.37.0",
     "jsonpath-ng>=1.8.0",
     "glom>=25.12.0",
+    "slurm>=0.5.1",
+    "awkward>=2.14.0",
+    "gigatoken>=0.10.0",
 ]
 
 [project.urls]
@@ -35,6 +38,15 @@ dev = [
     "pre-commit>=4.6.0",
     "ruff>=0.16.8",
     "coverage==7.14.0",
+]
+
+[project.optional-dependencies]
+# Only used by tests that cross-check our output against Megatron itself.
+# megatron-core 0.18+ imports triton, which has no macOS wheels.
+megatron = [
+    "megatron-core>=0.17; sys_platform != 'darwin'",
+    "megatron-core>=0.17,<0.18; sys_platform == 'darwin'",
+    "torch>=2.6",
 ]
 
 [project.scripts]
@@ -65,6 +77,8 @@ ignore = [
     "D104", # Missing docstring in public package
     "D105", # Missing docstring in magic method
     "D107", # Missing docstring in __init__
+    "D203", # incorrect-blank-line-before-class
+    "D213", # multi-line-summary-second-line
 ]
 select = [
     "E",    # pycodestyle errors
