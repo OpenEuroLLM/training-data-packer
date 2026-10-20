@@ -90,7 +90,7 @@ def _check_annotation_section(metadata: Metadata, annotation: str) -> None:
 
 
 def _check_input_in_section(metadata: Metadata, section: str) -> None:
-    if section in Metadata:
+    if section in metadata:
         input = metadata[f"{section}.default.input"]
         if input not in metadata:
             raise ValueError(f"{section}.default.input references part `{input}` which is not defined.")
