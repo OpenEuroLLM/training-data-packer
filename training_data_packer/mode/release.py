@@ -79,6 +79,12 @@ def parallel_package_pipeline(
         synthetic_id_iter = src_iter
         pii_ids = {x["id"] for x in piis}
         contamination_ids = {x["id"] for x in AlignFieldNames(contaminations, metadata)}
+    if None in pii_ids:
+        logger.error("There are pii id:s that are Null/None.")
+        raise ValueError("There are pii id:s that are Null/None.")
+    if None in contamination_ids:
+        logger.error("There are pii id:s that are Null/None.")
+        raise ValueError("There are pii id:s that are Null/None.")
 
     pii_filter = FilterOnBlocklist("parallel-pii", pii_ids)
     contamination_filter = FilterOnBlocklist("parallel-contamination", contamination_ids)
@@ -146,6 +152,9 @@ def package_file(src_file: Path, metadata: Metadata) -> None:
             contamination_ids = {
                 x["id"] for x in AlignFieldNames(GenericJsonlReader(contamination_file).read(), metadata)
             }
+            if None in contamination_ids:
+                logger.error(f"There are contamination id:s that are Null/None in {contamination_file}")
+                raise ValueError(f"There are contamination id:s that are Null/None in {contamination_file}")
             contamination_filter = FilterOnBlocklist("contamination", contamination_ids)
             filtered_iter = contamination_filter.filter(pii_masked_iter)
         else:
