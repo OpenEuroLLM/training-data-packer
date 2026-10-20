@@ -29,6 +29,16 @@ class EncodedBatch:
         """The number of documents without tokens."""
         return int(np.count_nonzero(self.lengths == 0))
 
+    def with_bos(self, bos_id: int) -> EncodedBatch:
+        """Prepend ``bos_id`` to the beginning of every non-empty document.
+
+        Mirrors :meth:`with_eod`: an empty document gets no BOS and stays empty.
+        """
+        non_empty = self.lengths > 0
+        starts = (np.cumsum(self.lengths) - self.lengths)[non_empty]
+        tokens = np.insert(self.tokens, starts, np.asarray(bos_id, dtype=self.tokens.dtype))
+        return EncodedBatch(tokens=tokens, lengths=self.lengths + non_empty)
+
     def with_eod(self, eod_id: int) -> EncodedBatch:
         """Append ``eod_id`` to the end of every non-empty document.
 
@@ -94,7 +104,7 @@ class GigatokenEncoder:
     def token_to_id(self, token: str) -> int:
         """Id of a token.
 
-        :param token: A special end-of-document token such as ``<|endoftext|>``
+        :param token: A special token such as ``<|endoftext|>`` or ``<bos>``
         :returns: An id for the token
         """
         ids = self._tokenizer.encode(token)
