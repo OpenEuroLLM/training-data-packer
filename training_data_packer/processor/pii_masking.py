@@ -437,6 +437,9 @@ class PIIMasker:
             i: _merge_overlapping_ranges(records) if _has_overlapping_ranges(records) else records
             for i, records in pii_records_deduped.items()
         }
+        if None in pii:
+            logger.error("There are pii id:s that are Null/None.")
+            raise ValueError("There are pii id:s that are Null/None.")
         self._pii_documents += len(pii)
 
         def masker(document):
