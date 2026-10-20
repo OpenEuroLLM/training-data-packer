@@ -94,12 +94,8 @@ def tokenize_file(src_file: Path, metadata: Metadata) -> None:
             write_metrics_to_file(dataclasses.asdict(metrics), metrics_path(output_file_prefix))
 
             logger.info(
-                "Wrote %d documents and %d tokens in %.1fs. Used tokenizer %s (%d of them empty)",
-                metrics.documents,
-                metrics.tokens,
-                metrics.total_seconds,
-                metrics.tokenizer,
-                metrics.empty_documents,
+                f"Wrote {metrics.documents:_} documents ({metrics.empty_documents:_} of them empty)"
+                f" and {metrics.tokens:_} tokens in {metrics.total_seconds:.2f}s. Used tokenizer {metrics.tokenizer}.",
             )
     except (TokenizerError, OSError, ValueError) as exc:
         logger.error("%s", exc)
