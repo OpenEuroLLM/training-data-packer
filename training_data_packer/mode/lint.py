@@ -33,16 +33,11 @@ def process(collection_dir: Path) -> bool:
         _check_all_release_parts(metadata)
 
         if "source" in metadata:
-            source_section = "source"
-            _check_all_source_parts(metadata, source_section)
+            _check_all_source_parts(metadata)
         elif "openeurollm" in metadata:
-            source_section = "openeurollm"
-            _check_all_source_parts(metadata, source_section)
+            _check_all_source_parts(metadata, "openeurollm")
         else:
             raise ValueError("Section `source` or `openeurollm` missing.")
-
-        if "uuid" not in metadata and ("parallel" not in metadata or "id" in metadata):
-            _check_id_fields_in_section(metadata, source_section, metadata.get("id", DEFAULT_ID))
 
         if "uuid" in metadata:
             _check_uuid_section(metadata)
@@ -56,8 +51,9 @@ def process(collection_dir: Path) -> bool:
 
         for annotation in ["propella-4b", "nemo-curator", "openai-privacy-filter"]:
             _check_annotation_section(metadata, annotation)
-            annotation_id_fields = ("id", "hash") if "parallel" in metadata and "id" not in metadata else "id"
-            _check_id_fields_in_section(metadata, annotation, annotation_id_fields)
+            annotation_dir = Path(metadata.get("_internal.collection_dir")).joinpath(annotation)
+            if annotation in metadata and annotation_dir.exists():
+                _check_record_fields_in_sections_files(metadata, annotation, ["id"])
 
         for s in ["nemo-curator", "openai-privacy-filter"]:
             _check_input_in_section(metadata, s)
@@ -133,7 +129,6 @@ def _check_uuid_section(metadata: Metadata) -> None:
     fields = [metadata.get("id", DEFAULT_ID)]
     _check_input_in_section(metadata, section)
     _check_record_fields_in_sections_files(metadata, section, fields)
-    _check_id_fields_in_section(metadata, section, fields[0])
 
 
 def _check_all_source_parts(metadata: Metadata, section: str = "source") -> None:
@@ -181,36 +176,6 @@ def _check_all_source_parts(metadata: Metadata, section: str = "source") -> None
         optional_fields |= part_annotations
 
     _check_record_fields_in_sections_files(metadata, section, fields, optional_fields)
-
-
-def _check_id_fields_in_section(
-    metadata: Metadata, section: str, id_fields: str | tuple[str, ...] = DEFAULT_ID
-) -> None:
-    """Validate that every record in a data section has a non-null identifier.
-
-    :param metadata: metadata containing the collection directory
-    :param section: data directory to inspect
-    :param id_fields: one identifier field, or acceptable alternatives for parallel data
-    :raises ValueError: if a record is not an object or all identifier fields are missing/null
-    """
-    directory = Path(metadata.get("_internal.collection_dir")).joinpath(section)
-    if not directory.exists():
-        return
-
-    fields = (id_fields,) if isinstance(id_fields, str) else id_fields
-    for part in metadata.get_all_part_names(section):
-        part_path = _build_part_path(section, part)
-        part_settings = metadata.get_part(part_path)
-        suffix = part_settings.get("suffix", metadata.get("suffix", DEFAULT_SUFFIX))
-        for record_file in find_files(directory, suffix, part):
-            for record_number, record in enumerate(GenericJsonlReader(record_file).read(), start=1):
-                if not isinstance(record, dict) or not any(
-                    get_dict_value(record, field, None) is not None for field in fields
-                ):
-                    field_names = " or ".join(fields)
-                    raise ValueError(
-                        f"Record {record_number} in `{record_file}` has no non-null value for `{field_names}`."
-                    )
 
 
 def _check_record_fields_in_sections_files(

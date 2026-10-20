@@ -5,8 +5,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import orjson
-import pyarrow as pa
-import pyarrow.parquet as pq
 import zstandard as zstd
 
 from training_data_packer.metadata import Metadata
@@ -21,7 +19,6 @@ from training_data_packer.metadata.defaults import (
 from training_data_packer.mode.lint import (
     _check_all_source_parts,
     _check_annotation_section,
-    _check_id_fields_in_section,
     _check_pack_config,
     _check_parts_and_dirs_match,
     _check_record_fields_in_sections_files,
@@ -673,175 +670,67 @@ def _create_test_jsonl_file(file_path: Path, data: list) -> None:
                 f.write(orjson.dumps(item).decode("utf-8") + "\n")
 
 
-class TestCheckIdFieldsInSection(unittest.TestCase):
-    def setUp(self):
-        self.temp_dir = tempfile.mkdtemp()
-        self.metadata = Metadata({"_internal": {"collection_dir": self.temp_dir}})
-
-    def tearDown(self):
-        shutil.rmtree(self.temp_dir, ignore_errors=True)
-
-    def test_valid_ids_in_compressed_jsonl_pass(self):
-        section_dir = Path(self.temp_dir) / "openai-privacy-filter" / "part1"
-        section_dir.mkdir(parents=True)
-        self.metadata.data["openai-privacy-filter"] = {"part1": {"suffix": ".jsonl.zst"}}
-        _create_test_jsonl_file(
-            section_dir / "records.jsonl.zst",
-            [{"id": "doc-1"}, {"id": "doc-2"}],
-        )
-
-        _check_id_fields_in_section(self.metadata, "openai-privacy-filter")
-
-    def test_null_id_in_pii_data_fails(self):
-        section_dir = Path(self.temp_dir) / "openai-privacy-filter" / "part1"
-        section_dir.mkdir(parents=True)
-        self.metadata.data["openai-privacy-filter"] = {"part1": {"suffix": ".jsonl.zst"}}
-        _create_test_jsonl_file(section_dir / "records.jsonl.zst", [{"id": None}])
-
-        with self.assertRaisesRegex(ValueError, r"Record 1.*openai-privacy-filter.*id"):
-            _check_id_fields_in_section(self.metadata, "openai-privacy-filter")
-
-    def test_null_id_in_later_record_fails(self):
-        section_dir = Path(self.temp_dir) / "nemo-curator" / "part1"
-        section_dir.mkdir(parents=True)
-        self.metadata.data["nemo-curator"] = {"part1": {"suffix": ".jsonl"}}
-        _create_test_jsonl_file(
-            section_dir / "records.jsonl",
-            [{"id": "doc-1"}, {"id": None}],
-        )
-
-        with self.assertRaisesRegex(ValueError, r"Record 2.*nemo-curator.*id"):
-            _check_id_fields_in_section(self.metadata, "nemo-curator")
-
-    def test_parquet_null_id_fails(self):
-        section_dir = Path(self.temp_dir) / "propella-4b" / "part1"
-        section_dir.mkdir(parents=True)
-        self.metadata.data["propella-4b"] = {"part1": {"suffix": ".parquet"}}
-        pq.write_table(pa.table({"id": ["doc-1", None]}), section_dir / "scores.parquet")
-
-        with self.assertRaisesRegex(ValueError, r"Record 2.*propella-4b.*id"):
-            _check_id_fields_in_section(self.metadata, "propella-4b")
-
-    def test_parallel_data_accepts_hash_when_id_is_absent(self):
-        section_dir = Path(self.temp_dir) / "nemo-curator" / "part1"
-        section_dir.mkdir(parents=True)
-        self.metadata.data["nemo-curator"] = {"part1": {"suffix": ".jsonl"}}
-        _create_test_jsonl_file(section_dir / "records.jsonl", [{"hash": "doc-hash"}])
-
-        _check_id_fields_in_section(self.metadata, "nemo-curator", ("id", "hash"))
-
-    def test_missing_id_fails(self):
-        section_dir = Path(self.temp_dir) / "source" / "part1"
-        section_dir.mkdir(parents=True)
-        self.metadata.data["source"] = {"part1": {"suffix": ".jsonl"}}
-        _create_test_jsonl_file(section_dir / "records.jsonl", [{"text": "missing id"}])
-
-        with self.assertRaisesRegex(ValueError, r"Record 1.*source.*id"):
-            _check_id_fields_in_section(self.metadata, "source")
-
-    def test_null_id_in_source_fails(self):
-        section_dir = Path(self.temp_dir) / "source" / "part1"
-        section_dir.mkdir(parents=True)
-        self.metadata.data["source"] = {"part1": {"suffix": ".jsonl"}}
-        _create_test_jsonl_file(section_dir / "records.jsonl", [{"id": None}])
-
-        with self.assertRaisesRegex(ValueError, r"Record 1.*source.*id"):
-            _check_id_fields_in_section(self.metadata, "source")
-
-    def test_ignores_files_outside_configured_suffix(self):
-        section_dir = Path(self.temp_dir) / "source" / "part1"
-        section_dir.mkdir(parents=True)
-        self.metadata.data["source"] = {"part1": {"suffix": ".jsonl.zst"}}
-        _create_test_jsonl_file(section_dir / "records.jsonl.zst", [{"id": "doc-1"}])
-        _create_test_jsonl_file(section_dir / "unrelated.jsonl", [{"text": "no id"}])
-
-        _check_id_fields_in_section(self.metadata, "source")
-
-
-class TestProcessIdValidation(unittest.TestCase):
+class TestProcessAnnotationIdValidation(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
 
     def tearDown(self):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_process_checks_source_and_annotation_sections(self):
-        (Path(self.temp_dir) / "metadata.yaml").touch()
-        metadata = Metadata(
+    def _metadata(self):
+        return Metadata(
             {
                 "_internal": {"collection_dir": self.temp_dir},
                 "source": {"part1": {}},
-                "release": {"part1": {"annotations": []}},
-                "propella-4b": {"part1": {}},
-                "nemo-curator": {"part1": {}},
-                "openai-privacy-filter": {"part1": {}},
-            }
-        )
-        with (
-            patch("training_data_packer.mode.lint.read_metadata", return_value=metadata),
-            patch("training_data_packer.mode.lint._check_all_release_parts"),
-            patch("training_data_packer.mode.lint._check_all_source_parts"),
-            patch("training_data_packer.mode.lint._check_annotation_section"),
-            patch("training_data_packer.mode.lint._check_id_fields_in_section") as check_ids,
-            patch("training_data_packer.mode.lint._check_input_in_section"),
-            patch("training_data_packer.mode.lint._check_tokenizer"),
-        ):
-            self.assertTrue(process(Path(self.temp_dir)))
-
-        self.assertEqual(
-            [call.args[1] for call in check_ids.call_args_list],
-            ["source", "propella-4b", "nemo-curator", "openai-privacy-filter"],
-        )
-
-    def test_process_rejects_null_annotation_id(self):
-        (Path(self.temp_dir) / "metadata.yaml").touch()
-        source_dir = Path(self.temp_dir) / "source" / "part1"
-        source_dir.mkdir(parents=True)
-        _create_test_jsonl_file(source_dir / "records.jsonl", [{"id": "doc-1", "text": "source"}])
-        annotation_dir = Path(self.temp_dir) / "nemo-curator" / "part1"
-        annotation_dir.mkdir(parents=True)
-        _create_test_jsonl_file(annotation_dir / "records.jsonl", [{"id": None}])
-        metadata = Metadata(
-            {
-                "_internal": {"collection_dir": self.temp_dir},
-                "source": {"part1": {"suffix": ".jsonl"}},
-                "release": {"part1": {"annotations": []}},
+                "release": {"part1": {"annotations": ["nemo-curator"]}},
                 "nemo-curator": {"part1": {"suffix": ".jsonl"}},
             }
         )
-        with (
-            patch("training_data_packer.mode.lint.read_metadata", return_value=metadata),
-            patch("training_data_packer.mode.lint._check_all_release_parts"),
-            patch("training_data_packer.mode.lint._check_all_source_parts"),
-            patch("training_data_packer.mode.lint._check_annotation_section"),
-            patch("training_data_packer.mode.lint._check_input_in_section"),
-            patch("training_data_packer.mode.lint._check_tokenizer"),
-        ):
-            self.assertFalse(process(Path(self.temp_dir)))
 
-    def test_process_checks_parallel_source_id_when_configured(self):
+    def _process(self, metadata):
         (Path(self.temp_dir) / "metadata.yaml").touch()
-        source_dir = Path(self.temp_dir) / "source" / "part1"
-        source_dir.mkdir(parents=True)
-        _create_test_jsonl_file(source_dir / "records.jsonl", [{"record_key": None}])
-        metadata = Metadata(
-            {
-                "_internal": {"collection_dir": self.temp_dir},
-                "id": "record_key",
-                "parallel": {},
-                "source": {"part1": {"suffix": ".jsonl"}},
-                "release": {"part1": {"annotations": []}},
-            }
-        )
         with (
             patch("training_data_packer.mode.lint.read_metadata", return_value=metadata),
             patch("training_data_packer.mode.lint._check_all_release_parts"),
             patch("training_data_packer.mode.lint._check_all_source_parts"),
-            patch("training_data_packer.mode.lint._check_annotation_section"),
             patch("training_data_packer.mode.lint._check_input_in_section"),
             patch("training_data_packer.mode.lint._check_tokenizer"),
         ):
-            self.assertFalse(process(Path(self.temp_dir)))
+            return process(Path(self.temp_dir))
+
+    def test_missing_annotation_id_fails(self):
+        metadata = self._metadata()
+        annotation_dir = Path(self.temp_dir) / "nemo-curator" / "part1"
+        annotation_dir.mkdir(parents=True)
+        _create_test_jsonl_file(annotation_dir / "records.jsonl", [{"text": "missing id"}])
+
+        self.assertFalse(self._process(metadata))
+
+    def test_null_annotation_id_fails(self):
+        metadata = self._metadata()
+        annotation_dir = Path(self.temp_dir) / "nemo-curator" / "part1"
+        annotation_dir.mkdir(parents=True)
+        _create_test_jsonl_file(annotation_dir / "records.jsonl", [{"id": None}])
+
+        self.assertFalse(self._process(metadata))
+
+    def test_annotation_validation_uses_first_record_per_part(self):
+        metadata = self._metadata()
+        annotation_dir = Path(self.temp_dir) / "nemo-curator" / "part1"
+        annotation_dir.mkdir(parents=True)
+        _create_test_jsonl_file(
+            annotation_dir / "records.jsonl",
+            [{"id": "doc-1"}, {"text": "later records are not scanned by lint"}],
+        )
+
+        self.assertTrue(self._process(metadata))
+
+    def test_missing_annotation_data_warns(self):
+        metadata = self._metadata()
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
+            self.assertTrue(self._process(metadata))
+
+        mock_logger.warning.assert_called_once_with("`nemo-curator` data not created.")
 
 
 class TestCheckRecordFieldsInSectionsFiles(unittest.TestCase):
