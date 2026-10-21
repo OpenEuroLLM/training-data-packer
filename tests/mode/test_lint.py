@@ -719,7 +719,7 @@ class TestProcessAnnotationIdValidation(unittest.TestCase):
         metadata["id"] = "custom_id"
         annotation_dir = Path(self.temp_dir) / "nemo-curator" / "part1"
         annotation_dir.mkdir(parents=True)
-        _create_test_jsonl_file(annotation_dir / "records.jsonl", [{"custom_id": "doc-1"}])
+        _create_test_jsonl_file(annotation_dir / "records.jsonl.zst", [{"custom_id": "doc-1"}])
 
         self.assertTrue(self._process(metadata))
 
@@ -728,7 +728,7 @@ class TestProcessAnnotationIdValidation(unittest.TestCase):
         annotation_dir = Path(self.temp_dir) / "nemo-curator" / "part1"
         annotation_dir.mkdir(parents=True)
         _create_test_jsonl_file(
-            annotation_dir / "records.jsonl",
+            annotation_dir / "records.jsonl.zst",
             [{"id": "doc-1"}, {"text": "later records are not scanned by lint"}],
         )
 

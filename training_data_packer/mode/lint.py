@@ -57,7 +57,7 @@ def process(collection_dir: Path) -> bool:
                     id_field = "id"
                 else:
                     id_field = metadata.get("id", DEFAULT_ID)
-                _check_record_fields_in_sections_files(metadata, annotation, [id_field])
+                _check_record_fields_in_sections_files(metadata, annotation, [id_field], take_parts_from="source")
 
         for s in ["nemo-curator", "openai-privacy-filter"]:
             _check_input_in_section(metadata, s)
@@ -183,7 +183,11 @@ def _check_all_source_parts(metadata: Metadata, section: str = "source") -> None
 
 
 def _check_record_fields_in_sections_files(
-    metadata: Metadata, section: str, required_fields: list[str], optional_fields: list[str] | None = None
+    metadata: Metadata,
+    section: str,
+    required_fields: list[str],
+    optional_fields: list[str] | None = None,
+    take_parts_from: str | None = None,
 ) -> None:
     """Check if records match requirements in metadata.
 
@@ -198,20 +202,27 @@ def _check_record_fields_in_sections_files(
     :param section: name of the section to validate
     :param required_fields: field names that must be present and not None in every checked record
     :param optional_fields: field names that should be present in at least one record across the section
+    :param take_parts_from: section to take parts from, used when checking annotations.
     :raises ValueError: if a required field is missing or None in any checked record
     """
     directory = Path(metadata.get("_internal.collection_dir")).joinpath(section)
     if not directory.exists():
         logger.warning(f"`{section}` data not created.")
     else:
-        part_names = metadata.get_all_part_names(section)
+        if take_parts_from is None:
+            part_names = metadata.get_all_part_names(section)
+        else:
+            part_names = metadata.get_all_part_names(take_parts_from)
         if len(part_names) == 0:
             raise ValueError(f"Section {section} has no parts defined.")
         not_found_fields = set(optional_fields or {})
         for part in part_names:
-            part_path = _build_part_path(section, part)
-            part_settings = metadata.get_part(part_path)
-            suffix = part_settings.get("suffix", metadata.get("suffix", DEFAULT_SUFFIX))
+            if take_parts_from is None:
+                part_path = _build_part_path(section, part)
+                part_settings = metadata.get_part(part_path)
+                suffix = part_settings.get("suffix", metadata.get("suffix", DEFAULT_SUFFIX))
+            else:
+                suffix = DEFAULT_SUFFIX
             record = _get_one_record_from_section_dir(directory, part, suffix)
             _check_fields_in_record(section, part, record, required_fields)
 
