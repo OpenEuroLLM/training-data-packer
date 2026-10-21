@@ -680,7 +680,7 @@ class TestProcessAnnotationIdValidation(unittest.TestCase):
         metadata = self._metadata()
         annotation_dir = Path(self.temp_dir) / "nemo-curator" / "part1"
         annotation_dir.mkdir(parents=True)
-        _create_test_jsonl_file(annotation_dir / "records.jsonl", [{"text": "missing id"}])
+        _create_test_jsonl_file(annotation_dir / "records.jsonl.zst", [{"text": "missing id"}])
 
         self.assertFalse(self._process(metadata))
 
@@ -688,7 +688,7 @@ class TestProcessAnnotationIdValidation(unittest.TestCase):
         metadata = self._metadata()
         annotation_dir = Path(self.temp_dir) / "nemo-curator" / "part1"
         annotation_dir.mkdir(parents=True)
-        _create_test_jsonl_file(annotation_dir / "records.jsonl", [{"id": None}])
+        _create_test_jsonl_file(annotation_dir / "records.jsonl.zst", [{"id": None}])
 
         self.assertFalse(self._process(metadata))
 

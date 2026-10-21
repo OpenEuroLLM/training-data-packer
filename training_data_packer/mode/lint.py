@@ -223,7 +223,14 @@ def _check_record_fields_in_sections_files(
                 suffix = part_settings.get("suffix", metadata.get("suffix", DEFAULT_SUFFIX))
             else:
                 suffix = DEFAULT_SUFFIX
-            record = _get_one_record_from_section_dir(directory, part, suffix)
+            try:
+                record = _get_one_record_from_section_dir(directory, part, suffix)
+            except ValueError as e:
+                if section in ["nemo-curator"]:
+                    logger.warning(e)
+                    continue
+                else:
+                    raise e
             _check_fields_in_record(section, part, record, required_fields)
 
             record_keys = set(record.keys())
