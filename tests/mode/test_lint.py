@@ -714,6 +714,15 @@ class TestProcessAnnotationIdValidation(unittest.TestCase):
 
         self.assertFalse(self._process(metadata))
 
+    def test_annotation_id_uses_metadata_field_name(self):
+        metadata = self._metadata()
+        metadata["id"] = "custom_id"
+        annotation_dir = Path(self.temp_dir) / "nemo-curator" / "part1"
+        annotation_dir.mkdir(parents=True)
+        _create_test_jsonl_file(annotation_dir / "records.jsonl", [{"custom_id": "doc-1"}])
+
+        self.assertTrue(self._process(metadata))
+
     def test_annotation_validation_uses_first_record_per_part(self):
         metadata = self._metadata()
         annotation_dir = Path(self.temp_dir) / "nemo-curator" / "part1"
