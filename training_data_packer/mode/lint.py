@@ -268,10 +268,7 @@ def _check_record_fields_in_annotation_files(
             try:
                 record = _get_one_record_from_section_dir(directory, part, DEFAULT_SUFFIX)
             except ValueError:
-                if annotation in ["nemo-curator", "propella-4b"]:
-                    continue
-                else:
-                    raise ValueError(f"Annotation part {annotation}.{part} has no files.") from None
+                continue
             field_found = False
             for field in one_required_fields:
                 if get_dict_value(record, field, None) is not None:
