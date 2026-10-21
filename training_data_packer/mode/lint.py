@@ -213,7 +213,7 @@ def _check_record_fields_in_sections_files(
             part_settings = metadata.get_part(part_path)
             suffix = part_settings.get("suffix", metadata.get("suffix", DEFAULT_SUFFIX))
             record = _get_one_record_from_section_dir(directory, part, suffix)
-            _check_fields_in_record(part, record, required_fields)
+            _check_fields_in_record(section, part, record, required_fields)
 
             record_keys = set(record.keys())
             not_found_fields -= record_keys
@@ -285,12 +285,13 @@ def _get_one_record_from_section_dir(directory: Path, part: str, suffix: Any) ->
     )
 
 
-def _check_fields_in_record(part: str, record: dict[str, Any], fields: list[str]):
+def _check_fields_in_record(section: str, part: str, record: dict[str, Any], fields: list[str]):
     """Validate fields in a record.
 
     Validate that the record contains all the given fields and that they hold non-null
     values. If any field is missing or None, an error is logged.
 
+    :param section: name of section record belongs to, used in log and error messages.
     :param part: name of the part the record belongs to, used in log and error messages
     :param record: the record to validate
     :param fields: names of the fields that must exist in the record
@@ -298,7 +299,7 @@ def _check_fields_in_record(part: str, record: dict[str, Any], fields: list[str]
     """
     for field in fields:
         if get_dict_value(record, field, None) is None:
-            raise ValueError(f"First file for part {part} miss field {field}.")
+            raise ValueError(f"First file in {section}.{part} miss field {field}.")
 
 
 def _check_all_release_parts(metadata: Metadata) -> None:
