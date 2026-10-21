@@ -53,7 +53,11 @@ def process(collection_dir: Path) -> bool:
             _check_annotation_section(metadata, annotation)
             annotation_dir = Path(metadata.get("_internal.collection_dir")).joinpath(annotation)
             if annotation in metadata and annotation_dir.exists():
-                _check_record_fields_in_sections_files(metadata, annotation, [metadata.get("id", DEFAULT_ID)])
+                if annotation in ["propella-4b", "openai-privacy-filter"]:
+                    id_field = "id"
+                else:
+                    id_field = metadata.get("id", DEFAULT_ID)
+                _check_record_fields_in_sections_files(metadata, annotation, [id_field])
 
         for s in ["nemo-curator", "openai-privacy-filter"]:
             _check_input_in_section(metadata, s)
