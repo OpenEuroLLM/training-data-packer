@@ -115,9 +115,7 @@ def _check_sample_section(metadata: Metadata) -> None:
     :raises ValueError: if the sample section or its parts are invalid
     """
     section = "sample"
-    fields = [DEFAULT_ID, DEFAULT_TEXT]
     _check_input_in_section(metadata, section)
-    _check_record_fields_in_sections_files(metadata, section, fields)
     for part in metadata.get_all_part_names(section):
         part_path = _build_part_path(section, part)
         part_settings = metadata.get_part(part_path)
