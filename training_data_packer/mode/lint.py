@@ -382,9 +382,10 @@ def _check_no_sample_specific_fields(part_path: str, part_conf: dict[str, Any], 
     """
     found_invalid = invalid_fields & set(part_conf.keys())
     if found_invalid:
-        raise ValueError(
+        logger.warning(
             f"In {part_path}, with sample mode '{part_conf.get('sample')}', "
-            f"the following fields should not be set: {', '.join(sorted(found_invalid))}"
+            f"the following fields should not be set: {', '.join(sorted(found_invalid))} "
+            f"The fields has no effect."
         )
 
 

@@ -177,39 +177,35 @@ class TestCheckSampleConfig(unittest.TestCase):
 
         self.assertTrue(_check_sample_config(self.part_path, part_conf))
 
-    def test_full_mode_with_budget_raises_error(self):
+    def test_full_mode_with_budget_warns(self):
         part_conf = {"sample": "full", "budget": 1000}
 
-        with self.assertRaises(ValueError) as context:
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-        self.assertIn("full", str(context.exception))
-        self.assertIn("budget", str(context.exception))
+            mock_logger.warning.assert_called_once()
 
-    def test_full_mode_with_rubber_raises_error(self):
+    def test_full_mode_with_rubber_warns(self):
         part_conf = {"sample": "full", "rubber": 42}
 
-        with self.assertRaises(ValueError) as context:
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-        self.assertIn("full", str(context.exception))
-        self.assertIn("rubber", str(context.exception))
+            mock_logger.warning.assert_called_once()
 
-    def test_full_mode_with_filter_raises_error(self):
+    def test_full_mode_with_filter_warns(self):
         part_conf = {"sample": "full", "filter": Path("tests/resources/sampler/test_sampler.py")}
 
-        with self.assertRaises(ValueError) as context:
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-        self.assertIn("full", str(context.exception))
-        self.assertIn("filter", str(context.exception))
+            mock_logger.warning.assert_called_once()
 
-    def test_full_mode_with_parameters_raises_error(self):
+    def test_full_mode_with_parameters_warns(self):
         part_conf = {"sample": "full", "parameters": {"sample_ratio": "0.5"}}
 
-        with self.assertRaises(ValueError) as context:
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-        self.assertIn("full", str(context.exception))
-        self.assertIn("parameters", str(context.exception))
+            mock_logger.warning.assert_called_once()
 
-    def test_full_mode_with_multiple_invalid_fields_raises_error(self):
+    def test_full_mode_with_multiple_invalid_fields_warns(self):
         part_conf = {
             "sample": "full",
             "budget": 1000,
@@ -217,50 +213,42 @@ class TestCheckSampleConfig(unittest.TestCase):
             "filter": Path("tests/resources/sampler/test_sampler.py"),
         }
 
-        with self.assertRaises(ValueError) as context:
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-        error_message = str(context.exception)
-        self.assertIn("full", error_message)
-        self.assertIn("budget", error_message)
-        self.assertIn("rubber", error_message)
-        self.assertIn("filter", error_message)
+            mock_logger.warning.assert_called_once()
 
     def test_wds_register_mode_passes(self):
         part_conf = {"sample": "wds+register"}
 
         self.assertTrue(_check_sample_config(self.part_path, part_conf))
 
-    def test_wds_register_mode_with_budget_raises_error(self):
+    def test_wds_register_mode_with_budget_warns(self):
         part_conf = {"sample": "wds+register", "budget": 1000}
 
-        with self.assertRaises(ValueError) as context:
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-        self.assertIn("wds+register", str(context.exception))
-        self.assertIn("budget", str(context.exception))
+            mock_logger.warning.assert_called_once()
 
-    def test_wds_register_mode_with_rubber_raises_error(self):
+    def test_wds_register_mode_with_rubber_warns(self):
         part_conf = {"sample": "wds+register", "rubber": 42}
 
-        with self.assertRaises(ValueError) as context:
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-        self.assertIn("wds+register", str(context.exception))
-        self.assertIn("rubber", str(context.exception))
+            mock_logger.warning.assert_called_once()
 
-    def test_wds_register_mode_with_filter_raises_error(self):
+    def test_wds_register_mode_with_filter_warns(self):
         part_conf = {"sample": "wds+register", "filter": Path("tests/resources/sampler/test_sampler.py")}
 
-        with self.assertRaises(ValueError) as context:
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-        self.assertIn("wds+register", str(context.exception))
-        self.assertIn("filter", str(context.exception))
+            mock_logger.warning.assert_called_once()
 
-    def test_wds_register_mode_with_parameters_raises_error(self):
+    def test_wds_register_mode_with_parameters_warns(self):
         part_conf = {"sample": "wds+register", "parameters": {"sample_ratio": "0.5"}}
 
-        with self.assertRaises(ValueError) as context:
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-        self.assertIn("wds+register", str(context.exception))
-        self.assertIn("parameters", str(context.exception))
+            mock_logger.warning.assert_called_once()
 
     def test_wds_register_mode_with_other_allowed_fields_passes(self):
         part_conf = {
@@ -312,23 +300,21 @@ class TestCheckSampleConfig(unittest.TestCase):
             _check_sample_config(self.part_path, part_conf)
             mock_logger.warning.assert_not_called()
 
-    def test_random_mode_with_filter_raises_error(self):
+    def test_random_mode_with_filter_warns(self):
         part_conf = {"sample": "random", "budget": 1000, "filter": Path("tests/resources/sampler/test_sampler.py")}
 
-        with self.assertRaises(ValueError) as context:
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-        self.assertIn("random", str(context.exception))
-        self.assertIn("filter", str(context.exception))
+            mock_logger.warning.assert_called()
 
-    def test_random_mode_with_parameters_raises_error(self):
+    def test_random_mode_with_parameters_warns(self):
         part_conf = {"sample": "random", "budget": 1000, "parameters": {"sample_ratio": "0.5"}}
 
-        with self.assertRaises(ValueError) as context:
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-        self.assertIn("random", str(context.exception))
-        self.assertIn("parameters", str(context.exception))
+            mock_logger.warning.assert_called()
 
-    def test_random_mode_with_both_filter_and_parameters_raises_error(self):
+    def test_random_mode_with_both_filter_and_parameters_warns(self):
         part_conf = {
             "sample": "random",
             "budget": 1000,
@@ -336,12 +322,9 @@ class TestCheckSampleConfig(unittest.TestCase):
             "parameters": {"sample_ratio": "0.5"},
         }
 
-        with self.assertRaises(ValueError) as context:
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-        error_message = str(context.exception)
-        self.assertIn("random", error_message)
-        self.assertIn("filter", error_message)
-        self.assertIn("parameters", error_message)
+            mock_logger.warning.assert_called()
 
     def test_dynamic_mode_with_all_required_passes(self):
         part_conf = {
@@ -384,7 +367,7 @@ class TestCheckSampleConfig(unittest.TestCase):
         self.assertIn("Fail to read sampler function", str(context.exception))
         self.assertIn(self.part_path, str(context.exception))
 
-    def test_dynamic_mode_with_rubber_raises_error(self):
+    def test_dynamic_mode_with_rubber_warns(self):
         part_conf = {
             "sample": "dynamic",
             "filter": Path("tests/resources/sampler/test_sampler.py"),
@@ -392,12 +375,11 @@ class TestCheckSampleConfig(unittest.TestCase):
             "rubber": 42,
         }
 
-        with self.assertRaises(ValueError) as context:
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-        self.assertIn("dynamic", str(context.exception))
-        self.assertIn("rubber", str(context.exception))
+            mock_logger.warning.assert_called_once()
 
-    def test_dynamic_mode_with_budget_raises_error(self):
+    def test_dynamic_mode_with_budget_warns(self):
         part_conf = {
             "sample": "dynamic",
             "filter": Path("tests/resources/sampler/test_sampler.py"),
@@ -405,12 +387,11 @@ class TestCheckSampleConfig(unittest.TestCase):
             "budget": 1000,
         }
 
-        with self.assertRaises(ValueError) as context:
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-        self.assertIn("dynamic", str(context.exception))
-        self.assertIn("budget", str(context.exception))
+            mock_logger.warning.assert_called_once()
 
-    def test_dynamic_mode_with_both_rubber_and_budget_raises_error(self):
+    def test_dynamic_mode_with_both_rubber_and_budget_warns(self):
         part_conf = {
             "sample": "dynamic",
             "filter": Path("tests/resources/sampler/test_sampler.py"),
@@ -419,12 +400,9 @@ class TestCheckSampleConfig(unittest.TestCase):
             "budget": 1000,
         }
 
-        with self.assertRaises(ValueError) as context:
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-        error_message = str(context.exception)
-        self.assertIn("dynamic", error_message)
-        self.assertIn("rubber", error_message)
-        self.assertIn("budget", error_message)
+            mock_logger.warning.assert_called_once()
 
     def test_unknown_sample_mode_raises_error(self):
         part_conf = {"sample": "unknown_mode"}
