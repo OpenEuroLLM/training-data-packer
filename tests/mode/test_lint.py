@@ -23,6 +23,7 @@ from training_data_packer.mode.lint import (
     _check_parts_and_dirs_match,
     _check_record_fields_in_sections_files,
     _check_sample_config,
+    process,
 )
 
 
@@ -667,6 +668,78 @@ def _create_test_jsonl_file(file_path: Path, data: list) -> None:
         with open(file_path, "w", encoding="utf-8") as f:
             for item in data:
                 f.write(orjson.dumps(item).decode("utf-8") + "\n")
+
+
+class TestProcessAnnotationIdValidation(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def _metadata(self):
+        return Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                "source": {"part1": {}},
+                "release": {"part1": {"annotations": ["nemo-curator"]}},
+                "nemo-curator": {"part1": {"suffix": ".jsonl"}},
+            }
+        )
+
+    def _process(self, metadata):
+        (Path(self.temp_dir) / "metadata.yaml").touch()
+        with (
+            patch("training_data_packer.mode.lint.read_metadata", return_value=metadata),
+            patch("training_data_packer.mode.lint._check_all_release_parts"),
+            patch("training_data_packer.mode.lint._check_all_source_parts"),
+            patch("training_data_packer.mode.lint._check_input_in_section"),
+            patch("training_data_packer.mode.lint._check_tokenizer"),
+        ):
+            return process(Path(self.temp_dir))
+
+    def test_missing_annotation_id_fails(self):
+        metadata = self._metadata()
+        annotation_dir = Path(self.temp_dir) / "nemo-curator" / "part1"
+        annotation_dir.mkdir(parents=True)
+        _create_test_jsonl_file(annotation_dir / "records.jsonl", [{"text": "missing id"}])
+
+        self.assertFalse(self._process(metadata))
+
+    def test_null_annotation_id_fails(self):
+        metadata = self._metadata()
+        annotation_dir = Path(self.temp_dir) / "nemo-curator" / "part1"
+        annotation_dir.mkdir(parents=True)
+        _create_test_jsonl_file(annotation_dir / "records.jsonl", [{"id": None}])
+
+        self.assertFalse(self._process(metadata))
+
+    def test_annotation_id_uses_metadata_field_name(self):
+        metadata = self._metadata()
+        metadata["id"] = "custom_id"
+        annotation_dir = Path(self.temp_dir) / "nemo-curator" / "part1"
+        annotation_dir.mkdir(parents=True)
+        _create_test_jsonl_file(annotation_dir / "records.jsonl", [{"custom_id": "doc-1"}])
+
+        self.assertTrue(self._process(metadata))
+
+    def test_annotation_validation_uses_first_record_per_part(self):
+        metadata = self._metadata()
+        annotation_dir = Path(self.temp_dir) / "nemo-curator" / "part1"
+        annotation_dir.mkdir(parents=True)
+        _create_test_jsonl_file(
+            annotation_dir / "records.jsonl",
+            [{"id": "doc-1"}, {"text": "later records are not scanned by lint"}],
+        )
+
+        self.assertTrue(self._process(metadata))
+
+    def test_missing_annotation_data_warns(self):
+        metadata = self._metadata()
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
+            self.assertTrue(self._process(metadata))
+
+        mock_logger.warning.assert_called_once_with("`nemo-curator` data not created.")
 
 
 class TestCheckRecordFieldsInSectionsFiles(unittest.TestCase):
