@@ -182,28 +182,28 @@ class TestCheckSampleConfig(unittest.TestCase):
 
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-            mock_logger.warning.assert_called_once()
+            mock_logger.info.assert_called_once()
 
     def test_full_mode_with_rubber_warns(self):
         part_conf = {"sample": "full", "rubber": 42}
 
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-            mock_logger.warning.assert_called_once()
+            mock_logger.info.assert_called_once()
 
     def test_full_mode_with_filter_warns(self):
         part_conf = {"sample": "full", "filter": Path("tests/resources/sampler/test_sampler.py")}
 
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-            mock_logger.warning.assert_called_once()
+            mock_logger.info.assert_called_once()
 
     def test_full_mode_with_parameters_warns(self):
         part_conf = {"sample": "full", "parameters": {"sample_ratio": "0.5"}}
 
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-            mock_logger.warning.assert_called_once()
+            mock_logger.info.assert_called_once()
 
     def test_full_mode_with_multiple_invalid_fields_warns(self):
         part_conf = {
@@ -215,7 +215,7 @@ class TestCheckSampleConfig(unittest.TestCase):
 
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-            mock_logger.warning.assert_called_once()
+            mock_logger.info.assert_called_once()
 
     def test_wds_register_mode_passes(self):
         part_conf = {"sample": "wds+register"}
@@ -227,28 +227,28 @@ class TestCheckSampleConfig(unittest.TestCase):
 
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-            mock_logger.warning.assert_called_once()
+            mock_logger.info.assert_called_once()
 
     def test_wds_register_mode_with_rubber_warns(self):
         part_conf = {"sample": "wds+register", "rubber": 42}
 
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-            mock_logger.warning.assert_called_once()
+            mock_logger.info.assert_called_once()
 
     def test_wds_register_mode_with_filter_warns(self):
         part_conf = {"sample": "wds+register", "filter": Path("tests/resources/sampler/test_sampler.py")}
 
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-            mock_logger.warning.assert_called_once()
+            mock_logger.info.assert_called_once()
 
     def test_wds_register_mode_with_parameters_warns(self):
         part_conf = {"sample": "wds+register", "parameters": {"sample_ratio": "0.5"}}
 
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-            mock_logger.warning.assert_called_once()
+            mock_logger.info.assert_called_once()
 
     def test_wds_register_mode_with_other_allowed_fields_passes(self):
         part_conf = {
@@ -377,7 +377,7 @@ class TestCheckSampleConfig(unittest.TestCase):
 
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-            mock_logger.warning.assert_called_once()
+            mock_logger.info.assert_called_once()
 
     def test_dynamic_mode_with_budget_warns(self):
         part_conf = {
@@ -389,7 +389,7 @@ class TestCheckSampleConfig(unittest.TestCase):
 
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-            mock_logger.warning.assert_called_once()
+            mock_logger.info.assert_called_once()
 
     def test_dynamic_mode_with_both_rubber_and_budget_warns(self):
         part_conf = {
@@ -402,7 +402,7 @@ class TestCheckSampleConfig(unittest.TestCase):
 
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-            mock_logger.warning.assert_called_once()
+            mock_logger.info.assert_called_once()
 
     def test_unknown_sample_mode_raises_error(self):
         part_conf = {"sample": "unknown_mode"}

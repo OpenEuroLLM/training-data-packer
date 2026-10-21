@@ -267,12 +267,14 @@ def _check_record_fields_in_annotation_files(
         for part in part_names:
             try:
                 record = _get_one_record_from_section_dir(directory, part, DEFAULT_SUFFIX)
-            except ValueError as e:
+            except ValueError:
                 if annotation in ["nemo-curator"]:
-                    logger.warning(e)
+                    logger.warning(
+                        f"Annotation part {annotation}.{part} has no files. It might be OK if there are no matches."
+                    )
                     continue
                 else:
-                    raise e
+                    raise ValueError(f"Annotation part {annotation}.{part} has no files.") from None
             field_found = False
             for field in one_required_fields:
                 if get_dict_value(record, field, None) is not None:
@@ -429,7 +431,7 @@ def _check_no_sample_specific_fields(part_path: str, part_conf: dict[str, Any], 
     """
     found_invalid = invalid_fields & set(part_conf.keys())
     if found_invalid:
-        logger.warning(
+        logger.info(
             f"In {part_path}, with sample mode '{part_conf.get('sample')}', "
             f"the following fields should not be set: {', '.join(sorted(found_invalid))} "
             f"The fields has no effect."
