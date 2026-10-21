@@ -6,6 +6,7 @@ from loguru import logger
 
 from training_data_packer.metadata import Metadata, read_metadata
 from training_data_packer.metadata.defaults import (
+    DEFAULT_HASH_ID,
     DEFAULT_ID,
     DEFAULT_SUFFIX,
     DEFAULT_TEXT,
@@ -53,11 +54,15 @@ def process(collection_dir: Path) -> bool:
             _check_annotation_section(metadata, annotation)
             annotation_dir = Path(metadata.get("_internal.collection_dir")).joinpath(annotation)
             if annotation in metadata and annotation_dir.exists():
-                if annotation in ["propella-4b", "openai-privacy-filter"]:
-                    id_field = "id"
-                else:
-                    id_field = metadata.get("id", DEFAULT_ID)
-                _check_record_fields_in_sections_files(metadata, annotation, [id_field], take_parts_from="source")
+                _check_record_fields_in_annotation_files(
+                    metadata,
+                    annotation,
+                    [
+                        metadata.get("id", DEFAULT_ID),
+                        "id",
+                        metadata.get(f"{annotation}.hash-id", DEFAULT_HASH_ID),
+                    ],
+                )
 
         for s in ["nemo-curator", "openai-privacy-filter"]:
             _check_input_in_section(metadata, s)
@@ -187,7 +192,6 @@ def _check_record_fields_in_sections_files(
     section: str,
     required_fields: list[str],
     optional_fields: list[str] | None = None,
-    take_parts_from: str | None = None,
 ) -> None:
     """Check if records match requirements in metadata.
 
@@ -202,35 +206,21 @@ def _check_record_fields_in_sections_files(
     :param section: name of the section to validate
     :param required_fields: field names that must be present and not None in every checked record
     :param optional_fields: field names that should be present in at least one record across the section
-    :param take_parts_from: section to take parts from, used when checking annotations.
     :raises ValueError: if a required field is missing or None in any checked record
     """
     directory = Path(metadata.get("_internal.collection_dir")).joinpath(section)
     if not directory.exists():
         logger.warning(f"`{section}` data not created.")
     else:
-        if take_parts_from is None:
-            part_names = metadata.get_all_part_names(section)
-        else:
-            part_names = metadata.get_all_part_names(take_parts_from)
+        part_names = metadata.get_all_part_names(section)
         if len(part_names) == 0:
             raise ValueError(f"Section {section} has no parts defined.")
         not_found_fields = set(optional_fields or {})
         for part in part_names:
-            if take_parts_from is None:
-                part_path = _build_part_path(section, part)
-                part_settings = metadata.get_part(part_path)
-                suffix = part_settings.get("suffix", metadata.get("suffix", DEFAULT_SUFFIX))
-            else:
-                suffix = DEFAULT_SUFFIX
-            try:
-                record = _get_one_record_from_section_dir(directory, part, suffix)
-            except ValueError as e:
-                if section in ["nemo-curator"]:
-                    logger.warning(e)
-                    continue
-                else:
-                    raise e
+            part_path = _build_part_path(section, part)
+            part_settings = metadata.get_part(part_path)
+            suffix = part_settings.get("suffix", metadata.get("suffix", DEFAULT_SUFFIX))
+            record = _get_one_record_from_section_dir(directory, part, suffix)
             _check_fields_in_record(section, part, record, required_fields)
 
             record_keys = set(record.keys())
@@ -241,6 +231,56 @@ def _check_record_fields_in_sections_files(
                 f"{section} expected fields {', '.join(sorted(not_found_fields))} "
                 f"in some records, not found in any sampled record"
             )
+        _check_parts_and_dirs_match(directory, part_names)
+
+
+def _check_record_fields_in_annotation_files(
+    metadata: Metadata,
+    annotation: str,
+    one_required_fields: list[str],
+) -> None:
+    """Check if records match requirements in metadata.
+
+    Work on a section, a subdirectory under collection_dir, and verify that:
+
+    * for each part, the first record in the first non-empty file has all required fields
+    * across all parts, each optional field is present in at least one of the checked records
+
+    If an optional field does not exist, or the section directory does not exist, a warning is logged.
+
+    :param metadata: metadata containing section definitions
+    :param annotation: name of the section to validate
+    :param one_required_fields: one field name must be present and not None in every checked record
+    :raises ValueError: If no id field found
+    """
+    directory = Path(metadata.get("_internal.collection_dir")).joinpath(annotation)
+    if not directory.exists():
+        logger.warning(f"`{annotation}` data not created.")
+    else:
+        if "openeurollm" in metadata:
+            section = "openeurollm"
+        else:
+            section = "source"
+        part_names = metadata.get_all_part_names(section)
+        if len(part_names) == 0:
+            raise ValueError(f"Section {section} has no parts defined.")
+        for part in part_names:
+            try:
+                record = _get_one_record_from_section_dir(directory, part, DEFAULT_SUFFIX)
+            except ValueError as e:
+                if annotation in ["nemo-curator"]:
+                    logger.warning(e)
+                    continue
+                else:
+                    raise e
+            field_found = False
+            for field in one_required_fields:
+                if get_dict_value(record, field, None) is not None:
+                    field_found = True
+                    break
+            if not field_found:
+                raise ValueError("Annotation {annotation}.{part} has not valid id fields.")
+
         _check_parts_and_dirs_match(directory, part_names)
 
 
