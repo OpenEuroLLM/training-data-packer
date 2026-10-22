@@ -12,4 +12,5 @@
 export COLLECTION_DIR=$1
 export LOGURU_LEVEL=INFO
 
-time uv run oellm-package-merge --collection-dir ${COLLECTION_DIR} --workers 1
+time uv run oellm-package-data --mode merge --collection-dir ${COLLECTION_DIR} --workers 1 --slurm
+
