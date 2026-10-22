@@ -273,7 +273,7 @@ def _check_record_fields_in_annotation_files(
                     field_found = True
                     break
             if not field_found:
-                raise ValueError(f"Annotation {annotation}.{part} has not valid id fields.")
+                raise ValueError(f"Annotation {annotation}.{part} has not a valid id fields.")
 
         _check_parts_and_dirs_match(directory, part_names)
 
@@ -403,9 +403,9 @@ def _check_pack_config(part_path: str, part_conf: dict[str, Any]):
     match part_conf["pack"]:
         case "flat":
             if "prefix" not in part_conf or part_conf["prefix"].strip() == "":
-                logger.warning(
-                    f"In {part_path} setting `prefix` is recommended when `pack` has value `flat` to get unique names."
-                    f" `prefix` default is `{PREFIX_DEFAULT}`."
+                logger.info(
+                    f"In {part_path} setting `prefix` is recommended when `pack` is `flat` to get unique names."
+                    f" `prefix` default value is `{PREFIX_DEFAULT}`."
                 )
         case "tree":
             pass
@@ -472,9 +472,9 @@ def _check_sample_config(part_path: str, part_conf: dict[str, Any]) -> bool:
         case "random":
             _check_no_sample_specific_fields(part_path, part_conf, {"filter", "parameters"})
             if "rubber" not in part_conf:
-                logger.warning(
-                    f"In {part_path} setting `rubber` is recommended when `sample` has value `random`."
-                    f" `rubber` default is `{RUBBER_DEFAULT}`."
+                logger.info(
+                    f"In {part_path} setting `rubber` is recommended when `sample` is `random`."
+                    f" `rubber` default value is `{RUBBER_DEFAULT}`."
                 )
             if "budget" not in part_conf:
                 raise ValueError(f"In {part_path} `sample` is `random` but `budget` is missing for part {part_path}.")

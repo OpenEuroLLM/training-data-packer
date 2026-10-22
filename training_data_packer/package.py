@@ -2,7 +2,10 @@ import argparse
 import sys
 from pathlib import Path
 
+from loguru import logger
+
 from training_data_packer.mode import lint, merge, release, sample, tokenize
+from training_data_packer.utils.logging import DuplicateFilter
 
 
 def main():
@@ -29,6 +32,8 @@ def main():
 
     match args.mode:
         case "lint":
+            logger.remove(0)
+            logger.add(sys.stderr, filter=DuplicateFilter())
             if "slurm" in args or args.workers > 1 or args.part is not None or args.token_count:
                 raise ValueError("Lint mode does not support multiple workers, part selection, or counting")
             if not lint.process(Path(args.collection_dir)):

@@ -278,7 +278,7 @@ class TestCheckSampleConfig(unittest.TestCase):
             self.assertIn("random", str(context.exception))
             self.assertIn("budget", str(context.exception))
             self.assertIn(self.part_path, str(context.exception))
-            mock_logger.warning.assert_called_once()
+            mock_logger.info.assert_called_once()
 
     def test_random_mode_with_budget_passes(self):
         part_conf = {"sample": "random", "budget": 1000}
@@ -290,8 +290,8 @@ class TestCheckSampleConfig(unittest.TestCase):
 
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-            mock_logger.warning.assert_called_once()
-            self.assertIn("rubber", str(mock_logger.warning.call_args))
+            mock_logger.info.assert_called_once()
+            self.assertIn("rubber", str(mock_logger.info.call_args))
 
     def test_random_mode_with_rubber_no_warning(self):
         part_conf = {"sample": "random", "budget": 1000, "rubber": 42}
@@ -305,14 +305,14 @@ class TestCheckSampleConfig(unittest.TestCase):
 
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-            mock_logger.warning.assert_called()
+            mock_logger.info.assert_called()
 
     def test_random_mode_with_parameters_warns(self):
         part_conf = {"sample": "random", "budget": 1000, "parameters": {"sample_ratio": "0.5"}}
 
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-            mock_logger.warning.assert_called()
+            mock_logger.info.assert_called()
 
     def test_random_mode_with_both_filter_and_parameters_warns(self):
         part_conf = {
@@ -324,7 +324,7 @@ class TestCheckSampleConfig(unittest.TestCase):
 
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_sample_config(self.part_path, part_conf)
-            mock_logger.warning.assert_called()
+            mock_logger.info.assert_called()
 
     def test_dynamic_mode_with_all_required_passes(self):
         part_conf = {
@@ -423,8 +423,8 @@ class TestCheckPackConfig(unittest.TestCase):
 
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_pack_config(self.part_path, part_conf)
-            mock_logger.warning.assert_called_once()
-            self.assertIn("prefix", str(mock_logger.warning.call_args))
+            mock_logger.info.assert_called_once()
+            self.assertIn("prefix", str(mock_logger.info.call_args))
 
     def test_flat_mode_with_prefix_no_warning(self):
         part_conf = {"pack": "flat", "prefix": "custom_prefix"}
@@ -478,14 +478,14 @@ class TestCheckPackConfig(unittest.TestCase):
 
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_pack_config(self.part_path, part_conf)
-            mock_logger.warning.assert_called()
+            mock_logger.info.assert_called()
 
     def test_flat_mode_warning_includes_default_value(self):
         part_conf = {"pack": "flat"}
 
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_pack_config(self.part_path, part_conf)
-            warning_message = str(mock_logger.warning.call_args)
+            warning_message = str(mock_logger.info.call_args)
             self.assertIn("default", warning_message.lower())
 
     def test_tree_mode_with_prefix_passes(self):
@@ -500,7 +500,7 @@ class TestCheckPackConfig(unittest.TestCase):
 
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_pack_config(self.part_path, part_conf)
-            warning_message = str(mock_logger.warning.call_args)
+            warning_message = str(mock_logger.info.call_args)
             self.assertIn(self.part_path, warning_message)
 
 
