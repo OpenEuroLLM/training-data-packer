@@ -132,12 +132,7 @@ To lint `tests/resources/integration/non_partitioned` run:
 uv run oellm-package-data --collection-dir tests/resources/integration/flat_release -m lint
 ```
 
-The linter loggs warning messages for errors that are not fatal.
-It can be a recommendation to set default values for clarity or tell that some data files are missing.
-Missing datafiles is most often due to previous steps not being run yet.
-Warning messages do not make the linter fail.
-Error logs must be fixed be for running the packager.
-On errors the linter returns a non-zero status code.
+See [docs/linter.md](docs/linter.md) for a quick start and how to read the log messages.
 
 
 ### Merger

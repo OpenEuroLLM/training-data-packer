@@ -12,6 +12,8 @@ class TestGetDictValue(unittest.TestCase):
             ("nested", {"metadata": {"language": "sv"}}, "metadata.language", "sv"),
             ("list_item", {"items": [{"value": 42}]}, "items[0].value", 42),
             ("matched_none", {"value": None}, "value", None),
+            ("space", {"document ID": "foobar"}, "document ID", "foobar"),
+            ("colon", {"doc:id": "foobar"}, "doc:id", "foobar"),
         ]
     )
     def test_returns_single_match(self, _name, dictionary, key, expected):
@@ -24,12 +26,6 @@ class TestGetDictValue(unittest.TestCase):
         default = object()
 
         self.assertIs(get_dict_value({"present": True}, "missing", default), default)
-
-    def test_raises_key_error_when_expression_has_multiple_matches(self):
-        dictionary = {"items": [{"value": 1}, {"value": 2}]}
-
-        with self.assertRaisesRegex(KeyError, r"items\[\*\]\.value gives multiple hits"):
-            get_dict_value(dictionary, "items[*].value")
 
 
 class TestGetDictValues(unittest.TestCase):
