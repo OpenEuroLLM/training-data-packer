@@ -3,6 +3,7 @@ from collections.abc import Callable
 from copy import deepcopy
 from typing import Any
 
+import glom
 import jsonpath_ng
 from iso639 import Lang
 from loguru import logger
@@ -57,21 +58,18 @@ def merge_hierarchy_dicts(dict_a, dict_b):
 
 
 def get_dict_value(dictionary: dict[str, Any], key: str, default: Any = None) -> Any:
-    """Get one value matching the JSONPath key or get default value.
+    """Get one value matching a simplified JSONPath key or get default value.
+
+    It supports array and dot notation in the key.
 
     :param dictionary: dictionary to search
     :param key: JSONPath expression identifying the value
     :param default: value to return if the expression has no match
     :returns: the value of the unique match, or the default if there is no match
-    :raises KeyError: if the expression matches more than one value
     """
-    expr = jsonpath_ng.parse(key)
-    match = expr.find(dictionary)
-    if len(match) == 0:
-        return default
-    if len(match) == 1:
-        return match[0].value
-    raise KeyError(f"{key} gives multiple hits")
+    key = key.replace("[", ".").replace("]", "")
+    value = glom.glom(dictionary, key, default=default)
+    return value
 
 
 def get_dict_values(dictionary: dict[str, Any], key: str) -> Any:
