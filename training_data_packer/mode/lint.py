@@ -503,4 +503,4 @@ def _check_tokenizer(metadata: Metadata):
         try:
             get_tokenizer(metadata["tokenizer"])
         except Exception as e:
-            ValueError(f"Cannot load tokenizer {metadata['tokenizer']}.", e)
+            raise ValueError(f"Cannot load tokenizer {metadata['tokenizer']}.") from e
