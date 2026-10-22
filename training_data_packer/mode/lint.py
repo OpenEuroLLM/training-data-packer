@@ -273,7 +273,7 @@ def _check_record_fields_in_annotation_files(
                     field_found = True
                     break
             if not field_found:
-                raise ValueError("Annotation {annotation}.{part} has not valid id fields.")
+                raise ValueError(f"Annotation {annotation}.{part} has not valid id fields.")
 
         _check_parts_and_dirs_match(directory, part_names)
 
