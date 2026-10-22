@@ -341,7 +341,7 @@ class TestCheckSampleConfig(unittest.TestCase):
 
         with self.assertRaises(ValueError) as context:
             _check_sample_config(self.part_path, part_conf)
-        self.assertIn("filter is missing", str(context.exception))
+        self.assertIn("`filter` is required", str(context.exception))
         self.assertIn(self.part_path, str(context.exception))
 
     def test_dynamic_mode_without_parameters_raises_error(self):
@@ -349,7 +349,7 @@ class TestCheckSampleConfig(unittest.TestCase):
 
         with self.assertRaises(ValueError) as context:
             _check_sample_config(self.part_path, part_conf)
-        self.assertIn("parameters is missing", str(context.exception))
+        self.assertIn("`parameters` is required", str(context.exception))
         self.assertIn(self.part_path, str(context.exception))
 
     @patch("training_data_packer.mode.lint.read_sampler_fn")
@@ -364,7 +364,7 @@ class TestCheckSampleConfig(unittest.TestCase):
 
         with self.assertRaises(ValueError) as context:
             _check_sample_config(self.part_path, part_conf)
-        self.assertIn("Fail to read sampler function", str(context.exception))
+        self.assertIn("Failed to read the sampler function", str(context.exception))
         self.assertIn(self.part_path, str(context.exception))
 
     def test_dynamic_mode_with_rubber_warns(self):
@@ -578,7 +578,7 @@ class TestCheckAnnotationSection(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             _check_annotation_section(metadata, annotation)
         self.assertIn(annotation, str(context.exception))
-        self.assertIn("directory exist but no section in metadata", str(context.exception).lower())
+        self.assertIn("directory exists, but there is no", str(context.exception).lower())
 
     def test_annotation_used_in_multiple_sections(self):
         annotation = "propella-4b"
@@ -717,7 +717,7 @@ class TestProcessAnnotationIdValidation(unittest.TestCase):
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             self.assertTrue(self._process(metadata))
 
-        mock_logger.warning.assert_called_once_with("`nemo-curator` data not created.")
+        mock_logger.warning.assert_called_once_with("`nemo-curator` data has not been created.")
 
 
 class TestCheckRecordFieldsInSectionsFiles(unittest.TestCase):
@@ -810,7 +810,7 @@ class TestCheckRecordFieldsInSectionsFiles(unittest.TestCase):
         with patch("training_data_packer.mode.lint.logger") as mock_logger:
             _check_record_fields_in_sections_files(metadata, section, required_fields)
             mock_logger.warning.assert_called_once()
-            self.assertIn(f"`{section}` data not created", str(mock_logger.warning.call_args))
+            self.assertIn(f"`{section}` data has not been created", str(mock_logger.warning.call_args))
 
     def test_optional_fields_found_in_records_no_warning(self):
         """Test that optional fields found in records don't generate warning."""

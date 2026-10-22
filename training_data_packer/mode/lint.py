@@ -38,17 +38,17 @@ def process(collection_dir: Path) -> bool:
         elif "openeurollm" in metadata:
             _check_all_source_parts(metadata, "openeurollm")
         else:
-            raise ValueError("Section `source` or `openeurollm` missing.")
+            raise ValueError("Section `source` or `openeurollm` is missing.")
 
         if "uuid" in metadata:
             _check_uuid_section(metadata)
         elif collection_dir.joinpath("uuid").is_dir():
-            raise ValueError("UUID directory exist but no section in metadata.")
+            raise ValueError("`uuid` directory exists, but there is no `uuid` section in metadata.")
 
         if "sample" in metadata:
             _check_sample_section(metadata)
         elif collection_dir.joinpath("sample").is_dir():
-            raise ValueError("Sample directory exist but no section in metadata.")
+            raise ValueError("`sample` directory exists, but there is no `sample` section in metadata.")
 
         for annotation in ["propella-4b", "nemo-curator", "openai-privacy-filter"]:
             _check_annotation_section(metadata, annotation)
@@ -70,7 +70,7 @@ def process(collection_dir: Path) -> bool:
         if "nugget" in metadata:
             _check_all_source_parts(metadata, "nugget")
         elif collection_dir.joinpath("nugget").is_dir():
-            raise ValueError("nugget directory exist but no section in metadata.")
+            raise ValueError("`nugget` directory exists, but there is no `nugget` section in metadata.")
 
         _check_tokenizer(metadata)
     except ValueError as e:
@@ -94,11 +94,11 @@ def _check_annotation_section(metadata: Metadata, annotation: str) -> None:
     directory = Path(metadata.get("_internal.collection_dir")).joinpath(annotation)
     if annotation in metadata:
         if not directory.exists():
-            logger.warning(f"`{annotation}` data not created.")
+            logger.warning(f"`{annotation}` data has not been created.")
         if annotation not in _get_all_annotations(metadata):
-            raise ValueError(f"`{annotation}` section defined but not used in any annotations field.")
+            raise ValueError(f"`{annotation}` section is defined but not used in any annotations field.")
     elif directory.is_dir():
-        raise ValueError(f"`{annotation}` directory exist but no section in metadata.")
+        raise ValueError(f"`{annotation}` directory exists, but there is no `{annotation}` section in metadata.")
 
 
 def _check_input_in_section(metadata: Metadata, section: str) -> None:
@@ -178,7 +178,9 @@ def _check_all_source_parts(metadata: Metadata, section: str = "source") -> None
             "propella-4b",
         }
         if len(disallowed_annotations) > 0:
-            raise ValueError(f"In {part_path} annotations contain unknown value: {', '.join(disallowed_annotations)}")
+            raise ValueError(
+                f"In {part_path}, `annotations` contains unknown values: {', '.join(disallowed_annotations)}"
+            )
 
         optional_fields |= part_annotations
 
@@ -208,7 +210,7 @@ def _check_record_fields_in_sections_files(
     """
     directory = Path(metadata.get("_internal.collection_dir")).joinpath(section)
     if not directory.exists():
-        logger.warning(f"`{section}` data not created.")
+        logger.warning(f"`{section}` data has not been created.")
     else:
         part_names = metadata.get_all_part_names(section)
         if len(part_names) == 0:
@@ -226,8 +228,8 @@ def _check_record_fields_in_sections_files(
 
         if len(not_found_fields) > 0:
             logger.warning(
-                f"{section} expected fields {', '.join(sorted(not_found_fields))} "
-                f"in some records, not found in any sampled record"
+                f"In {section}, the expected fields {', '.join(sorted(not_found_fields))} "
+                f"were not found in any of the sampled records."
             )
         _check_parts_and_dirs_match(directory, part_names)
 
@@ -253,7 +255,7 @@ def _check_record_fields_in_annotation_files(
     """
     directory = Path(metadata.get("_internal.collection_dir")).joinpath(annotation)
     if not directory.exists():
-        logger.warning(f"`{annotation}` data not created.")
+        logger.warning(f"`{annotation}` data has not been created.")
     else:
         if "openeurollm" in metadata:
             section = "openeurollm"
@@ -273,7 +275,7 @@ def _check_record_fields_in_annotation_files(
                     field_found = True
                     break
             if not field_found:
-                raise ValueError(f"Annotation {annotation}.{part} has not a valid id fields.")
+                raise ValueError(f"Annotation {annotation}.{part} does not have valid id fields.")
 
         _check_parts_and_dirs_match(directory, part_names)
 
@@ -308,15 +310,13 @@ def _check_parts_and_dirs_match(directory: Path, part_names: list[str]) -> bool:
     excessive_dirs = part_dirs - allowed_dirs
     if len(excessive_dirs) > 0:
         logger.warning(
-            f"Directories found in `{directory.name}` not matching parts: {', '.join(sorted(excessive_dirs))}"
+            f"Found directories in `{directory.name}` that do not match any part: {', '.join(sorted(excessive_dirs))}"
         )
         return False
 
     excessive_parts = set(part_names) - part_dirs
     if len(excessive_parts) > 0:
-        logger.warning(
-            f"All parts does not correspond to a directory in `{directory.name}`: {', '.join(sorted(excessive_parts))}"
-        )
+        logger.warning(f"Some parts have no directory in `{directory.name}`: {', '.join(sorted(excessive_parts))}")
         return False
     return True
 
@@ -351,7 +351,7 @@ def _check_fields_in_record(section: str, part: str, record: dict[str, Any], fie
     """
     for field in fields:
         if get_dict_value(record, field, None) is None:
-            raise ValueError(f"First file in {section}.{part} miss field {field}.")
+            raise ValueError(f"The first file in {section}.{part} is missing the field `{field}`.")
 
 
 def _check_all_release_parts(metadata: Metadata) -> None:
@@ -404,13 +404,13 @@ def _check_pack_config(part_path: str, part_conf: dict[str, Any]):
         case "flat":
             if "prefix" not in part_conf or part_conf["prefix"].strip() == "":
                 logger.info(
-                    f"In {part_path} setting `prefix` is recommended when `pack` is `flat` to get unique names."
-                    f" `prefix` default value is `{PREFIX_DEFAULT}`."
+                    f"In {part_path}, setting `prefix` is recommended when `pack` is `flat` to get unique names."
+                    f" The default value of `prefix` is `{PREFIX_DEFAULT}`."
                 )
         case "tree":
             pass
         case _:
-            raise ValueError(f"In {part_path} pack has an unknown value: {part_conf['pack']}")
+            raise ValueError(f"In {part_path}, `pack` has an unknown value: {part_conf['pack']}")
 
 
 def _check_no_sample_specific_fields(part_path: str, part_conf: dict[str, Any], invalid_fields: set[str]) -> None:
@@ -425,8 +425,7 @@ def _check_no_sample_specific_fields(part_path: str, part_conf: dict[str, Any], 
     if found_invalid:
         logger.info(
             f"In {part_path}, with sample mode '{part_conf.get('sample')}', "
-            f"the following fields should not be set: {', '.join(sorted(found_invalid))} "
-            f"The fields has no effect."
+            f"the following fields have no effect and should not be set: {', '.join(sorted(found_invalid))}."
         )
 
 
@@ -448,10 +447,10 @@ def _check_annotations_config(
     part_annotations = set(part_settings.get("annotations", []))
     disallowed_annotations = part_annotations - allowed_annotations
     if len(disallowed_annotations) > 0:
-        raise ValueError(f"In {part_path} annotations contain unknown value: {', '.join(disallowed_annotations)}")
+        raise ValueError(f"In {part_path}, `annotations` contains unknown values: {', '.join(disallowed_annotations)}")
     for pa in part_annotations:
         if pa not in metadata:
-            raise ValueError(f"In {part_path} annotations {pa} miss corresponding section.")
+            raise ValueError(f"In {part_path}, annotation `{pa}` has no corresponding section.")
 
 
 def _check_sample_config(part_path: str, part_conf: dict[str, Any]) -> bool:
@@ -473,25 +472,25 @@ def _check_sample_config(part_path: str, part_conf: dict[str, Any]) -> bool:
             _check_no_sample_specific_fields(part_path, part_conf, {"filter", "parameters"})
             if "rubber" not in part_conf:
                 logger.info(
-                    f"In {part_path} setting `rubber` is recommended when `sample` is `random`."
-                    f" `rubber` default value is `{RUBBER_DEFAULT}`."
+                    f"In {part_path}, setting `rubber` is recommended when `sample` is `random`."
+                    f" The default value of `rubber` is `{RUBBER_DEFAULT}`."
                 )
             if "budget" not in part_conf:
-                raise ValueError(f"In {part_path} `sample` is `random` but `budget` is missing for part {part_path}.")
+                raise ValueError(f"In {part_path}, `budget` is required when `sample` is `random`.")
         case "dynamic":
             _check_no_sample_specific_fields(part_path, part_conf, {"rubber", "budget"})
             if "filter" not in part_conf:
-                raise ValueError(f"In {part_path} sample is dynamic but filter is missing for part {part_path}.")
+                raise ValueError(f"In {part_path}, `filter` is required when `sample` is `dynamic`.")
             if "parameters" not in part_conf:
-                raise ValueError(f"In {part_path} sample is dynamic but parameters is missing for part {part_path}.")
+                raise ValueError(f"In {part_path}, `parameters` is required when `sample` is `dynamic`.")
             try:
                 read_sampler_fn(part_conf["filter"])
             except Exception as e:
-                raise ValueError(f"Fail to read sampler function for part {part_path}: {e}") from e
+                raise ValueError(f"Failed to read the sampler function for part {part_path}: {e}") from e
         case "wds+register":
             _check_no_sample_specific_fields(part_path, part_conf, {"budget", "rubber", "filter", "parameters"})
         case _:
-            raise ValueError(f"In {part_path} sample has an unknown value: {part_conf['sample']}")
+            raise ValueError(f"In {part_path}, `sample` has an unknown value: {part_conf['sample']}")
     return True
 
 
