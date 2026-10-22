@@ -90,6 +90,9 @@ Tip is to do an `uv sync` evry time pulling from the repository.
 
 The software is tested on Linux and MacOS. These are the focus platforms. It is not tested on Windows.
 
+To run the tools in a container instead, see [docs/containers.md](docs/containers.md).
+To run on LUMI, see [docs/lumi.md](docs/lumi.md).
+
 ## Run
 
 ### The packager: oellm-package-data
