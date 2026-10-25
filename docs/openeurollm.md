@@ -18,16 +18,20 @@ graph TD;
     Sample data according to composition
     Tokenization
     `"]
-    T3.1["T3.1 Training Data Acquisition and Analysis"]-->T3.3
-    T3.1-->T3.4
+    T4.3["T4.3 Task Dataset composition and processing"]
+    T3.1["T3.1 Training Data Acquisition and Analysis"]-- Data -->T3.3
+    T3.1-- Data -->T3.4
     T3.1-- Data -->T3.5
-    T3.2["T3.2 Targeted Training Data Sourcing"]-->T3.3
-    T3.2-->T3.4
+    T3.2["T3.2 Targeted Training Data Sourcing"]-- Data -->T3.3
+    T3.2-- Data -->T3.4
     T3.2-- Data -->T3.5
     T3.3["T3.3 Training Data Enrichment"]-- Contamination data -->T3.5
     T3.4["T3.4 Training Data Regulatory Compliance"]-- PII data -->T3.5
-
-    T4.3["T4.3 Task Dataset composition and processing"]-- Budgets -->T3.5
+    
+    T4.3-- Budgets -->T3.5
+    T3.2<--Coordination of data needs-->T4.3
+    T3.1<--Coordination of data needs-->T4.3
+    
     T3.5-- Tokenized data -->T4.4["T4.4 Large-scale foundation model training"]
     T3.5-->D3.2([D3.2 Initial dataset release])
     T3.5-->D3.3([D3.3 Final dataset release])
