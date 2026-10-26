@@ -39,38 +39,6 @@ $PACKER --collection-dir /scratch/project_465002530/<dataset> --mode lint
 
 Don't run `release`, `sample` or `merge` on a login node. Submit them as SLURM jobs.
 
-### SLURM jobs
-
-Create a batch script that calls the wrapper, for example `package-container.sh`:
-
-```shell
-#!/bin/bash
-#SBATCH --partition=small
-#SBATCH --job-name=package
-#SBATCH --cpus-per-task=8
-#SBATCH --output=logs/package_%A_%a.out
-#SBATCH --error=logs/package_%A_%a.err
-#SBATCH --time=72:00:00
-#SBATCH --mem=10G
-#SBATCH --nodes=1
-#SBATCH --account=project_465002530
-
-export LOGURU_LEVEL=INFO
-
-time /scratch/project_465002530/containers/training-data-packer/oellm-package-data.sh \
-    --collection-dir "$1" --slurm --workers "${SLURM_CPUS_PER_TASK}" "${@:2}"
-```
-
-Submit it with the collection directory and any extra arguments:
-
-```shell
-mkdir -p logs
-sbatch package-container.sh /scratch/project_465002530/<dataset>                # release mode
-sbatch package-container.sh /scratch/project_465002530/<dataset> --mode merge   # merge mode
-```
-
-Set `--cpus-per-task` to the number of workers you want, since the script passes it on as `--workers`.
-
 ### Hugging Face cache
 
 `--token-count` loads tokenizers through transformers, which downloads them to `~/.cache/huggingface`.
@@ -82,6 +50,45 @@ export HF_HOME=/scratch/project_465002530/cache/huggingface
 
 Compute nodes may not have internet access. If a job fails to download a tokenizer, run the same command once on a
 login node to fill the cache first.
+
+### SLURM jobs
+
+In the repository under `tools/slurm` there are files to schedule the packer as SLURM jobs.
+
+Note! The linter is not aimed to run with SLURM, instead it is a tool to avoid you put broken data on queue.
+
+If the dataset shall be sampled (up or down) based on metadata such as propella, WDS or register schedule a sample step.
+
+```
+sbatch --array=0-10 "tools/slurm/package.sh" ${COLLECTION_DIR} sample
+```
+
+Once the sample is done, update budget and rubber in metadata.
+
+The remaining three steps can run sequentially in one go using `pipeline.sh`. The steps are:
+* release - Mask PII, remove contaminated data and adjust to budget.
+* merge - Reduce the number of files to wanted shard size.
+* tokenize - Tokenize the data.
+
+To avoid scheduling the full pipeline with faulty metadata, the linter is running before the scheduling occur.
+
+```
+./tools/slurm/pipeline.sh ${COLLECTION_DIR} ${PACKAGE_ARRAY} ${MERGE_ARRAY} ${TOKENIZE_ARRAY}
+```
+
+Example:
+```
+./tools/slurm/pipeline.sh \
+  /scratch/project_465002530/users/magnrune/data/training-data-collection/flag/olmo-mix-1124 \
+  0-4 \
+  0-1 \
+  0-1
+```
+
+Logs are ending up in the sub-directory logs to your current directory. In the logs directory a `jobs.csv`
+is created by `pipeline.sh` to collection and job id scheduled.
+
+
 
 ## Install or update the container
 
@@ -101,7 +108,7 @@ Maintainers do this when a new version of the packer is released. Users only nee
 
    ```shell
    cd /scratch/project_465002530/containers/training-data-packer
-   singularity pull --force training-data-packer.sif docker://ghcr.io/openeurollm/training-data-packer:latest
+   $REPO_DIR/tools/convert_singularity.sh
    ```
 
    If the package on `ghcr.io` is private, set `SINGULARITY_DOCKER_USERNAME` and `SINGULARITY_DOCKER_PASSWORD`

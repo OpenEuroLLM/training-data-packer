@@ -18,20 +18,16 @@ The packer consists of the following tools:
 All tools read a file `metadata.yaml` containing metadata about the structure and processing of the data.
 
 ## TL;DR; I just want to run!
-Here are steps to run packaging and reduce the number of files.
-1. Install `uv` if not already don. Run: `curl -LsSf https://astral.sh/uv/install.sh | sh`, it will be installed in `~/.local/bin/uv`
-2. Check out `https://github.com/OpenEuroLLM/training-data-packer`
-3. Go down in training-data-packar and create uv-environment with `uv sync`
-4. Lint your metadata to find errors in the declaration: `uv run oellm-package-data --collection-dir /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0 --mode lint`
-5. Start a packaging job `sbatch --array=0-4 ./package.sh  /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0`
+Here are steps to run packaging and reduce the number of files. Instructions are intended for Lumi and using latest Singularity container.
+1. Check out `https://github.com/OpenEuroLLM/training-data-packer`
+2. In `tools/slurm` there are scripts to schedule jobs with SLURM.
+3. Lint your metadata to find errors in the declaration: `/scratch/project_465002530/containers/training-data-packer/oellm-package-data.sh --collection-dir /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0 --mode lint`
+4. Start pipline with package, merge, and tokenization `./tools/slurm/pipeline.sh /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0 0-10 0-38 0-38`
 Change path to the dataset you want to process. Adjust the array size to the size of data.
-If it times out just rerun again; you can even change the array size on re-runs.
-6. Check data in `release-raw` directory under the provided path. There are also hidden metric files.
-7. Start the merge step to reduce number of files: `sbatch --array=0-9 ./merge.sh /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0`
-8. Check data in `release` directory under the provided path.
-9. Move logs from `logs` directory within the directory where you checked out the code into `/scratch/project_465002530/training/collection/flag/log/release`
+5. Check logs and metrics for each step.
+6. Move logs from `logs` directory within the directory where you checked out the code into `/scratch/project_465002530/training/collection/flag/log/release`
 
-The three first steps are a one time operation or when you update the packager.
+The two first steps are a one time operation or when you update the packager.
 
 
 ## Dataset Directory Structure
@@ -95,6 +91,22 @@ To run on LUMI, see [docs/lumi.md](docs/lumi.md).
 
 ## Run
 
+## Linter: oellm-package-data
+The linter check the validity of `metadata.yaml` file and the directory structure for annoying errors.
+Run the linter pefore packaging data, it will save you time.
+The lint mode check:
+* metadata.yaml follow schema
+* Extensive checks on fields that are correlated to each other.
+* Reads some data files, if exists, to verify alignment with `metadata.yaml`.
+
+To lint `tests/resources/integration/non_partitioned` run:
+```shell
+uv run oellm-package-data --collection-dir tests/resources/integration/flat_release -m lint
+```
+
+See [docs/linter.md](docs/linter.md) for a quick start and how to read the log messages.
+
+
 ### The packager: oellm-package-data
 
 The packager takes source files and applies decontamination, PII-masking, and sampling. The tool is idempotent,
@@ -110,33 +122,6 @@ part of the process will happen. Default is `release` mode packaging the final
 result and output into `release-raw`. The mode `sample` do just a sampling according
 to the `sample` section in `metadata.yaml`, and output into `sample`directory.
 
-It can also run via slurm:
-```shell
-sbatch --array=0-10 ./package.sh collection-dir
-```
-
-When using Slurm, data sharding is handled automatically across the task array.
-
-Here is a full example running on Lumi:
-```shell
-sbatch --array=0-49 ./package.sh \
-    /scratch/project_465002530/training/collection/baby/nemotron-cc-opus-1.1
-```
-
-## Linter: oellm-package-data
-To be able to check the `metadata.yaml`file and the directory structure for annoying errors there is a lint mode for the oellm-package-data-
-The lint mode check:
-* metadata.yaml follow schema
-* Extensive checks on fields that are correlated to each other.
-* Reads some data files, if exists, to verify alignment with `metadata.yaml`.
-
-To lint `tests/resources/integration/non_partitioned` run:
-```shell
-uv run oellm-package-data --collection-dir tests/resources/integration/flat_release -m lint
-```
-
-See [docs/linter.md](docs/linter.md) for a quick start and how to read the log messages.
-
 
 ### Merger
 The merger reduces the number of files but still keeps semantics in paths, like language or quality.
@@ -151,13 +136,9 @@ To run local:
 uv run oellm-package-data -m merge --collection-dir ${COLLECTION_DIR} --workers 1
 ```
 
-It can also run via slurm:
-```shell
-sbatch --array=0-9 ./merge.sh \
-    /scratch/project_465002530/training/collection/baby/nemotron-cc-opus-1.1
-```
-
 ### Propella Structure: oellm-propella-structure
+
+This is only relevant if you want to annotate your data with propella annotations. It must run before packer.
 
 The propella-structure tool filters source records based on IDs found in Propella parquet files. It reads
 source files from `collection_dir/source`, looks up each record's ID in the propella directory, and
