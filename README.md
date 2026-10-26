@@ -22,13 +22,10 @@ Here are steps to run packaging and reduce the number of files. Instructions are
 1. Check out `https://github.com/OpenEuroLLM/training-data-packer`
 2. In `tools/slurm` there are scripts to schedule jobs with SLURM.
 3. Lint your metadata to find errors in the declaration: `/scratch/project_465002530/containers/training-data-packer/oellm-package-data.sh --collection-dir /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0 --mode lint`
-4. Start a packaging job `sbatch --array=0-12 ./tools/slurm/package.sh  /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0`
+4. Start pipline with package, merge, and tokenization `./tools/slurm/pipeline.sh /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0 0-10 0-38 0-38`
 Change path to the dataset you want to process. Adjust the array size to the size of data.
-If it times out just rerun again; you can even change the array size on re-runs.
-5. Check data in `release-raw` directory under the provided path. There are also hidden metric files.
-6. Start the merge step to reduce number of files: `sbatch --array=0-9 ./tools/slurm/merge.sh /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0`
-7. Check data in `release` directory under the provided path.
-8. Move logs from `logs` directory within the directory where you checked out the code into `/scratch/project_465002530/training/collection/flag/log/release`
+5. Check logs and metrics for each step.
+6. Move logs from `logs` directory within the directory where you checked out the code into `/scratch/project_465002530/training/collection/flag/log/release`
 
 The two first steps are a one time operation or when you update the packager.
 
