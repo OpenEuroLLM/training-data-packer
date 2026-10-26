@@ -22,7 +22,9 @@ def get_array_task_count() -> int:
 
 
 def _get_my_partition_tasks(files: list[Any], task_count: int, task_id: int) -> list[Any]:
-    return files[task_id - 1 :: task_count]
+    if task_id >= task_count:
+        raise ValueError("Taks_id must be less than task_count, task_id starts with 0.")
+    return files[task_id::task_count]
 
 
 def get_my_slurm_tasks(files: list[Any]) -> list[Any]:
