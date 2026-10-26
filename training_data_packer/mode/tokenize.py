@@ -38,15 +38,24 @@ def process(
     slurm.schedule_files(all_files, metadata, tokenize_file, workers, slurm.is_slurm_job())
 
 
-def tokenize_file(src_file: Path, metadata: Metadata) -> None:
+def tokenize_file(
+    src_file: Path,
+    metadata: Metadata,
+    text_field: str = DEFAULT_TEXT,
+    output_file_prefix: Path | None = None,
+) -> None:
     """Tokenize a release file into an indexed dataset.
 
     Encode the text field of every record in batches with the tokenizer named in the metadata, prepend
     the beginning-of-document token, append the end-of-document token, and write the tokens and a metrics file under
-    ``<collection_dir>/gigatoken/<tokenizer>/``. Skip the file if the output dataset already exists.
+    ``<collection_dir>/gigatoken/<tokenizer>/``, or at ``output_file_prefix`` if given. Skip the file if the output
+    dataset already exists.
 
-    :param src_file: the JSONL file to tokenize, located under ``<collection_dir>/release``
+    :param src_file: the JSONL file to tokenize, located under ``<collection_dir>/release`` unless
+        ``output_file_prefix`` is given
     :param metadata: the collection metadata, including the tokenizer name
+    :param text_field: the record field holding the text to tokenize
+    :param output_file_prefix: path prefix of the output dataset files; derived from the metadata if not given
     :raises TokenizerError: if the tokenizer cannot be loaded or the beginning- or end-of-document token is not a
         single token
     :raises ValueError: if the beginning- or end-of-document token id is outside the tokenizer vocabulary
@@ -56,7 +65,6 @@ def tokenize_file(src_file: Path, metadata: Metadata) -> None:
     try:
         started = time.perf_counter()
 
-        text_field = DEFAULT_TEXT
         bos_token = DEFAULT_BOS_TOKEN
         eod_token = DEFAULT_EOD_TOKEN
 
@@ -72,7 +80,8 @@ def tokenize_file(src_file: Path, metadata: Metadata) -> None:
 
         dtype = optimal_dtype(encoder.vocab_size)
 
-        output_file_prefix = _output_file_prefix(metadata, src_file, tokenizer)
+        if output_file_prefix is None:
+            output_file_prefix = _output_file_prefix(metadata, src_file, tokenizer)
 
         if dataset_exists(output_file_prefix):
             logger.info(f"Output files already exist {output_file_prefix}, skipping.")

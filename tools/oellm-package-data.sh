@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# This script is intended for the OpenEuroLLM project on Lumi.
+# Wrapper script for the Singularity container to ensure needed directories are bound.
+
 singularity exec \
   --bind /appl/local/openeurollm \
   --bind /pfs/lustrep2/scratch \
