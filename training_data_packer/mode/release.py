@@ -129,13 +129,22 @@ def package_file(src_file: Path, metadata: Metadata) -> None:
     src_reader = GenericJsonlReader(src_file)
     src_iter = src_reader.read()
 
+    if pii_file:
+        pii_iter = GenericJsonlReader(pii_file).read()
+    else:
+        pii_iter = []
+    if contamination_file:
+        contamination_iter = GenericJsonlReader(contamination_file).read()
+    else:
+        contamination_iter = []
+
     if is_parallel_text:
         align_iter, parallel_metrics = parallel_package_pipeline(
             src_iter,
             metadata,
             part_config,
-            GenericJsonlReader(pii_file).read(),
-            GenericJsonlReader(contamination_file).read(),
+            pii_iter,
+            contamination_iter,
         )
     else:
         align_iter = AlignFieldNames(src_iter, metadata)
@@ -145,18 +154,24 @@ def package_file(src_file: Path, metadata: Metadata) -> None:
     # After this comment are actual records removed. Processing cannot require zipping of dataset works.
     if "id" in metadata:
         if not is_parallel_text:
-            pii_iter = GenericJsonlReader(pii_file).read()
-            pii_masker = PIIMasker(masker_fn=openai_mask_document, part_config=part_config)
-            pii_masked_iter = map(pii_masker.get_masker(pii_iter), scrub_iter)
+            if pii_file:
+                pii_iter = GenericJsonlReader(pii_file).read()
+                pii_masker = PIIMasker(masker_fn=openai_mask_document, part_config=part_config)
+                pii_masked_iter = map(pii_masker.get_masker(pii_iter), scrub_iter)
+            else:
+                pii_masked_iter = scrub_iter
 
-            contamination_ids = {
-                x["id"] for x in AlignFieldNames(GenericJsonlReader(contamination_file).read(), metadata)
-            }
-            if None in contamination_ids:
-                logger.error(f"There are contamination id:s that are Null/None in {contamination_file}")
-                raise ValueError(f"There are contamination id:s that are Null/None in {contamination_file}")
-            contamination_filter = FilterOnBlocklist("contamination", contamination_ids)
-            filtered_iter = contamination_filter.filter(pii_masked_iter)
+            if contamination_file:
+                contamination_ids = {
+                    x["id"] for x in AlignFieldNames(GenericJsonlReader(contamination_file).read(), metadata)
+                }
+                if None in contamination_ids:
+                    logger.error(f"There are contamination id:s that are Null/None in {contamination_file}")
+                    raise ValueError(f"There are contamination id:s that are Null/None in {contamination_file}")
+                contamination_filter = FilterOnBlocklist("contamination", contamination_ids)
+                filtered_iter = contamination_filter.filter(pii_masked_iter)
+            else:
+                filtered_iter = pii_masked_iter
         else:
             filtered_iter = scrub_iter
 
