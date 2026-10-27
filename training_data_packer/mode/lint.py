@@ -501,12 +501,16 @@ def _get_all_annotations(metadata: Metadata) -> set[str]:
 def _check_megatron_lm_section(metadata: Metadata) -> None:
     """Validate the megatron-lm section of the metadata.
 
-    Check that at least one tokenizer is defined, that each tokenizer's ``source`` references a defined section and
-    that each tokenizer can be loaded. Log a warning for directories under ``megatron-lm`` that match no tokenizer.
+    The section is optional, and a warning is logged if it is missing. If it exists, check that at least one tokenizer
+    is defined, that each tokenizer's ``source`` references a defined section and that each tokenizer can be loaded.
+    Log a warning for directories under ``megatron-lm`` that match no tokenizer.
 
     :param metadata: metadata to validate
     :raises ValueError: if no tokenizer is defined, a source is not defined, or a tokenizer cannot be loaded
     """
+    if "megatron-lm" not in metadata:
+        logger.warning("Section `megatron-lm` is missing, the data cannot be tokenized.")
+        return
     tokenizers = get_megatron_lm_tokenizers(metadata)
     if len(tokenizers) == 0:
         raise ValueError("Section `megatron-lm` has no tokenizers defined.")

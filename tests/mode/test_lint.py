@@ -1259,6 +1259,13 @@ class TestCheckMegatronLmSection(unittest.TestCase):
             _check_megatron_lm_section(metadata)
         mock_logger.warning.assert_not_called()
 
+    def test_missing_section_warns(self):
+        metadata = self._metadata({})
+        del metadata.data["megatron-lm"]
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
+            _check_megatron_lm_section(metadata)
+        mock_logger.warning.assert_called_once_with("Section `megatron-lm` is missing, the data cannot be tokenized.")
+
     def test_no_tokenizers_raises_error(self):
         metadata = self._metadata({"default": {"source": "release"}})
         with self.assertRaisesRegex(ValueError, "no tokenizers"):

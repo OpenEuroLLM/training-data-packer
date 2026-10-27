@@ -465,8 +465,7 @@
   },
   "required": [
     "name",
-    "release",
-    "megatron-lm"
+    "release"
   ],
   "patternProperties": {
     "^_": {

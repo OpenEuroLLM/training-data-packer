@@ -78,10 +78,9 @@ class MegatronLmSchemaTest(unittest.TestCase):
         with pytest.raises(ValueError):
             self.validator.validate_metadata(self.metadata)
 
-    def test_missing_section_invalid(self):
+    def test_missing_section_valid(self):
         del self.metadata.data["megatron-lm"]
-        with pytest.raises(ValueError):
-            self.validator.validate_metadata(self.metadata)
+        self.assertTrue(self.validator.validate_metadata(self.metadata))
 
     def test_tokenizer_field_not_allowed(self):
         self.metadata.data["tokenizer"] = "org/tok"

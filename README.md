@@ -140,7 +140,8 @@ uv run oellm-package-data -m merge --collection-dir ${COLLECTION_DIR} --workers 
 
 ### Tokenization
 The mode `tokenize` turns files into Megatron-LM indexed datasets (`.bin` and `.idx`). It is controlled by the
-`megatron-lm` section in `metadata.yaml`:
+optional `megatron-lm` section in `metadata.yaml`. Without the section the data cannot be tokenized, and the linter
+logs a warning:
 
 ```yaml
 megatron-lm:
