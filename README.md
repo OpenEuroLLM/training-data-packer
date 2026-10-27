@@ -170,6 +170,7 @@ Arguments:
 * `-t`, `--tokenizer` - HuggingFace Hub repo id or local path to the tokenizer (required)
 * `--text` - the field in each document holding the text, default `text`
 * `-o`, `--output-dir` - where to write the output, default the current directory
+* `-s`, `--slurm` - only tokenize the files assigned to the current SLURM array task, see below
 
 For a directory, the relative path of each input file is kept under the output directory, and the file extension
 is dropped, e.g. `input/deu_Latn/000.jsonl.zst` becomes `output/deu_Latn/000.bin` and `output/deu_Latn/000.idx`.
@@ -179,6 +180,12 @@ rerun after a failure.
 To run:
 ```shell
 uv run oellm-tokenize ${INPUT_DIR} --tokenizer ${TOKENIZER} --text text --output-dir ${OUTPUT_DIR}
+```
+
+To spread the files over a SLURM job array, add `--slurm`. Each array task tokenizes every
+`SLURM_ARRAY_TASK_COUNT`-th file, starting at its `SLURM_ARRAY_TASK_ID`:
+```shell
+sbatch --array=0-9 --wrap "uv run oellm-tokenize ${INPUT_DIR} --tokenizer ${TOKENIZER} --output-dir ${OUTPUT_DIR} --slurm"
 ```
 
 ## Develop

@@ -85,6 +85,25 @@ class TestProcess(unittest.TestCase):
         self.assertEqual(1, metrics["documents"])
         self.assertEqual(3, metrics["tokens"])
 
+    @parameterized.expand(
+        [
+            ("task_0", "0", ["000", "002"], ["001"]),
+            ("task_1", "1", ["001"], ["000", "002"]),
+        ],
+    )
+    def test_slurm_processes_only_own_files(self, _name, task_id, expected, not_expected):
+        for name in ["000", "001", "002"]:
+            self._write_input(f"{name}.jsonl.zst", [{"text": "ab"}])
+
+        env = {"SLURM_ARRAY_TASK_ID": task_id, "SLURM_ARRAY_TASK_COUNT": "2"}
+        with mock.patch.dict("os.environ", env):
+            simple_tokenize.process(self.input_dir, self.tokenizer, output_dir=self.output_dir, slurm_job=True)
+
+        for name in expected:
+            self.assertEqual([[_BOS_ID, 256, _EOS_ID]], _read_tokens(self.output_dir / name))
+        for name in not_expected:
+            self.assertFalse(self.output_dir.joinpath(f"{name}.bin").exists())
+
     def test_missing_text_field_raises(self):
         self._write_input("000.jsonl.zst", [{"content": "ab"}])
 
@@ -108,14 +127,21 @@ class TestProcess(unittest.TestCase):
         with mock.patch.object(sys, "argv", argv), mock.patch.object(simple_tokenize, "process") as process:
             simple_tokenize.main()
 
-        process.assert_called_once_with(self.input_dir, self.tokenizer, "content", Path("out"))
+        process.assert_called_once_with(self.input_dir, self.tokenizer, "content", Path("out"), False)
 
     def test_main_defaults(self):
         argv = ["oellm-tokenize", str(self.input_dir), "-t", self.tokenizer]
         with mock.patch.object(sys, "argv", argv), mock.patch.object(simple_tokenize, "process") as process:
             simple_tokenize.main()
 
-        process.assert_called_once_with(self.input_dir, self.tokenizer, "text", Path("."))
+        process.assert_called_once_with(self.input_dir, self.tokenizer, "text", Path("."), False)
+
+    def test_main_slurm(self):
+        argv = ["oellm-tokenize", str(self.input_dir), "-t", self.tokenizer, "--slurm"]
+        with mock.patch.object(sys, "argv", argv), mock.patch.object(simple_tokenize, "process") as process:
+            simple_tokenize.main()
+
+        process.assert_called_once_with(self.input_dir, self.tokenizer, "text", Path("."), True)
 
 
 if __name__ == "__main__":
