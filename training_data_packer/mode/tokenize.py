@@ -51,8 +51,16 @@ def process(
             raise ValueError(f"No files detected in {source_dir}")
         logger.info(f"Found {len(src_files)} files in {source_dir} to tokenize with {name}")
         output_dir = collection_dir / "megatron-lm" / name
+        bos_token = config["bos"] or None
+        eos_token = config["eos"] or None
         tasks.extend(
-            TokenizeTask(src_file, config["huggingface"], _output_file_prefix(src_file, source_dir, output_dir))
+            TokenizeTask(
+                src_file,
+                config["huggingface"],
+                _output_file_prefix(src_file, source_dir, output_dir),
+                bos_token,
+                eos_token,
+            )
             for src_file in src_files
         )
 
@@ -66,10 +74,18 @@ class TokenizeTask:
     src_file: Path
     tokenizer: str
     output_file_prefix: Path
+    bos_token: str | None
+    eos_token: str | None
 
 
 def _run_task(task: TokenizeTask, _metadata: Metadata) -> None:
-    tokenize_file(task.src_file, task.tokenizer, task.output_file_prefix)
+    tokenize_file(
+        task.src_file,
+        task.tokenizer,
+        task.output_file_prefix,
+        bos_token=task.bos_token,
+        eos_token=task.eos_token,
+    )
 
 
 def tokenize_file(
@@ -77,6 +93,8 @@ def tokenize_file(
     tokenizer: str,
     output_file_prefix: Path,
     text_field: str = DEFAULT_TEXT,
+    bos_token: str | None = DEFAULT_BOS_TOKEN,
+    eos_token: str | None = DEFAULT_EOD_TOKEN,
 ) -> None:
     """Tokenize a file into an indexed dataset.
 
@@ -88,6 +106,8 @@ def tokenize_file(
     :param tokenizer: HuggingFace Hub repo id or local path of the tokenizer
     :param output_file_prefix: path prefix of the output dataset files
     :param text_field: the record field holding the text to tokenize
+    :param bos_token: the beginning-of-document token to prepend, or None to not prepend one
+    :param eos_token: the end-of-document token to append, or None to not append one
     :raises TokenizerError: if the tokenizer cannot be loaded or the beginning- or end-of-document token is not a
         single token
     :raises ValueError: if the beginning- or end-of-document token id is outside the tokenizer vocabulary
@@ -96,16 +116,13 @@ def tokenize_file(
     try:
         started = time.perf_counter()
 
-        bos_token = DEFAULT_BOS_TOKEN
-        eod_token = DEFAULT_EOD_TOKEN
-
         encoder = GigatokenEncoder.load(tokenizer)
 
-        bos_id = encoder.token_to_id(bos_token)
+        bos_id = None if bos_token is None else encoder.token_to_id(bos_token)
         if bos_id is not None and not 0 <= bos_id < encoder.vocab_size:
             raise ValueError(f"bos id {bos_id} is outside the vocabulary (size {encoder.vocab_size})")
 
-        eod_id = encoder.token_to_id(eod_token)
+        eod_id = None if eos_token is None else encoder.token_to_id(eos_token)
         if eod_id is not None and not 0 <= eod_id < encoder.vocab_size:
             raise ValueError(f"eod id {eod_id} is outside the vocabulary (size {encoder.vocab_size})")
 
@@ -115,7 +132,7 @@ def tokenize_file(
             logger.info(f"Output files already exist {output_file_prefix}, skipping.")
             return
 
-        metrics = Metrics(tokenizer, dtype=str(dtype), text=text_field, bos=bos_token, eod=eod_token)
+        metrics = Metrics(tokenizer, dtype=str(dtype), text=text_field, bos=bos_token, eod=eos_token)
 
         token_started = time.perf_counter()
         with DatasetWriter(output_file_prefix, dtype) as writer:
@@ -157,8 +174,8 @@ class Metrics:
     tokenizer: str
     dtype: str
     text: str
-    bos: str
-    eod: str
+    bos: str | None
+    eod: str | None
     documents: int = 0
     tokens: int = 0
     empty_documents: int = 0

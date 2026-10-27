@@ -51,6 +51,13 @@ class MegatronLmSchemaTest(unittest.TestCase):
                 },
             ],
             [
+                "bos and eos",
+                {
+                    "default": {"source": "release", "bos": False, "eos": "<|endoftext|>"},
+                    "tok": {"huggingface": "org/tok", "bos": "<s>", "eos": False},
+                },
+            ],
+            [
                 "source override",
                 {"default": {"source": "release"}, "tok": {"huggingface": "org/tok", "source": "release-raw"}},
             ],
@@ -70,6 +77,8 @@ class MegatronLmSchemaTest(unittest.TestCase):
             ["null tokenizer", {"default": {"source": "release"}, "tok": None}],
             ["empty huggingface", {"default": {"source": "release"}, "tok": {"huggingface": ""}}],
             ["unknown tokenizer field", {"default": {"source": "release"}, "tok": {"huggingface": "o/t", "foo": 1}}],
+            ["empty bos", {"default": {"source": "release", "bos": ""}, "tok": {"huggingface": "org/tok"}}],
+            ["true eos", {"default": {"source": "release"}, "tok": {"huggingface": "org/tok", "eos": True}}],
             ["slash in name", {"default": {"source": "release"}, "org/tok": {"huggingface": "org/tok"}}],
         ]
     )

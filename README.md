@@ -156,6 +156,23 @@ tokenizer, where `huggingface` is a HuggingFace Hub repo id or a local tokenizer
 written to `megatron-lm/<entry name>`, so the example above writes to `megatron-lm/openeurollm-256k`. When several
 tokenizers are listed, the files are tokenized with all of them. A tokenizer entry may set its own `source`.
 
+Every document gets a beginning-of-document token prepended and an end-of-document token appended. They are set with
+`bos` and `eos`, which default to `<bos>` and `<eos>`. Set a field to `false` to not add that token. Both fields can be
+set in `default` or for each tokenizer, where the tokenizer value takes precedence:
+
+```yaml
+megatron-lm:
+  default:
+    source: release
+    bos: false
+  openeurollm-256k:
+    huggingface: openeurollm/tokenizer-256k
+  other-tokenizer:
+    huggingface: org/other-tokenizer
+    bos: <s>
+    eos: </s>
+```
+
 ```shell
 uv run oellm-package-data --collection-dir <dir> --mode tokenize
 ```

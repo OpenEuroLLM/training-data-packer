@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -5,12 +6,14 @@ from unittest import mock
 
 import yaml
 
-from tests.helpers.tokenizer import write_tiny_tokenizer
+from tests.helpers.tokenizer import EOT, write_tiny_tokenizer
 from training_data_packer.mode import tokenize
-from training_data_packer.tokenizer.indexed_dataset import read_documents
+from training_data_packer.tokenizer.indexed_dataset import metrics_path, read_documents
 from training_data_packer.utils.file import JsonlZstWriter
 
-# Token ids of the tiny tokenizer: bytes map to themselves, "ab" is 256, <eos> is 258 and <bos> is 259.
+# Token ids of the tiny tokenizer: bytes map to themselves, "ab" is 256, <|endoftext|> is 257, <eos> is 258 and <bos>
+# is 259.
+_EOT_ID = 257
 _EOS_ID = 258
 _BOS_ID = 259
 
@@ -82,6 +85,40 @@ class TestProcess(unittest.TestCase):
                 [[_BOS_ID, 256, _EOS_ID]],
                 _read_tokens(self.collection_dir / "megatron-lm" / name / "shard01" / "000"),
             )
+
+    def test_bos_and_eos_disabled_in_default(self):
+        self._write_metadata(
+            {"default": {"source": "release", "bos": False, "eos": False}, "tiny": {"huggingface": self.tokenizer}},
+        )
+        self._write_input("release/shard01/000.jsonl.zst", [{"text": "ab"}])
+
+        tokenize.process(self.collection_dir)
+
+        prefix = self.collection_dir / "megatron-lm" / "tiny" / "shard01" / "000"
+        self.assertEqual([[256]], _read_tokens(prefix))
+        metrics = json.loads(metrics_path(prefix).read_text())
+        self.assertEqual((None, None), (metrics["bos"], metrics["eod"]))
+
+    def test_tokenizer_overrides_bos_and_eos(self):
+        self._write_metadata(
+            {
+                "default": {"source": "release"},
+                "no-bos": {"huggingface": self.tokenizer, "bos": False, "eos": EOT},
+                "defaults": {"huggingface": self.tokenizer},
+            },
+        )
+        self._write_input("release/shard01/000.jsonl.zst", [{"text": "ab"}])
+
+        tokenize.process(self.collection_dir)
+
+        self.assertEqual(
+            [[256, _EOT_ID]],
+            _read_tokens(self.collection_dir / "megatron-lm" / "no-bos" / "shard01" / "000"),
+        )
+        self.assertEqual(
+            [[_BOS_ID, 256, _EOS_ID]],
+            _read_tokens(self.collection_dir / "megatron-lm" / "defaults" / "shard01" / "000"),
+        )
 
     def test_tokenizer_overrides_source(self):
         self._write_metadata(

@@ -219,11 +219,23 @@ class TestGetMegatronLmTokenizers(unittest.TestCase):
         )
         self.assertEqual(
             {
-                "first": {"huggingface": "org/first", "source": "release"},
-                "second": {"huggingface": "org/second", "source": "release-raw"},
+                "first": {"huggingface": "org/first", "source": "release", "bos": "<bos>", "eos": "<eos>"},
+                "second": {"huggingface": "org/second", "source": "release-raw", "bos": "<bos>", "eos": "<eos>"},
             },
             get_megatron_lm_tokenizers(metadata),
         )
+
+    def test_bos_and_eos_set_in_default_and_tokenizer(self):
+        metadata = {
+            "megatron-lm": {
+                "default": {"source": "release", "bos": False},
+                "first": {"huggingface": "org/first"},
+                "second": {"huggingface": "org/second", "bos": "<s>", "eos": False},
+            },
+        }
+        tokenizers = get_megatron_lm_tokenizers(metadata)
+        self.assertEqual((False, "<eos>"), (tokenizers["first"]["bos"], tokenizers["first"]["eos"]))
+        self.assertEqual(("<s>", False), (tokenizers["second"]["bos"], tokenizers["second"]["eos"]))
 
     def test_keeps_metadata_order(self):
         metadata = {

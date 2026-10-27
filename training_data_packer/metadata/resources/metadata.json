@@ -55,6 +55,32 @@
               "type": "string",
               "description": "Directory under the collection directory to read files to tokenize from.",
               "minLength": 1
+            },
+            "bos": {
+              "description": "Beginning-of-document token to prepend to every document, or false to not add one.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "const": false
+                }
+              ],
+              "default": "<bos>"
+            },
+            "eos": {
+              "description": "End-of-document token to append to every document, or false to not add one.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "const": false
+                }
+              ],
+              "default": "<eos>"
             }
           },
           "required": [
@@ -83,6 +109,32 @@
             "type": "string",
             "description": "Directory under the collection directory to read files to tokenize from, overrides default.",
             "minLength": 1
+          },
+          "bos": {
+            "description": "Beginning-of-document token to prepend to every document, or false to not add one. Overrides default.",
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "const": false
+              }
+            ],
+            "default": "<bos>"
+          },
+          "eos": {
+            "description": "End-of-document token to append to every document, or false to not add one. Overrides default.",
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "const": false
+              }
+            ],
+            "default": "<eos>"
           }
         },
         "required": [

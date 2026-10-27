@@ -502,11 +502,13 @@ def _check_megatron_lm_section(metadata: Metadata) -> None:
     """Validate the megatron-lm section of the metadata.
 
     The section is optional, and a warning is logged if it is missing. If it exists, check that at least one tokenizer
-    is defined, that each tokenizer's ``source`` references a defined section and that each tokenizer can be loaded.
+    is defined, that each tokenizer's ``source`` references a defined section, that each tokenizer can be loaded and
+    that its ``bos`` and ``eos`` tokens are single tokens.
     Log a warning for directories under ``megatron-lm`` that match no tokenizer.
 
     :param metadata: metadata to validate
-    :raises ValueError: if no tokenizer is defined, a source is not defined, or a tokenizer cannot be loaded
+    :raises ValueError: if no tokenizer is defined, a source is not defined, a tokenizer cannot be loaded, or a
+        ``bos`` or ``eos`` token is not a single token
     """
     if "megatron-lm" not in metadata:
         logger.warning("Section `megatron-lm` is missing, the data cannot be tokenized.")
@@ -519,9 +521,17 @@ def _check_megatron_lm_section(metadata: Metadata) -> None:
         if source not in metadata:
             raise ValueError(f"megatron-lm.{name}.source references section `{source}` which is not defined.")
         try:
-            GigatokenEncoder.load(config["huggingface"])
+            encoder = GigatokenEncoder.load(config["huggingface"])
         except TokenizerError as e:
             raise ValueError(f"In megatron-lm.{name}, cannot load tokenizer {config['huggingface']}.") from e
+        for field in ["bos", "eos"]:
+            if config[field] is not False:
+                try:
+                    encoder.token_to_id(config[field])
+                except TokenizerError as e:
+                    raise ValueError(
+                        f"In megatron-lm.{name}, `{field}` {config[field]} is not a single token in the tokenizer."
+                    ) from e
 
     directory = Path(metadata.get("_internal.collection_dir")).joinpath("megatron-lm")
     if directory.is_dir():

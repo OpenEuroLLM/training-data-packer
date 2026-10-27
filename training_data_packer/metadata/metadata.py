@@ -7,7 +7,7 @@ import glom
 import jsonpath_ng
 from loguru import logger
 
-from training_data_packer.metadata.defaults import DEFAULT_SUFFIX
+from training_data_packer.metadata.defaults import DEFAULT_BOS_TOKEN, DEFAULT_EOD_TOKEN, DEFAULT_SUFFIX
 from training_data_packer.utils.file import change_suffix
 from training_data_packer.utils.misc import merge_hierarchy_dicts
 
@@ -96,11 +96,13 @@ class Metadata(UserDict):
 def get_megatron_lm_tokenizers(metadata: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
     """Return the tokenizers of the ``megatron-lm`` section, merged with the section defaults.
 
+    ``bos`` and ``eos`` default to ``<bos>`` and ``<eos>``. A value of ``False`` means the token is not added.
+
     :param metadata: metadata to read the section from
     :returns: tokenizer configs keyed by tokenizer name, in metadata order; empty if the section is missing
     """
     section = metadata.get("megatron-lm") or {}
-    default = section.get("default") or {}
+    default = merge_hierarchy_dicts(section.get("default") or {}, {"bos": DEFAULT_BOS_TOKEN, "eos": DEFAULT_EOD_TOKEN})
     return {name: merge_hierarchy_dicts(config or {}, default) for name, config in section.items() if name != "default"}
 
 

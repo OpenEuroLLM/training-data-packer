@@ -1285,6 +1285,24 @@ class TestCheckMegatronLmSection(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "In megatron-lm.tok, cannot load tokenizer"):
             _check_megatron_lm_section(metadata)
 
+    def test_bos_not_in_tokenizer_raises_error(self):
+        tokenizer = str(write_tiny_tokenizer(Path(self.temp_dir) / "no-bos.json"))
+        metadata = self._metadata({"default": {"source": "release"}, "tok": {"huggingface": tokenizer}})
+        with self.assertRaisesRegex(ValueError, "In megatron-lm.tok, `bos` <bos> is not a single token"):
+            _check_megatron_lm_section(metadata)
+
+    def test_bos_disabled_passes_without_bos_in_tokenizer(self):
+        tokenizer = str(write_tiny_tokenizer(Path(self.temp_dir) / "no-bos.json"))
+        metadata = self._metadata({"default": {"source": "release", "bos": False}, "tok": {"huggingface": tokenizer}})
+        _check_megatron_lm_section(metadata)
+
+    def test_unknown_eos_raises_error(self):
+        metadata = self._metadata(
+            {"default": {"source": "release"}, "tok": {"huggingface": self.tokenizer, "eos": "</s>"}}
+        )
+        with self.assertRaisesRegex(ValueError, "In megatron-lm.tok, `eos` </s> is not a single token"):
+            _check_megatron_lm_section(metadata)
+
     def test_unknown_output_directory_warns(self):
         metadata = self._metadata({"default": {"source": "release"}, "tok": {"huggingface": self.tokenizer}})
         (Path(self.temp_dir) / "megatron-lm" / "tok").mkdir(parents=True)
