@@ -46,6 +46,18 @@ singularity exec \
 
 To use a tokenizer from Hugging Face, set `HF_HOME=/scratch/project_465002530/cache/huggingface`.
 
+To spread the files over a SLURM job array, add `--slurm`. Each array task tokenizes every
+`SLURM_ARRAY_TASK_COUNT`-th file, starting at its `SLURM_ARRAY_TASK_ID`. There is a SLURM-script
+helping with the scheduling:
+```shell
+sbatch --array=0-3 /scratch/project_465002530/containers/training-data-packer/tokenize-standalone.sh
+  -t /scratch/project_465002530/users/pyysalos/tokenizers/openeurollm/tokenizer-256k \
+  --text text \
+  -o output \
+  /scratch/project_465002530/training/collection/flag/starcoder-0.0.0/release"
+```
+
+
 ## Local
 
 You need `uv` installed; see the [uv homepage](https://docs.astral.sh/uv/).
