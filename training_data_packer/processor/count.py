@@ -4,6 +4,8 @@ from typing import Any
 from loguru import logger
 from transformers import AutoTokenizer
 
+from training_data_packer.metadata import get_megatron_lm_tokenizers
+
 
 def get_tokenizer(tokenizer_name: str):
     return AutoTokenizer.from_pretrained(tokenizer_name, trust_remote_code=True, use_fast=True)
@@ -15,13 +17,13 @@ class Count:
         metadata: dict[str, Any],
         metric_name: str = "counts",
     ):
-        # Get tokenizer file from factory
+        # Count tokens with the first tokenizer in the megatron-lm section
         if metadata["_internal"].get("token_count", False):
-            try:
-                self._tokenizer = get_tokenizer(metadata["tokenizer"])
-            except KeyError as e:
+            tokenizers = get_megatron_lm_tokenizers(metadata)
+            if len(tokenizers) == 0:
                 logger.error("Tokenizer is not set")
-                raise ValueError("Tokenizer is not set") from e
+                raise ValueError("Tokenizer is not set, add one to section `megatron-lm`")
+            self._tokenizer = get_tokenizer(next(iter(tokenizers.values()))["huggingface"])
         else:
             self._tokenizer = None
         self._metric_name = metric_name

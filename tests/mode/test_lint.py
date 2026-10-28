@@ -7,6 +7,7 @@ from unittest.mock import patch
 import orjson
 import zstandard as zstd
 
+from tests.helpers.tokenizer import write_tiny_tokenizer
 from training_data_packer.metadata import Metadata
 from training_data_packer.metadata.defaults import (
     DEFAULT_ID,
@@ -19,6 +20,7 @@ from training_data_packer.metadata.defaults import (
 from training_data_packer.mode.lint import (
     _check_all_source_parts,
     _check_annotation_section,
+    _check_megatron_lm_section,
     _check_pack_config,
     _check_parts_and_dirs_match,
     _check_record_fields_in_sections_files,
@@ -672,7 +674,7 @@ class TestProcessAnnotationIdValidation(unittest.TestCase):
             patch("training_data_packer.mode.lint._check_all_release_parts"),
             patch("training_data_packer.mode.lint._check_all_source_parts"),
             patch("training_data_packer.mode.lint._check_input_in_section"),
-            patch("training_data_packer.mode.lint._check_tokenizer"),
+            patch("training_data_packer.mode.lint._check_megatron_lm_section"),
         ):
             return process(Path(self.temp_dir))
 
@@ -1226,3 +1228,86 @@ class TestCheckAllSourceParts(unittest.TestCase):
                 call_args = mock_check.call_args[0]
                 expected_fields = [SRC_TEXT_DEFAULT, SRC_LANGUAGE_DEFAULT, TGT_TEXT_DEFAULT, TGT_LANGUAGE_DEFAULT]
                 self.assertEqual(call_args[2], expected_fields)
+
+
+class TestCheckMegatronLmSection(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        self.tokenizer = str(write_tiny_tokenizer(Path(self.temp_dir) / "tokenizer.json", with_bos=True))
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def _metadata(self, megatron_lm: dict) -> Metadata:
+        return Metadata(
+            {
+                "_internal": {"collection_dir": self.temp_dir},
+                "release": {"default": {"input": "source", "pack": "flat"}},
+                "megatron-lm": megatron_lm,
+            }
+        )
+
+    def test_valid_section_passes(self):
+        metadata = self._metadata(
+            {
+                "default": {"source": "release"},
+                "first": {"huggingface": self.tokenizer},
+                "second": {"huggingface": self.tokenizer},
+            }
+        )
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
+            _check_megatron_lm_section(metadata)
+        mock_logger.warning.assert_not_called()
+
+    def test_missing_section_warns(self):
+        metadata = self._metadata({})
+        del metadata.data["megatron-lm"]
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
+            _check_megatron_lm_section(metadata)
+        mock_logger.warning.assert_called_once_with("Section `megatron-lm` is missing, the data cannot be tokenized.")
+
+    def test_no_tokenizers_raises_error(self):
+        metadata = self._metadata({"default": {"source": "release"}})
+        with self.assertRaisesRegex(ValueError, "no tokenizers"):
+            _check_megatron_lm_section(metadata)
+
+    def test_undefined_source_raises_error(self):
+        metadata = self._metadata(
+            {"default": {"source": "release"}, "tok": {"huggingface": self.tokenizer, "source": "nope"}}
+        )
+        with self.assertRaisesRegex(ValueError, "megatron-lm.tok.source references section `nope`"):
+            _check_megatron_lm_section(metadata)
+
+    def test_unloadable_tokenizer_raises_error(self):
+        metadata = self._metadata(
+            {"default": {"source": "release"}, "tok": {"huggingface": f"{self.temp_dir}/missing"}}
+        )
+        with self.assertRaisesRegex(ValueError, "In megatron-lm.tok, cannot load tokenizer"):
+            _check_megatron_lm_section(metadata)
+
+    def test_bos_not_in_tokenizer_raises_error(self):
+        tokenizer = str(write_tiny_tokenizer(Path(self.temp_dir) / "no-bos.json"))
+        metadata = self._metadata({"default": {"source": "release"}, "tok": {"huggingface": tokenizer}})
+        with self.assertRaisesRegex(ValueError, "In megatron-lm.tok, `bos` <bos> is not a single token"):
+            _check_megatron_lm_section(metadata)
+
+    def test_bos_disabled_passes_without_bos_in_tokenizer(self):
+        tokenizer = str(write_tiny_tokenizer(Path(self.temp_dir) / "no-bos.json"))
+        metadata = self._metadata({"default": {"source": "release", "bos": False}, "tok": {"huggingface": tokenizer}})
+        _check_megatron_lm_section(metadata)
+
+    def test_unknown_eos_raises_error(self):
+        metadata = self._metadata(
+            {"default": {"source": "release"}, "tok": {"huggingface": self.tokenizer, "eos": "</s>"}}
+        )
+        with self.assertRaisesRegex(ValueError, "In megatron-lm.tok, `eos` </s> is not a single token"):
+            _check_megatron_lm_section(metadata)
+
+    def test_unknown_output_directory_warns(self):
+        metadata = self._metadata({"default": {"source": "release"}, "tok": {"huggingface": self.tokenizer}})
+        (Path(self.temp_dir) / "megatron-lm" / "tok").mkdir(parents=True)
+        (Path(self.temp_dir) / "megatron-lm" / "old-tok").mkdir()
+        with patch("training_data_packer.mode.lint.logger") as mock_logger:
+            _check_megatron_lm_section(metadata)
+        mock_logger.warning.assert_called_once()
+        self.assertIn("old-tok", str(mock_logger.warning.call_args))

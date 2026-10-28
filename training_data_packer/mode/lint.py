@@ -4,7 +4,7 @@ from typing import Any
 
 from loguru import logger
 
-from training_data_packer.metadata import Metadata, read_metadata
+from training_data_packer.metadata import Metadata, get_megatron_lm_tokenizers, read_metadata
 from training_data_packer.metadata.defaults import (
     DEFAULT_HASH_ID,
     DEFAULT_ID,
@@ -18,8 +18,8 @@ from training_data_packer.metadata.defaults import (
     TGT_TEXT_DEFAULT,
 )
 from training_data_packer.metadata.schema import Validator
-from training_data_packer.processor.count import get_tokenizer
 from training_data_packer.processor.sample.sampler import read_sampler_fn
+from training_data_packer.tokenizer.tokenization import GigatokenEncoder, TokenizerError
 from training_data_packer.utils.file import GenericJsonlReader, find_files
 from training_data_packer.utils.misc import get_dict_value, get_dict_values
 
@@ -72,7 +72,7 @@ def process(collection_dir: Path) -> bool:
         elif collection_dir.joinpath("nugget").is_dir():
             raise ValueError("`nugget` directory exists, but there is no `nugget` section in metadata.")
 
-        _check_tokenizer(metadata)
+        _check_megatron_lm_section(metadata)
     except ValueError as e:
         logger.error(f"Metadata is invalid: {e}")
         return False
@@ -498,9 +498,46 @@ def _get_all_annotations(metadata: Metadata) -> set[str]:
     return set(itertools.chain.from_iterable(get_dict_values(metadata.data, "$..annotations")))
 
 
-def _check_tokenizer(metadata: Metadata):
-    if "tokenizer" in metadata:
+def _check_megatron_lm_section(metadata: Metadata) -> None:
+    """Validate the megatron-lm section of the metadata.
+
+    The section is optional, and a warning is logged if it is missing. If it exists, check that at least one tokenizer
+    is defined, that each tokenizer's ``source`` references a defined section, that each tokenizer can be loaded and
+    that its ``bos`` and ``eos`` tokens are single tokens.
+    Log a warning for directories under ``megatron-lm`` that match no tokenizer.
+
+    :param metadata: metadata to validate
+    :raises ValueError: if no tokenizer is defined, a source is not defined, a tokenizer cannot be loaded, or a
+        ``bos`` or ``eos`` token is not a single token
+    """
+    if "megatron-lm" not in metadata:
+        logger.warning("Section `megatron-lm` is missing, the data cannot be tokenized.")
+        return
+    tokenizers = get_megatron_lm_tokenizers(metadata)
+    if len(tokenizers) == 0:
+        raise ValueError("Section `megatron-lm` has no tokenizers defined.")
+    for name, config in tokenizers.items():
+        source = config["source"]
+        if source not in metadata:
+            raise ValueError(f"megatron-lm.{name}.source references section `{source}` which is not defined.")
         try:
-            get_tokenizer(metadata["tokenizer"])
-        except Exception as e:
-            raise ValueError(f"Cannot load tokenizer {metadata['tokenizer']}.") from e
+            encoder = GigatokenEncoder.load(config["huggingface"])
+        except TokenizerError as e:
+            raise ValueError(f"In megatron-lm.{name}, cannot load tokenizer {config['huggingface']}.") from e
+        for field in ["bos", "eos"]:
+            if config[field] is not False:
+                try:
+                    encoder.token_to_id(config[field])
+                except TokenizerError as e:
+                    raise ValueError(
+                        f"In megatron-lm.{name}, `{field}` {config[field]} is not a single token in the tokenizer."
+                    ) from e
+
+    directory = Path(metadata.get("_internal.collection_dir")).joinpath("megatron-lm")
+    if directory.is_dir():
+        excessive_dirs = {p.name for p in directory.iterdir() if p.is_dir()} - set(tokenizers)
+        if len(excessive_dirs) > 0:
+            logger.warning(
+                "Found directories in `megatron-lm` that do not match any tokenizer: "
+                f"{', '.join(sorted(excessive_dirs))}"
+            )

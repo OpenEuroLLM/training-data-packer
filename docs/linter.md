@@ -39,7 +39,10 @@ uv run oellm-package-data --collection-dir "$DIR" --mode lint && sbatch --array=
 - **Data files**: when a section directory exists, the linter reads the first record of each part and checks that
   required fields (such as `id` and `text`, or the `parallel` fields) are present. It also checks that part names
   match the subdirectories on disk.
-- **Tokenizer**: if `tokenizer` is set, it can be loaded.
+- **Tokenizers**: the `megatron-lm` section is optional, and a warning is logged if it is missing. If it is set, it
+  lists at least one tokenizer, every tokenizer can be loaded, its `bos` and `eos` tokens are single tokens in the
+  tokenizer, and each `source` points to a section that exists. Directories under `megatron-lm/` that match no
+  tokenizer give a warning.
 
 The linter only reads a sample of the data, so a clean lint does not guarantee that every record is valid.
 

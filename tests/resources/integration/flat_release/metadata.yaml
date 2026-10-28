@@ -1,5 +1,9 @@
 name: HPLT 3.0
-tokenizer: dummy/tokenizer
+megatron-lm:
+  default:
+    source: release
+  dummy-tokenizer:
+    huggingface: dummy/tokenizer
 suffix: .jsonl.zst
 text: text
 id: id

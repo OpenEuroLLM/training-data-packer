@@ -7,6 +7,7 @@ from training_data_packer.metadata import (
     Metadata,
     calculate_file_path,
     get_matching_part,
+    get_megatron_lm_tokenizers,
     get_shard_size_documents,
 )
 
@@ -203,6 +204,53 @@ class TestMetadata(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestGetMegatronLmTokenizers(unittest.TestCase):
+    def test_merges_default(self):
+        metadata = Metadata(
+            {
+                "megatron-lm": {
+                    "default": {"source": "release"},
+                    "first": {"huggingface": "org/first"},
+                    "second": {"huggingface": "org/second", "source": "release-raw"},
+                },
+            },
+        )
+        self.assertEqual(
+            {
+                "first": {"huggingface": "org/first", "source": "release", "bos": "<bos>", "eos": "<eos>"},
+                "second": {"huggingface": "org/second", "source": "release-raw", "bos": "<bos>", "eos": "<eos>"},
+            },
+            get_megatron_lm_tokenizers(metadata),
+        )
+
+    def test_bos_and_eos_set_in_default_and_tokenizer(self):
+        metadata = {
+            "megatron-lm": {
+                "default": {"source": "release", "bos": False},
+                "first": {"huggingface": "org/first"},
+                "second": {"huggingface": "org/second", "bos": "<s>", "eos": False},
+            },
+        }
+        tokenizers = get_megatron_lm_tokenizers(metadata)
+        self.assertEqual((False, "<eos>"), (tokenizers["first"]["bos"], tokenizers["first"]["eos"]))
+        self.assertEqual(("<s>", False), (tokenizers["second"]["bos"], tokenizers["second"]["eos"]))
+
+    def test_keeps_metadata_order(self):
+        metadata = {
+            "megatron-lm": {"default": {"source": "release"}, "b": {"huggingface": "b"}, "a": {"huggingface": "a"}}
+        }
+        self.assertEqual(["b", "a"], list(get_megatron_lm_tokenizers(metadata)))
+
+    @parameterized.expand(
+        [
+            ["missing section", {}],
+            ["only default", {"megatron-lm": {"default": {"source": "release"}}}],
+        ]
+    )
+    def test_no_tokenizers(self, _name: str, metadata: dict):
+        self.assertEqual({}, get_megatron_lm_tokenizers(metadata))
 
 
 class TestCalculateFilePath(unittest.TestCase):

@@ -1,6 +1,10 @@
 name: Common-pile Stackv2
 catalogue: common-pile/0.1/stackv2
-tokenizer: dummy/tokenizer
+megatron-lm:
+  default:
+    source: release
+  dummy-tokenizer:
+    huggingface: dummy/tokenizer
 id: id
 text: text
 suffix: .jsonl.zst

@@ -1,3 +1,4 @@
+import copy
 import unittest
 from importlib import resources
 
@@ -6,7 +7,7 @@ from parameterized import parameterized
 
 import tests.helpers.metadata
 import tests.resources.metadata
-from training_data_packer.metadata import read_metadata
+from training_data_packer.metadata import Metadata, read_metadata
 from training_data_packer.metadata.schema import Validator
 
 
@@ -31,6 +32,69 @@ class MetadataSchemaTest(unittest.TestCase):
 
     def test_validator_initialization(self):
         self.assertIsNotNone(self.validator.registry)
+
+
+class MegatronLmSchemaTest(unittest.TestCase):
+    def setUp(self):
+        self.validator = Validator()
+        self.metadata = Metadata(copy.deepcopy(tests.helpers.metadata.minimal_metadata_dict))
+
+    @parameterized.expand(
+        [
+            ["minimal", {"default": {"source": "release"}, "tok-256k": {"huggingface": "org/tokenizer-256k"}}],
+            [
+                "several tokenizers",
+                {
+                    "default": {"source": "release"},
+                    "tok-256k": {"huggingface": "org/tokenizer-256k"},
+                    "tok_v2.1": {"huggingface": "/path/to/tokenizer"},
+                },
+            ],
+            [
+                "bos and eos",
+                {
+                    "default": {"source": "release", "bos": False, "eos": "<|endoftext|>"},
+                    "tok": {"huggingface": "org/tok", "bos": "<s>", "eos": False},
+                },
+            ],
+            [
+                "source override",
+                {"default": {"source": "release"}, "tok": {"huggingface": "org/tok", "source": "release-raw"}},
+            ],
+        ]
+    )
+    def test_valid(self, _name: str, megatron_lm: dict):
+        self.metadata["megatron-lm"] = megatron_lm
+        self.assertTrue(self.validator.validate_metadata(self.metadata))
+
+    @parameterized.expand(
+        [
+            ["no tokenizer", {"default": {"source": "release"}}],
+            ["missing default", {"tok": {"huggingface": "org/tok"}}],
+            ["missing default source", {"default": {}, "tok": {"huggingface": "org/tok"}}],
+            ["unknown default field", {"default": {"source": "release", "foo": 1}, "tok": {"huggingface": "org/tok"}}],
+            ["missing huggingface", {"default": {"source": "release"}, "tok": {}}],
+            ["null tokenizer", {"default": {"source": "release"}, "tok": None}],
+            ["empty huggingface", {"default": {"source": "release"}, "tok": {"huggingface": ""}}],
+            ["unknown tokenizer field", {"default": {"source": "release"}, "tok": {"huggingface": "o/t", "foo": 1}}],
+            ["empty bos", {"default": {"source": "release", "bos": ""}, "tok": {"huggingface": "org/tok"}}],
+            ["true eos", {"default": {"source": "release"}, "tok": {"huggingface": "org/tok", "eos": True}}],
+            ["slash in name", {"default": {"source": "release"}, "org/tok": {"huggingface": "org/tok"}}],
+        ]
+    )
+    def test_invalid(self, _name: str, megatron_lm: dict):
+        self.metadata["megatron-lm"] = megatron_lm
+        with pytest.raises(ValueError):
+            self.validator.validate_metadata(self.metadata)
+
+    def test_missing_section_valid(self):
+        del self.metadata.data["megatron-lm"]
+        self.assertTrue(self.validator.validate_metadata(self.metadata))
+
+    def test_tokenizer_field_not_allowed(self):
+        self.metadata.data["tokenizer"] = "org/tok"
+        with pytest.raises(ValueError):
+            self.validator.validate_metadata(self.metadata)
 
 
 class ReleasePartSchemaTest(unittest.TestCase):
