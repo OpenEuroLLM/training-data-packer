@@ -1,4 +1,4 @@
-# Run the tests and build the container image on every push.
+# Run the pre-commit checks and tests, and build the container image on every push.
 # On main the image is also pushed to the GitHub container registry, tagged with the short SHA and "latest".
 # On a published release the image is pushed, tagged with the short SHA and the release tag name.
 name: CI
@@ -21,6 +21,36 @@ env:
   PUSH_IMAGE: ${{ github.ref == 'refs/heads/main' || github.event_name == 'release' }}
 
 jobs:
+  pre-commit:
+    name: Pre-commit checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: uv sync --locked --dev
+
+      - name: Cache pre-commit hook environments
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      # pytest is skipped here because the test job already runs it.
+      - name: Run pre-commit hooks
+        run: uv run pre-commit run --all-files --show-diff-on-failure
+        env:
+          SKIP: pytest
+
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -44,7 +74,9 @@ jobs:
 
   docker:
     name: Build container image
-    needs: test
+    needs:
+      - pre-commit
+      - test
     runs-on: ubuntu-latest
     permissions:
       contents: read
