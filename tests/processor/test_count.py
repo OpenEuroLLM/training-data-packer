@@ -5,6 +5,8 @@ from unittest.mock import MagicMock, patch
 
 from training_data_packer.processor.count import Count
 
+_MEGATRON_LM = {"default": {"source": "release"}, "fake": {"huggingface": "fake/tokenizer"}}
+
 
 def _fake_tokenizer(name: str = "fake/tokenizer") -> MagicMock:
     """Create a fake tokenizer that splits text on whitespace.
@@ -28,7 +30,7 @@ class TestCountWithoutTokenizer(unittest.TestCase):
             get_tokenizer.assert_not_called()
 
     def test_token_count_false(self):
-        metadata = {"_internal": {"token_count": False}, "tokenizer": "fake/tokenizer"}
+        metadata = {"_internal": {"token_count": False}, "megatron-lm": _MEGATRON_LM}
         with patch("training_data_packer.processor.count.get_tokenizer") as get_tokenizer:
             counter = Count(metadata)
             get_tokenizer.assert_not_called()
@@ -97,7 +99,7 @@ class TestCountWithoutTokenizer(unittest.TestCase):
 
 class TestCountWithTokenizer(unittest.TestCase):
     def setUp(self):
-        self.metadata = {"_internal": {"token_count": True}, "tokenizer": "fake/tokenizer"}
+        self.metadata = {"_internal": {"token_count": True}, "megatron-lm": _MEGATRON_LM}
         patcher = patch(
             "training_data_packer.processor.count.get_tokenizer",
             return_value=_fake_tokenizer(),
@@ -108,6 +110,15 @@ class TestCountWithTokenizer(unittest.TestCase):
     def test_tokenizer_loaded(self):
         Count(self.metadata)
         self.get_tokenizer.assert_called_once_with("fake/tokenizer")
+
+    def test_first_of_several_tokenizers_loaded(self):
+        megatron_lm = {
+            "default": {"source": "release"},
+            "first": {"huggingface": "first/tokenizer"},
+            "second": {"huggingface": "second/tokenizer"},
+        }
+        Count({"_internal": {"token_count": True}, "megatron-lm": megatron_lm})
+        self.get_tokenizer.assert_called_once_with("first/tokenizer")
 
     def test_empty_metrics(self):
         counts = Count(self.metadata).get_metrics()["counts"]
@@ -129,6 +140,12 @@ class TestCountWithTokenizer(unittest.TestCase):
 
     def test_missing_tokenizer_raises(self):
         metadata = {"_internal": {"token_count": True}}
+        with self.assertRaises(ValueError):
+            Count(metadata)
+        self.get_tokenizer.assert_not_called()
+
+    def test_section_without_tokenizers_raises(self):
+        metadata = {"_internal": {"token_count": True}, "megatron-lm": {"default": {"source": "release"}}}
         with self.assertRaises(ValueError):
             Count(metadata)
         self.get_tokenizer.assert_not_called()

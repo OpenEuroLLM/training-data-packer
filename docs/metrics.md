@@ -50,7 +50,7 @@ file for each release section (except `default`) in their respective subdirector
 ### Count
 * `documents` - Number of documents, if last in chain it shall be same as output.
 * `segments` - Number of document segments, correspond to number of new lines.
-* `tokens` - Number of tokens, tokenizer used described in `tokenizer` field.
+* `tokens` - Number of tokens, counted with the first tokenizer in the `megatron-lm` section.
 * `tokenizer` - Name of tokenizer used.
 * `characters` - Number of characters.
 * `unique_keys` - Number of unique document keys. Ideally same as documents.

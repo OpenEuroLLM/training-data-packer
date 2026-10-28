@@ -44,15 +44,18 @@ def process(
         raise ValueError(f"No files found in {input_path}")
     logger.info(f"Found {len(src_files)} files")
 
-    metadata = Metadata({"tokenizer": tokenizer})
-    function = partial(_tokenize_file, base_dir=base_dir, output_dir=output_dir, text_field=text_field)
-    slurm.schedule_files(src_files, metadata, function, slurm=slurm_job)
+    function = partial(
+        _tokenize_file, base_dir=base_dir, output_dir=output_dir, text_field=text_field, tokenizer=tokenizer
+    )
+    slurm.schedule_files(src_files, None, function, slurm=slurm_job)
 
 
-def _tokenize_file(src_file: Path, metadata: Metadata, base_dir: Path, output_dir: Path, text_field: str) -> None:
+def _tokenize_file(
+    src_file: Path, metadata: Metadata, base_dir: Path, output_dir: Path, text_field: str, tokenizer: str
+) -> None:
     output_file_prefix = _output_file_prefix(src_file, base_dir, output_dir)
     logger.info(f"Tokenizing {src_file} to {output_file_prefix}")
-    tokenize_file(src_file, metadata, text_field=text_field, output_file_prefix=output_file_prefix)
+    tokenize_file(src_file, tokenizer, text_field=text_field, output_file_prefix=output_file_prefix)
 
 
 def _output_file_prefix(src_file: Path, base_dir: Path, output_dir: Path) -> Path:

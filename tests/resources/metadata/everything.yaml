@@ -1,6 +1,10 @@
 name: Everything
 catalogue: Everything
-tokenizer: dummy/tokenizer
+megatron-lm:
+  default:
+    source: release
+  dummy-tokenizer:
+    huggingface: dummy/tokenizer
 id: id
 text: text
 suffix: .jsonl.zst

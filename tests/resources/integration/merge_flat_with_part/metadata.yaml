@@ -1,5 +1,9 @@
 name: Test data
-tokenizer: dummy/tokenizer
+megatron-lm:
+  default:
+    source: release
+  dummy-tokenizer:
+    huggingface: dummy/tokenizer
 suffix: .jsonl.zst
 text: text
 id: id

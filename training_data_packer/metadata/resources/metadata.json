@@ -43,10 +43,54 @@
       "minLength": 1,
       "default": ".jsonl.zst"
     },
-    "tokenizer": {
-      "type": "string",
-      "description": "Tokenizer to use.",
-      "minLength": 1
+    "megatron-lm": {
+      "type": "object",
+      "description": "Object describing tokenization into Megatron-LM indexed datasets. Each entry other than default is a tokenizer, and its output is written to megatron-lm/<entry name>.",
+      "properties": {
+        "default": {
+          "type": "object",
+          "description": "Default values for tokenizer entries",
+          "properties": {
+            "source": {
+              "type": "string",
+              "description": "Directory under the collection directory to read files to tokenize from.",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "source"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "default"
+      ],
+      "propertyNames": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+      },
+      "minProperties": 2,
+      "additionalProperties": {
+        "type": "object",
+        "description": "Tokenizer to tokenize the files with",
+        "properties": {
+          "huggingface": {
+            "type": "string",
+            "description": "HuggingFace Hub repo id or local path of the tokenizer.",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "description": "Directory under the collection directory to read files to tokenize from, overrides default.",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "huggingface"
+        ],
+        "additionalProperties": false
+      },
+      "unevaluatedProperties": false
     },
     "release": {
       "type": "object",
@@ -422,7 +466,7 @@
   "required": [
     "name",
     "release",
-    "tokenizer"
+    "megatron-lm"
   ],
   "patternProperties": {
     "^_": {

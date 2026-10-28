@@ -1,4 +1,5 @@
 from collections import UserDict
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -90,6 +91,17 @@ class Metadata(UserDict):
         if default is None:
             default = {}
         return merge_hierarchy_dicts(part, default)
+
+
+def get_megatron_lm_tokenizers(metadata: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+    """Return the tokenizers of the ``megatron-lm`` section, merged with the section defaults.
+
+    :param metadata: metadata to read the section from
+    :returns: tokenizer configs keyed by tokenizer name, in metadata order; empty if the section is missing
+    """
+    section = metadata.get("megatron-lm") or {}
+    default = section.get("default") or {}
+    return {name: merge_hierarchy_dicts(config or {}, default) for name, config in section.items() if name != "default"}
 
 
 def get_shard_size_documents(part_config: dict[str, Any]) -> int:

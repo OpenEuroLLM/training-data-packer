@@ -43,6 +43,7 @@ dataset-directory/
 ├── propella-4b/         # Optional Propella quality score parquet files used for quality filtering
 ├── release-raw/         # Output of oellm-package-data, mode release: per-file processed data with PII masked, decontaminated, and sampled
 ├── release/             # Output of oellm-package-data, mode merge: consolidated and merged files ready for tokenization
+├── megatron-lm/         # Output of oellm-package-data, mode tokenize: one subdirectory per tokenizer in the megatron-lm section
 └── sample/              # Output of oellm-package-data, mode sample: files sampled on quality using propella-4b and other quality metrics
 ```
 
@@ -122,6 +123,7 @@ part of the process will happen. Default is `release` mode packaging the final
 result and output into `release-raw`. The mode `sample` do just a sampling according
 to the `sample` section in `metadata.yaml`, and output into `sample`directory.
 
+`--token-count` in `release` and `sample` mode counts tokens with the first tokenizer listed in `megatron-lm`.
 
 ### Merger
 The merger reduces the number of files but still keeps semantics in paths, like language or quality.
@@ -134,6 +136,27 @@ The merger run after `oellm-package-data`.
 To run local:
 ```shell
 uv run oellm-package-data -m merge --collection-dir ${COLLECTION_DIR} --workers 1
+```
+
+### Tokenization
+The mode `tokenize` turns files into Megatron-LM indexed datasets (`.bin` and `.idx`). It is controlled by the
+`megatron-lm` section in `metadata.yaml`:
+
+```yaml
+megatron-lm:
+  default:
+    source: release
+  openeurollm-256k:
+    huggingface: openeurollm/tokenizer-256k
+```
+
+`default.source` is the directory under the collection directory to read files from. Every other entry is a
+tokenizer, where `huggingface` is a HuggingFace Hub repo id or a local tokenizer path. The output of each tokenizer is
+written to `megatron-lm/<entry name>`, so the example above writes to `megatron-lm/openeurollm-256k`. When several
+tokenizers are listed, the files are tokenized with all of them. A tokenizer entry may set its own `source`.
+
+```shell
+uv run oellm-package-data --collection-dir <dir> --mode tokenize
 ```
 
 ### Propella Structure: oellm-propella-structure

@@ -42,7 +42,7 @@ def get_my_slurm_tasks(files: list[Any]) -> list[Any]:
 
 def schedule_files(
     all_work_items: list[os.PathLike | str],
-    metadata: Metadata,
+    metadata: Metadata | None,
     function: Callable[[os.PathLike], None],
     workers: int = 1,
     slurm: bool = False,

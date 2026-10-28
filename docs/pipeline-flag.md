@@ -11,7 +11,8 @@ The pipeline consists of the following main:
   This produce the `contamination` directory.
 * package - Filter and format the data. This produce data to a `release_raw` directory.
 * merge - Merge into reduced number of shards with even size. This produce data to `release` directory.
-* Tokenization - External step to tokenize the data. This produce the `megatron-lm` directory.
+* tokenize - Tokenize the data with every tokenizer in the `megatron-lm` section. This produce the `megatron-lm`
+  directory.
 
 ```mermaid
 ---
