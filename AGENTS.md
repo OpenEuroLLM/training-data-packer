@@ -16,13 +16,13 @@ Python 3.14+ is required (enforced by `pyproject.toml`). Use `uv` for all depend
 
 The packer ships five CLI tools. Every tool except `oellm-tokenize-standalone` reads `metadata.yaml` from the collection directory.
 
-| Command                     | Entry point                                  | Purpose                                                         |
-|-----------------------------|----------------------------------------------|-----------------------------------------------------------------|
-| `oellm-package-data`        | `training_data_packer/package.py`            | Main tool: lint, sample, release (default) or merge a dataset   |
-| `oellm-collect-metrics`     | `training_data_packer/collect_metrics.py`    | Collect and summarize metrics from packaged data                |
-| `oellm-propella-structure`  | `training_data_packer/propella_structure.py` | Arrange Propella data in the same order as the source data      |
-| `oellm-propella-merge`      | `training_data_packer/propella_merge.py`     | Merge per-file Propella structure output                        |
-| `oellm-tokenize-standalone` | `training_data_packer/simple_tokenize.py`    | Tokenize a file or directory of JSONL files, no metadata needed |
+| Command                     | Entry point                                   | Purpose                                                         |
+|-----------------------------|-----------------------------------------------|-----------------------------------------------------------------|
+| `oellm-package-data`        | `training_data_packer/package.py`             | Main tool: lint, sample, release (default) or merge a dataset   |
+| `oellm-collect-metrics`     | `training_data_packer/collect_metrics.py`     | Collect and summarize metrics from packaged data                |
+| `oellm-propella-structure`  | `training_data_packer/propella_structure.py`  | Arrange Propella data in the same order as the source data      |
+| `oellm-propella-merge`      | `training_data_packer/propella_merge.py`      | Merge per-file Propella structure output                        |
+| `oellm-tokenize-standalone` | `training_data_packer/tokenize_standalone.py` | Tokenize a file or directory of JSONL files, no metadata needed |
 
 Run any of them with `uv run <command> --help`. Common examples:
 
