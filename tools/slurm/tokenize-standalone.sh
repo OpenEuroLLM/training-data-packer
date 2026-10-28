@@ -15,4 +15,4 @@ time singularity exec \
   --bind /scratch \
   --bind /project \
   /scratch/project_465002530/containers/training-data-packer/training-data-packer.sif \
-  oellm-tokenize --slurm $*
+  oellm-tokenize-standalone --slurm $*

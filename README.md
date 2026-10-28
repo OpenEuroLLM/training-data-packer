@@ -201,7 +201,7 @@ To run `oellm-propella-merge`:
 uv run oellm-propella-merge --collection-dir ${COLLECTION_DIR} --part ${part}
 ```
 
-### Tokenizer: oellm-tokenize
+### Tokenizer: oellm-tokenize-standalone
 
 The tokenizer turns JSONL files into Megatron indexed datasets (`.bin` and `.idx`) without needing a collection
 directory or a `metadata.yaml`. Every document is wrapped with the tokenizer's `<bos>` and `<eos>` tokens.
@@ -220,13 +220,13 @@ rerun after a failure.
 
 To run:
 ```shell
-uv run oellm-tokenize ${INPUT_DIR} --tokenizer ${TOKENIZER} --text text --output-dir ${OUTPUT_DIR}
+uv run oellm-tokenize-standalone ${INPUT_DIR} --tokenizer ${TOKENIZER} --text text --output-dir ${OUTPUT_DIR}
 ```
 
 To spread the files over a SLURM job array, add `--slurm`. Each array task tokenizes every
 `SLURM_ARRAY_TASK_COUNT`-th file, starting at its `SLURM_ARRAY_TASK_ID`:
 ```shell
-sbatch --array=0-9 --wrap "uv run oellm-tokenize ${INPUT_DIR} --tokenizer ${TOKENIZER} --output-dir ${OUTPUT_DIR} --slurm"
+sbatch --array=0-9 --wrap "uv run oellm-tokenize-standalone ${INPUT_DIR} --tokenizer ${TOKENIZER} --output-dir ${OUTPUT_DIR} --slurm"
 ```
 
 ## Develop

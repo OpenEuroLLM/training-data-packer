@@ -70,7 +70,7 @@ def _output_file_prefix(src_file: Path, base_dir: Path, output_dir: Path) -> Pat
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        prog="oellm-tokenize",
+        prog="oellm-tokenize-standalone",
         description="Tokenize a JSONL file, or all *.jsonl.zst files in a directory, into Megatron indexed datasets.",
     )
     parser.add_argument("input", help="File or directory to tokenize")

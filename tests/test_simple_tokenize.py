@@ -123,21 +123,30 @@ class TestProcess(unittest.TestCase):
             simple_tokenize.process(self.tmp_dir / rel_path, self.tokenizer, output_dir=self.output_dir)
 
     def test_main_parses_arguments(self):
-        argv = ["oellm-tokenize", str(self.input_dir), "-t", self.tokenizer, "--text", "content", "-o", "out"]
+        argv = [
+            "oellm-tokenize-standalone",
+            str(self.input_dir),
+            "-t",
+            self.tokenizer,
+            "--text",
+            "content",
+            "-o",
+            "out",
+        ]
         with mock.patch.object(sys, "argv", argv), mock.patch.object(simple_tokenize, "process") as process:
             simple_tokenize.main()
 
         process.assert_called_once_with(self.input_dir, self.tokenizer, "content", Path("out"), False)
 
     def test_main_defaults(self):
-        argv = ["oellm-tokenize", str(self.input_dir), "-t", self.tokenizer]
+        argv = ["oellm-tokenize-standalone", str(self.input_dir), "-t", self.tokenizer]
         with mock.patch.object(sys, "argv", argv), mock.patch.object(simple_tokenize, "process") as process:
             simple_tokenize.main()
 
         process.assert_called_once_with(self.input_dir, self.tokenizer, "text", Path("."), False)
 
     def test_main_slurm(self):
-        argv = ["oellm-tokenize", str(self.input_dir), "-t", self.tokenizer, "--slurm"]
+        argv = ["oellm-tokenize-standalone", str(self.input_dir), "-t", self.tokenizer, "--slurm"]
         with mock.patch.object(sys, "argv", argv), mock.patch.object(simple_tokenize, "process") as process:
             simple_tokenize.main()
 

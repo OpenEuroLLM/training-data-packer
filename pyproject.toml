@@ -54,7 +54,7 @@ oellm-package-data = "training_data_packer.package:main"
 oellm-collect-metrics = "training_data_packer.collect_metrics:main"
 oellm-propella-structure = "training_data_packer.propella_structure:main"
 oellm-propella-merge = "training_data_packer.propella_merge:main"
-oellm-tokenize = "training_data_packer.simple_tokenize:main"
+oellm-tokenize-standalone = "training_data_packer.simple_tokenize:main"
 
 [build-system]
 requires = ["uv_build>=0.12.18,<0.13"]
