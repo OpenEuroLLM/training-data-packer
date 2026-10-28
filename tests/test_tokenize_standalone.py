@@ -104,6 +104,15 @@ class TestProcess(unittest.TestCase):
         for name in not_expected:
             self.assertFalse(self.output_dir.joinpath(f"{name}.bin").exists())
 
+    def test_no_bos(self):
+        self._write_input("000.jsonl.zst", [{"text": "ab"}])
+
+        tokenize_standalone.process(self.input_dir, self.tokenizer, output_dir=self.output_dir, bos=False)
+
+        self.assertEqual([[256, _EOS_ID]], _read_tokens(self.output_dir / "000"))
+        metrics = json.loads(metrics_path(self.output_dir / "000").read_text())
+        self.assertIsNone(metrics["bos"])
+
     def test_missing_text_field_raises(self):
         self._write_input("000.jsonl.zst", [{"content": "ab"}])
 
@@ -136,21 +145,28 @@ class TestProcess(unittest.TestCase):
         with mock.patch.object(sys, "argv", argv), mock.patch.object(tokenize_standalone, "process") as process:
             tokenize_standalone.main()
 
-        process.assert_called_once_with(self.input_dir, self.tokenizer, "content", Path("out"), False)
+        process.assert_called_once_with(self.input_dir, self.tokenizer, "content", Path("out"), False, True)
 
     def test_main_defaults(self):
         argv = ["oellm-tokenize-standalone", str(self.input_dir), "-t", self.tokenizer]
         with mock.patch.object(sys, "argv", argv), mock.patch.object(tokenize_standalone, "process") as process:
             tokenize_standalone.main()
 
-        process.assert_called_once_with(self.input_dir, self.tokenizer, "text", Path("."), False)
+        process.assert_called_once_with(self.input_dir, self.tokenizer, "text", Path("."), False, True)
 
     def test_main_slurm(self):
         argv = ["oellm-tokenize-standalone", str(self.input_dir), "-t", self.tokenizer, "--slurm"]
         with mock.patch.object(sys, "argv", argv), mock.patch.object(tokenize_standalone, "process") as process:
             tokenize_standalone.main()
 
-        process.assert_called_once_with(self.input_dir, self.tokenizer, "text", Path("."), True)
+        process.assert_called_once_with(self.input_dir, self.tokenizer, "text", Path("."), True, True)
+
+    def test_main_no_bos(self):
+        argv = ["oellm-tokenize-standalone", str(self.input_dir), "-t", self.tokenizer, "--no-bos"]
+        with mock.patch.object(sys, "argv", argv), mock.patch.object(tokenize_standalone, "process") as process:
+            tokenize_standalone.main()
+
+        process.assert_called_once_with(self.input_dir, self.tokenizer, "text", Path("."), False, False)
 
 
 if __name__ == "__main__":

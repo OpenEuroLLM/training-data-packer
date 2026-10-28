@@ -204,7 +204,8 @@ uv run oellm-propella-merge --collection-dir ${COLLECTION_DIR} --part ${part}
 ### Tokenizer: oellm-tokenize-standalone
 
 The tokenizer turns JSONL files into Megatron indexed datasets (`.bin` and `.idx`) without needing a collection
-directory or a `metadata.yaml`. Every document is wrapped with the tokenizer's `<bos>` and `<eos>` tokens.
+directory or a `metadata.yaml`. Every document is wrapped with the tokenizer's `<bos>` and `<eos>` tokens,
+unless `--no-bos` is given.
 
 Arguments:
 * `input` - a single file, or a directory where all `*.jsonl.zst` files below it are tokenized
@@ -212,6 +213,7 @@ Arguments:
 * `--text` - the field in each document holding the text, default `text`
 * `-o`, `--output-dir` - where to write the output, default the current directory
 * `-s`, `--slurm` - only tokenize the files assigned to the current SLURM array task, see below
+* `--no-bos` - do not prepend the `<bos>` token to documents
 
 For a directory, the relative path of each input file is kept under the output directory, and the file extension
 is dropped, e.g. `input/deu_Latn/000.jsonl.zst` becomes `output/deu_Latn/000.bin` and `output/deu_Latn/000.idx`.

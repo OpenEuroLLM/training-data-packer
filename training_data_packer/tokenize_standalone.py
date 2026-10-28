@@ -7,7 +7,7 @@ from pathlib import Path
 from loguru import logger
 
 from training_data_packer.metadata import Metadata
-from training_data_packer.metadata.defaults import DEFAULT_SUFFIX, DEFAULT_TEXT
+from training_data_packer.metadata.defaults import DEFAULT_BOS_TOKEN, DEFAULT_SUFFIX, DEFAULT_TEXT
 from training_data_packer.mode.tokenize import tokenize_file
 from training_data_packer.utils import slurm
 from training_data_packer.utils.file import find_files
@@ -21,6 +21,7 @@ def process(
     text_field: str = DEFAULT_TEXT,
     output_dir: Path = Path("."),
     slurm_job: bool = False,
+    bos: bool = True,
 ) -> None:
     """Tokenize a file, or every file in a directory, into indexed datasets.
 
@@ -32,6 +33,7 @@ def process(
     :param text_field: the record field holding the text to tokenize
     :param output_dir: the directory to write the tokenized datasets to
     :param slurm_job: process only the files assigned to the current SLURM array task
+    :param bos: prepend the beginning-of-document token to every document
     :raises ValueError: if no input files are found
     """
     if input_path.is_dir():
@@ -45,17 +47,34 @@ def process(
     logger.info(f"Found {len(src_files)} files")
 
     function = partial(
-        _tokenize_file, base_dir=base_dir, output_dir=output_dir, text_field=text_field, tokenizer=tokenizer
+        _tokenize_file,
+        base_dir=base_dir,
+        output_dir=output_dir,
+        text_field=text_field,
+        tokenizer=tokenizer,
+        bos_token=DEFAULT_BOS_TOKEN if bos else None,
     )
     slurm.schedule_files(src_files, None, function, slurm=slurm_job)
 
 
 def _tokenize_file(
-    src_file: Path, metadata: Metadata, base_dir: Path, output_dir: Path, text_field: str, tokenizer: str
+    src_file: Path,
+    metadata: Metadata,
+    base_dir: Path,
+    output_dir: Path,
+    text_field: str,
+    tokenizer: str,
+    bos_token: str | None,
 ) -> None:
     output_file_prefix = _output_file_prefix(src_file, base_dir, output_dir)
     logger.info(f"Tokenizing {src_file} to {output_file_prefix}")
-    tokenize_file(src_file, tokenizer, text_field=text_field, output_file_prefix=output_file_prefix)
+    tokenize_file(
+        src_file,
+        tokenizer,
+        text_field=text_field,
+        output_file_prefix=output_file_prefix,
+        bos_token=bos_token,
+    )
 
 
 def _output_file_prefix(src_file: Path, base_dir: Path, output_dir: Path) -> Path:
@@ -83,9 +102,14 @@ def main() -> None:
         help="Only process files for my slurm array task",
         action="store_true",
     )
+    parser.add_argument(
+        "--no-bos",
+        help="Do not prepend the beginning-of-document token to documents",
+        action="store_true",
+    )
     args = parser.parse_args()
 
-    process(Path(args.input), args.tokenizer, args.text, Path(args.output_dir), args.slurm)
+    process(Path(args.input), args.tokenizer, args.text, Path(args.output_dir), args.slurm, not args.no_bos)
 
 
 if __name__ == "__main__":
