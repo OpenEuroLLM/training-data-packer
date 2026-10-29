@@ -28,7 +28,8 @@ class Validator:
         try:
             validator.validate(data)
         except jsonschema.ValidationError as e:
-            raise ValueError(f"Validation error for schema {schema_url}: {e}") from e
+            first_line = e.message.splitlines()[0] if e.message else ""
+            raise ValueError(f"Validation error for schema {schema_url}: {first_line}") from e
         return True
 
     def validate_metadata(self, metadata: Metadata) -> bool:

@@ -119,6 +119,15 @@ class ReleasePartSchemaTest(unittest.TestCase):
         with pytest.raises(ValueError):
             self.validator.validate_release_part(self.complete_record)
 
+    def test_validate_release_part_error_message_is_single_line(self):
+        del self.complete_record["shard"]
+
+        with pytest.raises(ValueError) as exc_info:
+            self.validator.validate_release_part(self.complete_record)
+        message = str(exc_info.value)
+        self.assertNotIn("\n", message)
+        self.assertIn("'shard' is a required property", message)
+
     @parameterized.expand(
         [
             "full",
