@@ -115,7 +115,7 @@ def process(
         logger.info("All parts will be flatten into one. This will run single threaded.")
 
     if parts == ["default"]:
-        if (slurm.is_slurm_job() and slurm.get_array_task_id() == 1) or not slurm.is_slurm_job():
+        if (slurm.is_slurm_job() and slurm.get_array_task_id() == 0) or not slurm.is_slurm_job():
             metadata["suffix"] = DEFAULT_SUFFIX
             files = find_files(input_dir, metadata.get("suffix", DEFAULT_SUFFIX))
             docs_per_shard = get_shard_size_documents(metadata["release.default"])
@@ -132,7 +132,7 @@ def process(
     else:
         try:
             slurm.schedule_files(parts, metadata, merge_part, workers, slurm.is_slurm_job())
-            if not slurm.is_slurm_job() or (slurm.is_slurm_job() and slurm.get_array_task_id() == 1):
+            if not slurm.is_slurm_job() or (slurm.is_slurm_job() and slurm.get_array_task_id() == 0):
                 merge_metrics(input_dir, output_dir)
             return True
         except RuntimeError:
