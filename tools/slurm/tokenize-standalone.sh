@@ -8,6 +8,8 @@
 #SBATCH --nodes=1
 #SBATCH --account=project_465002530
 
+HF_HOME=/scratch/project_465002530/cache/huggingface
+
 time singularity exec \
   --bind /appl/local/openeurollm \
   --bind /pfs/lustrep2/scratch \
