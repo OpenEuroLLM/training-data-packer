@@ -1,13 +1,13 @@
 # Tokenize
 
-The packer includes a tokenization step, which is documented [here](lumi.md).
-That step works well when you run the full packer pipeline, but it can be cumbersome
-when you just want to evaluate data mixes.
+The packer has a built-in tokenization step, described in [LUMI](lumi.md).
+That step works well as part of the full packer pipeline, but it is cumbersome
+when you only want to evaluate data mixes.
 
-For that use case, there is a standalone tool called `oellm-tokenize-standalone`. You can run it
-on your local machine (tested on macOS and Linux) or on LUMI via a Singularity container.
+For that use case, use the standalone tool `oellm-tokenize-standalone`. You can run it
+on your local machine (tested on macOS and Linux) or on LUMI through a Singularity container.
 
-It tokenizes either a single file or every file in a directory. It supports the following file formats:
+The tool tokenizes a single file or every file in a directory. It supports these file formats:
 
 * `.jsonl.zst`
 * `.jsonl.zstd`
@@ -15,22 +15,25 @@ It tokenizes either a single file or every file in a directory. It supports the 
 * `.jsonl`
 * `.parquet`
 
-Referens to tokenizer can either be a path or a reference to Huggingface.
+You can give the tokenizer as a local path or as a Hugging Face Hub repository ID.
+
+The tool is opinionated: it adds a `<bos>` token at the start of each document and an `<eos>` token at the end.
+Use the `--no-bos` flag to leave out the `<bos>` token.
 
 ## LUMI
 
 To show usage instructions:
 
-```
+```shell
 singularity exec \
   /scratch/project_465002530/containers/training-data-packer/training-data-packer.sif \
   oellm-tokenize-standalone --help
 ```
 
-The following example tokenizes a file with the same tokenizer used for prelude and flag.
-It writes the output to the directory `output`.
+The following example tokenizes a file with the tokenizer used for Prelude and Flag,
+and writes the output to the directory `output`:
 
-```
+```shell
 singularity exec \
   --bind /appl/local/openeurollm \
   --bind /pfs/lustrep2/scratch \
@@ -46,17 +49,17 @@ singularity exec \
 
 To use a tokenizer from Hugging Face, set `HF_HOME=/scratch/project_465002530/cache/huggingface`.
 
-To spread the files over a SLURM job array, add `--slurm`. Each array task tokenizes every
-`SLURM_ARRAY_TASK_COUNT`-th file, starting at its `SLURM_ARRAY_TASK_ID`. There is a SLURM-script
-helping with the scheduling:
+To spread the files over a SLURM job array, add `--slurm`. Each array task starts at the file given by
+`SLURM_ARRAY_TASK_ID` and then tokenizes every `SLURM_ARRAY_TASK_COUNT`-th file.
+The SLURM script `tokenize-standalone.sh` handles the scheduling for you:
+
 ```shell
-sbatch --array=0-3 /scratch/project_465002530/containers/training-data-packer/tokenize-standalone.sh
+sbatch --array=0-3 /scratch/project_465002530/containers/training-data-packer/tokenize-standalone.sh \
   -t /scratch/project_465002530/users/pyysalos/tokenizers/openeurollm/tokenizer-256k \
   --text text \
   -o output \
-  /scratch/project_465002530/training/collection/flag/starcoder-0.0.0/release"
+  /scratch/project_465002530/training/collection/flag/starcoder-0.0.0/release
 ```
-
 
 ## Local
 
