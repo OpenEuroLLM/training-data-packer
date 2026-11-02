@@ -43,6 +43,12 @@
       "minLength": 1,
       "default": ".jsonl.zst"
     },
+    "languages": {
+      "$ref": "https://openeurollm.eu/schemas/part.json#/$defs/languages"
+    },
+    "tags": {
+      "$ref": "https://openeurollm.eu/schemas/part.json#/$defs/tags"
+    },
     "megatron-lm": {
       "type": "object",
       "description": "Object describing tokenization into Megatron-LM indexed datasets. Each entry other than default is a tokenizer, and its output is written to megatron-lm/<entry name>.",

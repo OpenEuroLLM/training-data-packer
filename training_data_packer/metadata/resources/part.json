@@ -4,6 +4,24 @@
   "title": "Part",
   "description": "Sub-schema for parts of type release or sample",
   "type": "object",
+  "$defs": {
+    "languages": {
+      "type": "array",
+      "description": "Languages of the data as ISO 639-3 code and ISO 15924 script separated by underscore, e.g. ces_Latn",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z]{3}_[A-Z][a-z]{3}$"
+      }
+    },
+    "tags": {
+      "type": "array",
+      "description": "Tags describing the data",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
   "properties": {
     "annotations": {
       "type": "array",
@@ -149,6 +167,12 @@
       "description": "Fraction of extra amount of data over budget for safety.",
       "type": "number",
       "minimum": 1
+    },
+    "languages": {
+      "$ref": "#/$defs/languages"
+    },
+    "tags": {
+      "$ref": "#/$defs/tags"
     }
   },
   "additionalProperties": false,

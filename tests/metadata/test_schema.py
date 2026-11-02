@@ -97,6 +97,57 @@ class MegatronLmSchemaTest(unittest.TestCase):
             self.validator.validate_metadata(self.metadata)
 
 
+class LanguagesAndTagsSchemaTest(unittest.TestCase):
+    def setUp(self):
+        self.validator = Validator()
+        self.metadata = Metadata(copy.deepcopy(tests.helpers.metadata.minimal_metadata_dict))
+
+    @parameterized.expand(
+        [
+            ["languages", "languages", ["ces_Latn", "ukr_Cyrl"]],
+            ["empty languages", "languages", []],
+            ["tags", "tags", ["web", "curated"]],
+            ["empty tags", "tags", []],
+        ]
+    )
+    def test_valid(self, _name: str, field: str, value: list):
+        self.metadata.data[field] = value
+        self.metadata["release"]["default"][field] = value
+        self.metadata["release"]["part"] = {field: value}
+        self.assertTrue(self.validator.validate_metadata(self.metadata))
+
+    @parameterized.expand(
+        [
+            ["two letter language", "languages", ["cs_Latn"]],
+            ["missing script", "languages", ["ces"]],
+            ["lowercase script", "languages", ["ces_latn"]],
+            ["uppercase language", "languages", ["CES_Latn"]],
+            ["hyphen separator", "languages", ["ces-Latn"]],
+            ["language not list", "languages", "ces_Latn"],
+            ["empty tag", "tags", [""]],
+            ["non-string tag", "tags", [1]],
+            ["tags not list", "tags", "web"],
+        ]
+    )
+    def test_invalid_top_level(self, _name: str, field: str, value):
+        self.metadata.data[field] = value
+        with pytest.raises(ValueError):
+            self.validator.validate_metadata(self.metadata)
+
+    @parameterized.expand(
+        [
+            ["two letter language", "languages", ["cs_Latn"]],
+            ["missing script", "languages", ["ces"]],
+            ["empty tag", "tags", [""]],
+            ["tags not list", "tags", "web"],
+        ]
+    )
+    def test_invalid_part(self, _name: str, field: str, value):
+        self.metadata["release"]["part"] = {field: value}
+        with pytest.raises(ValueError):
+            self.validator.validate_metadata(self.metadata)
+
+
 class ReleasePartSchemaTest(unittest.TestCase):
     def setUp(self):
         self.validator = Validator()

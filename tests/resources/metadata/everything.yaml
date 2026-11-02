@@ -8,6 +8,8 @@ megatron-lm:
 id: id
 text: text
 suffix: .jsonl.zst
+languages: [ces_Latn, ukr_Cyrl]
+tags: [web, curated]
 release:
   default:
     input: sample
@@ -38,8 +40,12 @@ release:
     budget: 15%
     shard: 94md
     rubber: 1.10
+    languages: [ces_Latn]
+    tags: [web]
   documents:
     sample: random
+    languages: [ukr_Cyrl]
+    tags: [documents]
     budget: 25%
     shard: 7md
 sample:
