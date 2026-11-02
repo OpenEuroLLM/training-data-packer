@@ -84,6 +84,16 @@ def merge_part(part_name: str, metadata: Metadata):
         merge_metrics(input_dir.joinpath(part_name), output_dir.joinpath(part_name))
 
 
+def is_single_task_merge(metadata: Metadata, parts: list[str]) -> bool:
+    """Check if all parts are flattened into one, which must run in a single task.
+
+    :param metadata: metadata of the collection
+    :param parts: names of the parts to merge
+    :returns: True if the merge must run single threaded in one task
+    """
+    return metadata.get("release.default.pack") == "flat" and metadata.get(f"release.'{parts[0]}'.prefix") is None
+
+
 def process(
     collection_dir: Path,
     args: dict[str, Any] | None = None,
@@ -108,14 +118,14 @@ def process(
         logger.error("Pack method not set, abort")
         return False
 
-    if pack_method == "flat" and metadata.get(f"release.'{parts[0]}'.prefix", None) is None:
+    if is_single_task_merge(metadata, parts):
         # This config requires single threaded
         workers = 1
         parts = ["default"]
         logger.info("All parts will be flatten into one. This will run single threaded.")
 
     if parts == ["default"]:
-        if (slurm.is_slurm_job() and slurm.get_array_task_id() == 1) or not slurm.is_slurm_job():
+        if (slurm.is_slurm_job() and slurm.get_array_task_id() == 0) or not slurm.is_slurm_job():
             metadata["suffix"] = DEFAULT_SUFFIX
             files = find_files(input_dir, metadata.get("suffix", DEFAULT_SUFFIX))
             docs_per_shard = get_shard_size_documents(metadata["release.default"])
@@ -132,7 +142,7 @@ def process(
     else:
         try:
             slurm.schedule_files(parts, metadata, merge_part, workers, slurm.is_slurm_job())
-            if not slurm.is_slurm_job() or (slurm.is_slurm_job() and slurm.get_array_task_id() == 1):
+            if not slurm.is_slurm_job() or (slurm.is_slurm_job() and slurm.get_array_task_id() == 0):
                 merge_metrics(input_dir, output_dir)
             return True
         except RuntimeError:
