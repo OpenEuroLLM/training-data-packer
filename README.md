@@ -122,6 +122,8 @@ The program checks if output files exist, if they exist new data is not regenera
 part of the process will happen. Default is `release` mode packaging the final
 result and output into `release-raw`. The mode `sample` do just a sampling according
 to the `sample` section in `metadata.yaml`, and output into `sample`directory.
+The mode `plan` prints the SLURM array size and time limit for the package, merge and tokenize
+jobs, see [docs/lumi.md](docs/lumi.md).
 
 `--token-count` in `release` and `sample` mode counts tokens with the first tokenizer listed in `megatron-lm`.
 

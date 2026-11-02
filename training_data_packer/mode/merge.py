@@ -84,6 +84,16 @@ def merge_part(part_name: str, metadata: Metadata):
         merge_metrics(input_dir.joinpath(part_name), output_dir.joinpath(part_name))
 
 
+def is_single_task_merge(metadata: Metadata, parts: list[str]) -> bool:
+    """Check if all parts are flattened into one, which must run in a single task.
+
+    :param metadata: metadata of the collection
+    :param parts: names of the parts to merge
+    :returns: True if the merge must run single threaded in one task
+    """
+    return metadata.get("release.default.pack") == "flat" and metadata.get(f"release.'{parts[0]}'.prefix") is None
+
+
 def process(
     collection_dir: Path,
     args: dict[str, Any] | None = None,
@@ -108,7 +118,7 @@ def process(
         logger.error("Pack method not set, abort")
         return False
 
-    if pack_method == "flat" and metadata.get(f"release.'{parts[0]}'.prefix", None) is None:
+    if is_single_task_merge(metadata, parts):
         # This config requires single threaded
         workers = 1
         parts = ["default"]

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from training_data_packer.mode import lint, merge, release, sample, tokenize
+from training_data_packer.mode import lint, merge, plan, release, sample, tokenize
 from training_data_packer.utils.logging import DuplicateFilter
 
 
@@ -26,7 +26,7 @@ def main():
         "--mode",
         help="Mode to run packager in",
         default="release",
-        choices=["lint", "release", "sample", "tokenize", "merge"],
+        choices=["lint", "plan", "release", "sample", "tokenize", "merge"],
     )
     args = parser.parse_args()
 
@@ -38,6 +38,11 @@ def main():
                 raise ValueError("Lint mode does not support multiple workers, part selection, or counting")
             if not lint.process(Path(args.collection_dir)):
                 sys.exit(1)
+        case "plan":
+            if args.workers > 1 or args.part is not None or args.token_count:
+                raise ValueError("Plan mode does not support multiple workers, part selection, or counting")
+            for step_plan in plan.process(Path(args.collection_dir)):
+                sys.stdout.write(f"{step_plan.step} {step_plan.slurm_args()}\n")
         case "release":
             release.process(Path(args.collection_dir), args=vars(args))
         case "sample":
@@ -48,7 +53,7 @@ def main():
             if not merge.process(Path(args.collection_dir), args=vars(args)):
                 sys.exit(2)
         case _:
-            raise ValueError(f"Undefined mode {args.mode}. Use one of: lint, sample, release, tokenize, or merge")
+            raise ValueError(f"Undefined mode {args.mode}. Use one of: lint, plan, sample, release, tokenize, or merge")
 
 
 if __name__ == "__main__":

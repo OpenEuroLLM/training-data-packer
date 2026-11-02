@@ -65,12 +65,49 @@ sbatch --array=0-10 "tools/slurm/package.sh" ${COLLECTION_DIR} sample
 
 Once the sample is done, update budget and rubber in metadata.
 
-The remaining three steps can run sequentially in one go using `pipeline.sh`. The steps are:
+The remaining three steps can run sequentially in one go using `pipeline-auto-plan.sh` or `pipeline.sh`. The steps are:
 * release - Mask PII, remove contaminated data and adjust to budget.
 * merge - Reduce the number of files to wanted shard size.
 * tokenize - Tokenize the data.
 
 To avoid scheduling the full pipeline with faulty metadata, the linter is running before the scheduling occur.
+
+```
+./tools/slurm/pipeline-auto-plan.sh ${COLLECTION_DIR}
+```
+
+Example:
+```
+./tools/slurm/pipeline-auto-plan.sh /scratch/project_465002530/users/magnrune/data/training-data-collection/flag/olmo-mix-1124
+```
+
+The array size and time limit of each job are calculated by `oellm-package-data --mode plan`, which prints one line
+of `sbatch` arguments per job:
+
+```
+package --partition=small --array=0-4 --time=5:00:00
+merge --partition=small --array=0-0 --time=34:00:00
+tokenize --partition=standard --array=0-6 --time=5:00:00
+```
+
+The plan is based on the files in the directory of `release.default.input` that are included in a release part,
+their count, total size and largest size. The heuristics are:
+
+* 1 GiB is processed per minute.
+* A file can not be split between tasks. For merge, a part can not be split between tasks.
+* `package.sh` processes 8 files in parallel in a task. `merge.sh` and `tokenize.sh` process one at a time.
+* A task should ideally run for 5 hours. The time limit is rounded up to whole hours.
+* An array has at most 200 tasks in partition `small` (package and merge) and 100 tasks in partition `standard`
+  (tokenize). When the limit is reached, the tasks run longer than 5 hours.
+* With `pack: flat`, merge runs in a single task, unless the parts set a `prefix`. With `pack: tree`, merge uses at most
+  one task per part.
+* Tokenize is estimated from the source files, once per tokenizer, since the merged files do not exist yet.
+
+If a job needs more time than its partition allows, 72 hours for `small` and 48 hours for `standard`, the plan fails
+and nothing is scheduled.
+
+To set the array sizes yourself, use `pipeline.sh` instead. The jobs then use the partition and time limit set in the
+job scripts.
 
 ```
 ./tools/slurm/pipeline.sh ${COLLECTION_DIR} ${PACKAGE_ARRAY} ${MERGE_ARRAY} ${TOKENIZE_ARRAY}
@@ -86,7 +123,7 @@ Example:
 ```
 
 Logs are ending up in the sub-directory logs to your current directory. In the logs directory a `jobs.csv`
-is created by `pipeline.sh` to collection and job id scheduled.
+is created by `pipeline-auto-plan.sh` and `pipeline.sh` to collection and job id scheduled.
 
 
 
