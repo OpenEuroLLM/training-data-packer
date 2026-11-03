@@ -5,7 +5,7 @@ from pathlib import Path
 from loguru import logger
 
 from training_data_packer.mode import lint, merge, plan, release, sample, tokenize
-from training_data_packer.utils.logging import DuplicateFilter
+from training_data_packer.utils.logging import DuplicateFilter, log_git_sha
 
 
 def main():
@@ -29,6 +29,7 @@ def main():
         choices=["lint", "plan", "release", "sample", "tokenize", "merge"],
     )
     args = parser.parse_args()
+    log_git_sha()
 
     match args.mode:
         case "lint":

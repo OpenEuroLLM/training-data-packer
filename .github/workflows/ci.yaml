@@ -111,6 +111,8 @@ jobs:
         with:
           context: .
           push: ${{ env.PUSH_IMAGE == 'true' }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
