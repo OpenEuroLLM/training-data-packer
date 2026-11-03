@@ -4,7 +4,7 @@
 #SBATCH --output=logs/tokenize_%A_%a.out
 #SBATCH --error=logs/tokenize_%A_%a.err
 #SBATCH --time=48:00:00
-#SBATCH --mem=10G
+#SBATCH --mem=200G
 #SBATCH --nodes=1
 #SBATCH --account=project_465002530
 

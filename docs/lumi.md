@@ -125,7 +125,16 @@ Example:
 Logs are ending up in the sub-directory logs to your current directory. In the logs directory a `jobs.csv`
 is created by `pipeline-auto-plan.sh` and `pipeline.sh` to collection and job id scheduled.
 
+### Use another container image
 
+To run with a different SIF file, for example to test a new image, point `TRAINING_DATA_PACKER_SIF` at it:
+
+```shell
+export TRAINING_DATA_PACKER_SIF=/scratch/project_465002530/containers/training-data-packer/training-data-packer-<tag>.sif
+$PACKER --collection-dir <dir> --mode lint
+```
+
+The SLURM scripts in `tools/slurm` honor the variable too, since `sbatch` passes your environment on to the job.
 
 ## Install or update the container
 
