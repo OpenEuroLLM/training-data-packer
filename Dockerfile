@@ -42,4 +42,9 @@ ENV PATH=/opt/venv/bin:${PATH} \
 RUN useradd --create-home packer
 USER packer
 
+# The commit the image was built from, logged by every tool on startup. CI passes it as a build argument.
+# Declared last so a new commit does not invalidate the cached layers above.
+ARG GIT_SHA
+ENV PACKER_GIT_SHA=${GIT_SHA}
+
 CMD ["oellm-package-data", "--help"]

@@ -1,5 +1,11 @@
 """Logging helpers for loguru."""
 
+import os
+
+from loguru import logger
+
+GIT_SHA_ENV = "PACKER_GIT_SHA"
+
 
 class DuplicateFilter:
     """Suppress repeated log messages from the same code location.
@@ -26,3 +32,17 @@ class DuplicateFilter:
 
         self.seen.add(log_key)
         return True  # Allow log
+
+
+def log_git_sha() -> None:
+    """Log the commit SHA the running code was built from.
+
+    The SHA is read from the ``PACKER_GIT_SHA`` environment variable, which is baked into container images built by
+    CI. When the variable is unset, for example when running from a local checkout, a warning that this is not an
+    official build is logged instead.
+    """
+    git_sha = os.environ.get(GIT_SHA_ENV)
+    if git_sha:
+        logger.info(f"Running training-data-packer commit {git_sha}")
+    else:
+        logger.warning("Running training-data-packer without a commit SHA, this is not an official build")

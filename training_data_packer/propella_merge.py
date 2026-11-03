@@ -16,6 +16,7 @@ from training_data_packer.utils.file import (
     find_files,
     get_subdirectories,
 )
+from training_data_packer.utils.logging import log_git_sha
 from training_data_packer.utils.metrics import read_metrics_from_file
 from training_data_packer.utils.slurm import get_my_slurm_tasks
 
@@ -113,6 +114,7 @@ def main() -> None:
         action="store_true",
     )
     args = parser.parse_args()
+    log_git_sha()
 
     process(Path(args.collection_dir), args.part, args.workers, args.slurm)
 

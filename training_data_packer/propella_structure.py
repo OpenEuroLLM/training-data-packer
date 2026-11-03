@@ -13,6 +13,7 @@ from training_data_packer.processor.propella import SourceToPropellaMapper
 from training_data_packer.storage.propella import get_lookup_fn
 from training_data_packer.utils import metrics
 from training_data_packer.utils.file import GenericJsonlReader, JsonlZstWriter, change_suffix, find_files
+from training_data_packer.utils.logging import log_git_sha
 from training_data_packer.utils.slurm import get_my_slurm_tasks
 
 
@@ -102,6 +103,7 @@ def main() -> None:
         action="store_true",
     )
     args = parser.parse_args()
+    log_git_sha()
 
     process(Path(args.collection_dir), Path(args.propella), args.part, args.slurm)
 

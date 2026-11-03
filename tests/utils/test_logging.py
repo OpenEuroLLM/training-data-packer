@@ -1,10 +1,12 @@
+import os
 import unittest
 from types import SimpleNamespace
+from unittest import mock
 
 from loguru import logger
 from parameterized import parameterized
 
-from training_data_packer.utils.logging import DuplicateFilter
+from training_data_packer.utils.logging import GIT_SHA_ENV, DuplicateFilter, log_git_sha
 
 
 def _record(file_name: str, line: int, message: str = "message") -> dict:
@@ -76,3 +78,41 @@ class TestDuplicateFilter(unittest.TestCase):
         logger.info("other line")
 
         self.assertEqual(["repeated 0\n", "other line\n"], [str(m) for m in messages])
+
+
+class TestLogGitSha(unittest.TestCase):
+    def _capture(self) -> list:
+        """Collect log messages for the rest of the test.
+
+        :returns: the list that logged messages are appended to
+        """
+        messages = []
+        handler_id = logger.add(messages.append, format="{message}")
+        self.addCleanup(logger.remove, handler_id)
+        return messages
+
+    def test_logs_sha_when_set(self):
+        messages = self._capture()
+
+        with mock.patch.dict(os.environ, {GIT_SHA_ENV: "abc123"}):
+            log_git_sha()
+
+        self.assertEqual(["Running training-data-packer commit abc123\n"], [str(m) for m in messages])
+
+    @parameterized.expand(
+        [
+            ("unset", {}),
+            ("empty", {GIT_SHA_ENV: ""}),
+        ],
+    )
+    def test_warns_unofficial_build_without_sha(self, _name, env):
+        messages = self._capture()
+
+        with mock.patch.dict(os.environ, env, clear=True):
+            log_git_sha()
+
+        self.assertEqual(
+            ["Running training-data-packer without a commit SHA, this is not an official build\n"],
+            [str(m) for m in messages],
+        )
+        self.assertEqual("WARNING", messages[0].record["level"].name)

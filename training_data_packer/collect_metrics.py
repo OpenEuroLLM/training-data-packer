@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 
 from training_data_packer.metadata import read_metadata
+from training_data_packer.utils.logging import log_git_sha
 from training_data_packer.utils.metrics import merge_metrics
 
 
@@ -12,6 +13,7 @@ def main():
     )
     parser.add_argument("--collection-dir", help="Collection directory containing data", required=True)
     args = parser.parse_args()
+    log_git_sha()
 
     collection_dir = Path(args.collection_dir)
     metadata_path = collection_dir.joinpath("metadata.yaml")

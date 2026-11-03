@@ -11,6 +11,7 @@ from training_data_packer.metadata.defaults import DEFAULT_BOS_TOKEN, DEFAULT_SU
 from training_data_packer.mode.tokenize import tokenize_file
 from training_data_packer.utils import slurm
 from training_data_packer.utils.file import find_files
+from training_data_packer.utils.logging import log_git_sha
 
 _KNOWN_SUFFIXES = [".jsonl.zst", ".jsonl.zstd", ".jsonl.gz", ".jsonl", ".parquet"]
 
@@ -108,6 +109,7 @@ def main() -> None:
         action="store_true",
     )
     args = parser.parse_args()
+    log_git_sha()
 
     process(Path(args.input), args.tokenizer, args.text, Path(args.output_dir), args.slurm, not args.no_bos)
 
