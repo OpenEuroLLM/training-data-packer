@@ -20,14 +20,22 @@ All tools read a file `metadata.yaml` containing metadata about the structure an
 ## TL;DR; I just want to run!
 Here are steps to run packaging and reduce the number of files. Instructions are intended for Lumi and using latest Singularity container.
 1. Check out `https://github.com/OpenEuroLLM/training-data-packer`
-2. In `tools/slurm` there are scripts to schedule jobs with SLURM.
-3. Lint your metadata to find errors in the declaration: `/scratch/project_465002530/containers/training-data-packer/oellm-package-data.sh --collection-dir /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0 --mode lint`
-4. Start pipline with package, merge, and tokenization `./tools/slurm/pipeline.sh /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0 0-10 0-38 0-38`
-Change path to the dataset you want to process. Adjust the array size to the size of data.
+2. In `tools/slurm` there are scripts to schedule jobs with SLURM. Run them from the root of the checkout, since job ids
+   and logs are written to the `logs` directory in the current directory.
+3. Start the pipeline with package, merge, and tokenization:
+   `./tools/slurm/pipeline-auto-plan.sh /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0`
+   Change path to the dataset you want to process. The script lints the metadata first and stops if it finds errors.
+   The array size and time of each job are calculated from the files in the collection.
+4. Check the status of the scheduled pipelines with `./tools/slurm/pipeline-status.sh`. It prints a Markdown table with
+   one row per collection and one column per step: 🏃🏻 running, ✅ completed, ❎ failed, 🕘 pending or waiting for a
+   dependency, ❔ unknown to SLURM.
 5. Check logs and metrics for each step.
-6. Move logs from `logs` directory within the directory where you checked out the code into `/scratch/project_465002530/training/collection/flag/log/release`
+6. When the pipeline is done, move logs from `logs` directory within the directory where you checked out the code into `/scratch/project_465002530/training/collection/flag/log/release`
 
 The two first steps are a one time operation or when you update the packager.
+
+To set the array sizes yourself, use `./tools/slurm/pipeline.sh <collection-dir> <package-array> <merge-array> <tokenize-array>`
+instead, e.g. `./tools/slurm/pipeline.sh /scratch/project_465002530/training/collection/flag/finepdfs-edu-1.0.0 0-10 0-38 0-38`.
 
 
 ## Dataset Directory Structure
