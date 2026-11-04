@@ -14,6 +14,6 @@
 # If tree array size shall not be larger than number of parts. If flat array is only one task.
 
 export COLLECTION_DIR=$1
-export LOGURU_LEVEL=INFO
+export LOGURU_LEVEL=${LOGURU_LEVEL:-INFO}
 
 time /scratch/project_465002530/containers/training-data-packer/oellm-package-data.sh --mode merge --collection-dir ${COLLECTION_DIR} --workers 1

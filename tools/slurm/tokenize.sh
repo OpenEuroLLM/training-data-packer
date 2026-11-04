@@ -13,6 +13,6 @@
 # A single file cannot be split over several nodes.
 
 export COLLECTION_DIR=$1
-export LOGURU_LEVEL=INFO
+export LOGURU_LEVEL=${LOGURU_LEVEL:-INFO}
 
 time /scratch/project_465002530/containers/training-data-packer/oellm-package-data.sh --collection-dir ${COLLECTION_DIR} --mode tokenize
