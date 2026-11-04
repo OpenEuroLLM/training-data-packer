@@ -23,7 +23,7 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
 export LOGURU_LEVEL=${LOGURU_LEVEL:-INFO}
 mkdir -p logs
-if [ ! -f /tmp/foo.txt ]; then
+if [ ! -f logs/jobs.csv ]; then
     echo Collection dir,Package job id,Merge job id,Tokenize job id > logs/jobs.csv
 fi
 
