@@ -127,20 +127,22 @@ Example:
 Logs are ending up in the sub-directory logs to your current directory. In the logs directory a `jobs.csv`
 is created by `pipeline-auto-plan.sh` and `pipeline.sh` to collection and job id scheduled.
 
-To see the status of the scheduled jobs, print a Markdown table with one row per collection and one column per step:
+To see the status of the scheduled jobs, print a Markdown table with one row per collection and one column per step.
+The columns are padded, so the table also reads well as plain text:
 
 ```
 ./tools/slurm/pipeline-status.sh [logs/jobs.csv]
 ```
 
 ```
-| Collection | Package | Merge | Tokenize |
-|---|---|---|---|
-| finepdfs-edu-1.0.0 | ✅ | 🏃🏻 | 🕘 |
-| olmo-mix-1124 | ❎ | ❎ | ❎ |
+| Collection         | Package     | Merge | Tokenize |
+|--------------------|-------------|-------|----------|
+| finepdfs-edu-1.0.0 | ✅ 02:13:20 | 🏃🏻    | 🕘       |
+| olmo-mix-1124      | ❌          | ❌    | ❌       |
 ```
 
-🏃🏻 running, ✅ completed, ❎ failed, 🕘 pending or waiting for a dependency, and ❔ if SLURM doesn't know the job.
+🏃🏻 running, ✅ completed, ❌ failed, 🕘 pending or waiting for a dependency, and ❔ if SLURM doesn't know the job.
+A completed job also shows its run time as `[D-]HH:MM:SS`, from the start of its first task to the end of its last.
 An array job shows its worst task. If a collection was scheduled more than once, only the latest jobs are shown.
 
 ### Use another container image

@@ -27,8 +27,8 @@ Here are steps to run packaging and reduce the number of files. Instructions are
    Change path to the dataset you want to process. The script lints the metadata first and stops if it finds errors.
    The array size and time of each job are calculated from the files in the collection.
 4. Check the status of the scheduled pipelines with `./tools/slurm/pipeline-status.sh`. It prints a Markdown table with
-   one row per collection and one column per step: 🏃🏻 running, ✅ completed, ❎ failed, 🕘 pending or waiting for a
-   dependency, ❔ unknown to SLURM.
+   one row per collection and one column per step: 🏃🏻 running, ✅ completed, ❌ failed, 🕘 pending or waiting for a
+   dependency, ❔ unknown to SLURM. Completed steps also show their run time.
 5. Check logs and metrics for each step.
 6. When the pipeline is done, move logs from `logs` directory within the directory where you checked out the code into `/scratch/project_465002530/training/collection/flag/log/release`
 
