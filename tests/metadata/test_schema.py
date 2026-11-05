@@ -97,20 +97,19 @@ class MegatronLmSchemaTest(unittest.TestCase):
             self.validator.validate_metadata(self.metadata)
 
 
-class LanguagesAndTagsSchemaTest(unittest.TestCase):
+class LanguageAndTagsSchemaTest(unittest.TestCase):
     def setUp(self):
         self.validator = Validator()
         self.metadata = Metadata(copy.deepcopy(tests.helpers.metadata.minimal_metadata_dict))
 
     @parameterized.expand(
         [
-            ["languages", "languages", ["ces_Latn", "ukr_Cyrl"]],
-            ["empty languages", "languages", []],
+            ["language", "language", "ces_Latn"],
             ["tags", "tags", ["web", "curated"]],
             ["empty tags", "tags", []],
         ]
     )
-    def test_valid(self, _name: str, field: str, value: list):
+    def test_valid(self, _name: str, field: str, value: str | list):
         self.metadata.data[field] = value
         self.metadata["release"]["default"][field] = value
         self.metadata["release"]["part"] = {field: value}
@@ -118,12 +117,13 @@ class LanguagesAndTagsSchemaTest(unittest.TestCase):
 
     @parameterized.expand(
         [
-            ["two letter language", "languages", ["cs_Latn"]],
-            ["missing script", "languages", ["ces"]],
-            ["lowercase script", "languages", ["ces_latn"]],
-            ["uppercase language", "languages", ["CES_Latn"]],
-            ["hyphen separator", "languages", ["ces-Latn"]],
-            ["language not list", "languages", "ces_Latn"],
+            ["two letter language", "language", "cs_Latn"],
+            ["missing script", "language", "ces"],
+            ["lowercase script", "language", "ces_latn"],
+            ["uppercase language", "language", "CES_Latn"],
+            ["hyphen separator", "language", "ces-Latn"],
+            ["empty language", "language", ""],
+            ["language list", "language", ["ces_Latn"]],
             ["empty tag", "tags", [""]],
             ["non-string tag", "tags", [1]],
             ["tags not list", "tags", "web"],
@@ -136,8 +136,9 @@ class LanguagesAndTagsSchemaTest(unittest.TestCase):
 
     @parameterized.expand(
         [
-            ["two letter language", "languages", ["cs_Latn"]],
-            ["missing script", "languages", ["ces"]],
+            ["two letter language", "language", "cs_Latn"],
+            ["missing script", "language", "ces"],
+            ["language list", "language", ["ces_Latn"]],
             ["empty tag", "tags", [""]],
             ["tags not list", "tags", "web"],
         ]

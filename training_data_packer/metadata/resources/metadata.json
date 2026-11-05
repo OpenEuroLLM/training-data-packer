@@ -43,8 +43,8 @@
       "minLength": 1,
       "default": ".jsonl.zst"
     },
-    "languages": {
-      "$ref": "https://openeurollm.eu/schemas/part.json#/$defs/languages"
+    "language": {
+      "$ref": "https://openeurollm.eu/schemas/part.json#/$defs/language"
     },
     "tags": {
       "$ref": "https://openeurollm.eu/schemas/part.json#/$defs/tags"
