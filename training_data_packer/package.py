@@ -28,6 +28,13 @@ def main():
         default="release",
         choices=["lint", "plan", "release", "sample", "tokenize", "merge"],
     )
+    parser.add_argument(
+        "--safety-ratio",
+        help=f"Plan mode: multiplier of the estimated time, 1.5 reserves 50%% more time, "
+        f"default is {plan.DEFAULT_SAFETY_RATIO}",
+        type=float,
+        default=plan.DEFAULT_SAFETY_RATIO,
+    )
     args = parser.parse_args()
     log_git_sha()
 
@@ -42,7 +49,7 @@ def main():
         case "plan":
             if args.workers > 1 or args.part is not None or args.token_count:
                 raise ValueError("Plan mode does not support multiple workers, part selection, or counting")
-            for step_plan in plan.process(Path(args.collection_dir)):
+            for step_plan in plan.process(Path(args.collection_dir), args.safety_ratio):
                 sys.stdout.write(f"{step_plan.step} {step_plan.slurm_args()}\n")
         case "release":
             release.process(Path(args.collection_dir), args=vars(args))

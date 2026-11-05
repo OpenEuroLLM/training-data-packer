@@ -102,6 +102,8 @@ their count, total size and largest size. The heuristics are:
 * With `pack: flat`, merge runs in a single task, unless the parts set a `prefix`. With `pack: tree`, merge uses at most
   one task per part.
 * Tokenize is estimated from the source files, once per tokenizer, since the merged files do not exist yet.
+* The estimated time is multiplied by a safety ratio, default 2.0, before the array size and time limit are
+  calculated. A ratio of 1.5 reserves 50% more time than estimated. Set it with `--safety-ratio`.
 
 If a job needs more time than its partition allows, 72 hours for `small` and 48 hours for `standard`, the plan fails
 and nothing is scheduled.
