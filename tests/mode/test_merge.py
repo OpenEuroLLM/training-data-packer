@@ -75,6 +75,26 @@ class MergeIntegrationTests(unittest.TestCase):
             self.assertEqual(_count_lines_in_file(workdir.joinpath("release/shard02/shard_0003.jsonl.zst")), 10)
             self.assertEqual(_count_lines_in_file(workdir.joinpath("release/shard02/shard_0004.jsonl.zst")), 6)
 
+    def test_merge_removes_unfinished_files(self):
+        test_data = Path("tests/resources/integration/merge_flat_with_part")
+        with TemporaryDirectory() as tmpdir:
+            workdir = Path(tmpdir).joinpath("workdir")
+            shutil.copytree(test_data, workdir)
+            release_dir = workdir.joinpath("release")
+            release_dir.mkdir()
+            unfinished = release_dir.joinpath(".01_0_0007.jsonl.zst")
+            unfinished.write_bytes(b"partial")
+            other_hidden = release_dir.joinpath(".01_0_0000.jsonl.zst.metrics.json")
+            other_hidden.write_text("{}")
+
+            process(workdir)
+
+            self.assertFalse(unfinished.exists())
+            self.assertTrue(other_hidden.exists())
+            self.assertEqual(_count_lines_in_file(release_dir.joinpath("01_0_0000.jsonl.zst")), 10)
+            hidden_shards = [p.name for p in release_dir.glob(".*.jsonl.zst")]
+            self.assertEqual(hidden_shards, [])
+
 
 if __name__ == "__main__":
     unittest.main()

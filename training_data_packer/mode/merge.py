@@ -1,5 +1,6 @@
 import io
 import os
+import re
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -19,9 +20,45 @@ from training_data_packer.utils.file import find_files
 from training_data_packer.utils.metrics import merge_metrics
 
 
+def _shard_name(file_prefix: str, file_idx: int) -> str:
+    """Build the file name of a merged shard.
+
+    :param file_prefix: prefix of the shard file names
+    :param file_idx: index of the shard
+    :returns: the shard file name
+    """
+    return f"{file_prefix}_{file_idx:04d}{DEFAULT_SUFFIX}"
+
+
+def _remove_unfinished_files(destination_dir: Path, file_prefix: str):
+    """Remove hidden temporary shard files left behind by an interrupted merge.
+
+    Only files belonging to ``file_prefix`` are removed, since other parts may write to the same directory.
+
+    :param destination_dir: directory the shards are written to
+    :param file_prefix: prefix of the shard file names
+    """
+    pattern = re.compile(rf"\.{re.escape(file_prefix)}_\d{{4,}}{re.escape(DEFAULT_SUFFIX)}")
+    for path in destination_dir.iterdir():
+        if path.is_file() and pattern.fullmatch(path.name):
+            logger.info(f"Remove old temporary file {path}")
+            path.unlink()
+
+
 def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: int, file_prefix: str):
+    """Merge input files into shards of ``docs_per_shard`` documents.
+
+    Each shard is written to a hidden temporary file and renamed to its final name once complete.
+
+    :param input_files: zstd compressed JSON Lines files to merge
+    :param destination_dir: directory to write the shards to
+    :param docs_per_shard: maximum number of documents per shard
+    :param file_prefix: prefix of the shard file names
+    :raises FileExistsError: if a shard with the same name already exists
+    """
     logger.info(f"Writing to directory {destination_dir}, using prefix {file_prefix}")
     os.makedirs(destination_dir, exist_ok=True)
+    _remove_unfinished_files(destination_dir, file_prefix)
 
     dctx = zstd.ZstdDecompressor()
     cctx = zstd.ZstdCompressor(level=3)
@@ -30,6 +67,8 @@ def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: in
     docs_written = 0
     out_f = None
     writer = None
+    output_path = None
+    tmp_output_path = None
 
     try:
         for file_path in input_files:
@@ -41,12 +80,15 @@ def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: in
                             if out_f:
                                 writer.close()
                                 out_f.close()
+                                os.rename(tmp_output_path, output_path)
+                                out_f = None
 
-                            output_path = destination_dir.joinpath(f"{file_prefix}_{file_idx:04d}.jsonl.zst")
+                            output_path = destination_dir.joinpath(_shard_name(file_prefix, file_idx))
+                            tmp_output_path = destination_dir.joinpath("." + output_path.name)
                             if output_path.exists():
                                 logger.warning(f"File {output_path} already exists, aborting part merge")
                                 raise FileExistsError(f"File {output_path} already exists, aborting part merge")
-                            out_f = open(output_path, "wb")
+                            out_f = open(tmp_output_path, "wb")
                             writer = cctx.stream_writer(out_f)
 
                             docs_written = 0
@@ -54,10 +96,11 @@ def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: in
                         writer.write(line.encode("utf-8"))
                         docs_written += 1
     finally:
-        if writer:
-            writer.close()
         if out_f:
+            writer.close()
             out_f.close()
+    if out_f:
+        os.rename(tmp_output_path, output_path)
 
 
 def merge_part(part_name: str, metadata: Metadata):
