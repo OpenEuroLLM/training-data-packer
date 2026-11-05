@@ -5,6 +5,7 @@
 #
 # 🏃🏻 running, ✅ completed, ❎ failed, 🕘 pending or waiting for a dependency, ❔ unknown to SLURM.
 # An array job shows the worst state of its tasks: failed before running before pending before completed.
+# A completed job also shows its run time as [D-]HH:MM:SS, from the start of its first task to the end of its last.
 #
 # Usage: ./pipeline-status.sh [jobs-csv]
 # Example: ./pipeline-status.sh logs/jobs.csv
@@ -23,7 +24,9 @@ trap 'rm -f "${STATES_FILE}"' EXIT
 
 JOB_IDS=$(tail -n +2 "${JOBS_CSV}" | cut -d, -f2- | tr ',' '\n' | grep -v '^$' | sort -u | paste -sd, - || true)
 if [ -n "${JOB_IDS}" ]; then
-  sacct --jobs="${JOB_IDS}" --allocations --noheader --parsable2 --format=JobID,State > "${STATES_FILE}"
+  # Print Start and End as seconds since the epoch, so the run time is easy to compute.
+  SLURM_TIME_FORMAT=%s sacct --jobs="${JOB_IDS}" --allocations --noheader --parsable2 \
+    --format=JobID,State,Start,End > "${STATES_FILE}"
 fi
 
 awk -F'|' '
@@ -45,14 +48,25 @@ awk -F'|' '
     } else {
       pending[id[1]] = 1
     }
+    # Start and End are "Unknown" or "None" until the task has started or ended.
+    if ($3 ~ /^[0-9]+$/ && (!(id[1] in start) || $3 < start[id[1]])) start[id[1]] = $3
+    if ($4 ~ /^[0-9]+$/ && (!(id[1] in end) || $4 > end[id[1]])) end[id[1]] = $4
     next
   }
 
+  function run_time(job_id,    seconds, days) {
+    if (!(job_id in start) || !(job_id in end)) return ""
+    seconds = end[job_id] - start[job_id]
+    days = int(seconds / 86400)
+    seconds -= days * 86400
+    return sprintf(" %s%02d:%02d:%02d", days > 0 ? days "-" : "", seconds / 3600, seconds % 3600 / 60, seconds % 60)
+  }
+
   function status(job_id) {
-    if (job_id in failed) return "❎"
+    if (job_id in failed) return "❌"
     if (job_id in running) return "🏃🏻"
     if (job_id in pending) return "🕘"
-    if (job_id in completed) return "✅"
+    if (job_id in completed) return "✅" run_time(job_id)
     return "❔"
   }
 
