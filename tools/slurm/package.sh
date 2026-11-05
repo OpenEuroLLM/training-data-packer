@@ -19,6 +19,6 @@ if [ "$#" -eq 2 ]; then
 else
   export MODE=""
 fi
-export LOGURU_LEVEL=INFO
+export LOGURU_LEVEL=${LOGURU_LEVEL:-INFO}
 
 time /scratch/project_465002530/containers/training-data-packer/oellm-package-data.sh --collection-dir $COLLECTION_DIR $MODE --workers 8

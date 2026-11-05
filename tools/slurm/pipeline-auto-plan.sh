@@ -19,6 +19,8 @@ PACKER=/scratch/project_465002530/containers/training-data-packer/oellm-package-
 COLLECTION_DIR=$1
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
+export LOGURU_LEVEL=${LOGURU_LEVEL:-INFO}
+
 mkdir -p logs
 if [ ! -f logs/jobs.csv ]; then
     echo Collection dir,Package job id,Merge job id,Tokenize job id > logs/jobs.csv

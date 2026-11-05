@@ -102,6 +102,8 @@ their count, total size and largest size. The heuristics are:
 * With `pack: flat`, merge runs in a single task, unless the parts set a `prefix`. With `pack: tree`, merge uses at most
   one task per part.
 * Tokenize is estimated from the source files, once per tokenizer, since the merged files do not exist yet.
+* The estimated time is multiplied by a safety ratio, default 2.0, before the array size and time limit are
+  calculated. A ratio of 1.5 reserves 50% more time than estimated. Set it with `--safety-ratio`.
 
 If a job needs more time than its partition allows, 72 hours for `small` and 48 hours for `standard`, the plan fails
 and nothing is scheduled.
@@ -124,6 +126,22 @@ Example:
 
 Logs are ending up in the sub-directory logs to your current directory. In the logs directory a `jobs.csv`
 is created by `pipeline-auto-plan.sh` and `pipeline.sh` to collection and job id scheduled.
+
+To see the status of the scheduled jobs, print a Markdown table with one row per collection and one column per step:
+
+```
+./tools/slurm/pipeline-status.sh [logs/jobs.csv]
+```
+
+```
+| Collection | Package | Merge | Tokenize |
+|---|---|---|---|
+| finepdfs-edu-1.0.0 | ✅ | 🏃🏻 | 🕘 |
+| olmo-mix-1124 | ❎ | ❎ | ❎ |
+```
+
+🏃🏻 running, ✅ completed, ❎ failed, 🕘 pending or waiting for a dependency, and ❔ if SLURM doesn't know the job.
+An array job shows its worst task. If a collection was scheduled more than once, only the latest jobs are shown.
 
 ### Use another container image
 
