@@ -108,6 +108,11 @@ their count, total size and largest size. The heuristics are:
 If a job needs more time than its partition allows, 72 hours for `small` and 48 hours for `standard`, the plan fails
 and nothing is scheduled.
 
+If a merge fails or hits its time limit, run it again with the same input and shard size. It continues from the last
+unfinished shard. Each shard is first written as a hidden file and renamed when it is complete. The input position where
+the current shard starts is saved in `.<prefix>.merge-state.json` in the destination directory, and the file is
+removed when the merge completes.
+
 To set the array sizes yourself, use `pipeline.sh` instead. The jobs then use the partition and time limit set in the
 job scripts.
 
