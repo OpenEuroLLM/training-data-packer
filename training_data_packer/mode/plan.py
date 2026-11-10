@@ -31,7 +31,7 @@ from training_data_packer.mode.merge import is_single_task_merge
 from training_data_packer.utils.file import find_files
 
 GIB = 1024**3
-DEFAULT_SAFETY_RATIO = 2.0
+DEFAULT_SAFETY_RATIO = 3.0
 GIB_PER_MINUTE = 1.0
 IDEAL_TASK_MINUTES = 5 * 60
 PACKAGE_PARALLEL_FILES = 8
