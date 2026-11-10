@@ -127,12 +127,12 @@ class TestProcess(unittest.TestCase):
 
         package, merge, tokenize = process(self.collection_dir)
 
-        # 2000 GiB with ratio 2 is 3500 minutes, 2 tasks of 8 parallel files
-        self.assertEqual(package.slurm_args(), "--partition=small --array=0-1 --time=5:00:00")
-        # Two parts of 1750 minutes each
-        self.assertEqual(merge.slurm_args(), "--partition=small --array=0-1 --time=34:00:00")
-        # 3500 minutes, ideal 300 minutes per task
-        self.assertEqual(tokenize.slurm_args(), "--partition=standard --array=0-13 --time=5:00:00")
+        # 2000 GiB with ratio 3 is 6000 minutes, 3 tasks of 8 parallel files
+        self.assertEqual(package.slurm_args(), "--partition=small --array=0-2 --time=5:00:00")
+        # Two parts of 3000 minutes each
+        self.assertEqual(merge.slurm_args(), "--partition=small --array=0-1 --time=50:00:00")
+        # 6000 minutes, ideal 300 minutes per task
+        self.assertEqual(tokenize.slurm_args(), "--partition=standard --array=0-19 --time=5:00:00")
 
     def test_invalid_safety_ratio(self):
         self._write_metadata("tree")
