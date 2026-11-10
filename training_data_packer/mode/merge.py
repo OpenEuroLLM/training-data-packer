@@ -47,18 +47,39 @@ def _remove_unfinished_files(destination_dir: Path, file_prefix: str):
             path.unlink()
 
 
-def _state_path(destination_dir: Path, file_prefix: str) -> Path:
-    """Build the path of the hidden file holding the merge restart state.
+_STATE_SUFFIX = ".merge-state.json"
+
+
+def _state_path(destination_dir: Path, file_prefix: str, file_idx: int) -> Path:
+    """Build the path of the hidden file holding the restart state of a shard.
 
     :param destination_dir: directory the shards are written to
     :param file_prefix: prefix of the shard file names
+    :param file_idx: index of the shard
     :returns: path to the state file
     """
-    return destination_dir.joinpath(f".{file_prefix}.merge-state.json")
+    return destination_dir.joinpath(f".{_shard_name(file_prefix, file_idx)}{_STATE_SUFFIX}")
+
+
+def _find_state_paths(destination_dir: Path, file_prefix: str) -> dict[int, Path]:
+    """Find the restart state files of all shards.
+
+    :param destination_dir: directory the shards are written to
+    :param file_prefix: prefix of the shard file names
+    :returns: the state files, keyed by shard index
+    """
+    pattern = re.compile(
+        rf"\.{re.escape(file_prefix)}_(\d{{4,}}){re.escape(DEFAULT_SUFFIX)}{re.escape(_STATE_SUFFIX)}",
+    )
+    state_paths = {}
+    for path in destination_dir.iterdir():
+        if path.is_file() and (match := pattern.fullmatch(path.name)):
+            state_paths[int(match.group(1))] = path
+    return state_paths
 
 
 def _write_state(state_path: Path, state: dict[str, Any]):
-    """Atomically write the merge restart state.
+    """Atomically write the restart state of a shard.
 
     :param state_path: path to the state file
     :param state: the state to write
@@ -68,17 +89,15 @@ def _write_state(state_path: Path, state: dict[str, Any]):
     os.replace(tmp_state_path, state_path)
 
 
-def _read_state(state_path: Path, input_files: list[Path], docs_per_shard: int) -> dict[str, Any] | None:
-    """Read and validate the merge restart state.
+def _read_state(state_path: Path, input_files: list[Path], docs_per_shard: int) -> dict[str, Any]:
+    """Read and validate the restart state of a shard.
 
     :param state_path: path to the state file
     :param input_files: files that are merged, in merge order
     :param docs_per_shard: maximum number of documents per shard
-    :returns: the state, or None if there is no state to restart from
+    :returns: the state
     :raises ValueError: if the state does not match the current input or shard size
     """
-    if not state_path.exists():
-        return None
     state = json.loads(state_path.read_bytes())
     if state["docs_per_shard"] != docs_per_shard:
         raise ValueError(
@@ -94,8 +113,9 @@ def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: in
     """Merge input files into shards of ``docs_per_shard`` documents.
 
     Each shard is written to a hidden temporary file and renamed to its final name once complete.
-    When a shard starts, its position in the input is saved to a hidden state file. If a previous merge
-    was interrupted, the merge restarts from the saved position of the last started shard.
+    When a shard starts, its position in the input is saved to a hidden state file named after the shard,
+    which is removed when the next shard has started. If a previous merge was interrupted, the merge restarts
+    from the saved position of the last started shard.
 
     :param input_files: zstd compressed JSON Lines files to merge
     :param destination_dir: directory to write the shards to
@@ -108,12 +128,18 @@ def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: in
     _remove_unfinished_files(destination_dir, file_prefix)
 
     input_files = list(input_files)
-    state_path = _state_path(destination_dir, file_prefix)
-    state = _read_state(state_path, input_files, docs_per_shard)
-    if state is None:
+    state_paths = _find_state_paths(destination_dir, file_prefix)
+    state_path = None
+    if not state_paths:
         file_idx, start_input, start_line = 0, 0, 0
     else:
-        file_idx, start_input, start_line = state["shard"], state["input_index"], state["line"]
+        file_idx = max(state_paths)
+        state_path = state_paths.pop(file_idx)
+        # States of earlier shards are left if the merge stopped right after the next shard started
+        for old_state_path in state_paths.values():
+            old_state_path.unlink()
+        state = _read_state(state_path, input_files, docs_per_shard)
+        start_input, start_line = state["input_index"], state["line"]
         logger.info(f"Restart merge at shard {file_idx} from line {start_line} of {state['input_file']}")
         # The shard may have been renamed before the state of the next shard was saved, so redo it
         done_shard = destination_dir.joinpath(_shard_name(file_prefix, file_idx))
@@ -151,16 +177,19 @@ def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: in
                             if output_path.exists():
                                 logger.warning(f"File {output_path} already exists, aborting part merge")
                                 raise FileExistsError(f"File {output_path} already exists, aborting part merge")
+                            previous_state_path = state_path
+                            state_path = _state_path(destination_dir, file_prefix, file_idx)
                             _write_state(
                                 state_path,
                                 {
-                                    "shard": file_idx,
                                     "input_index": input_idx,
                                     "input_file": str(file_path),
                                     "line": line_idx,
                                     "docs_per_shard": docs_per_shard,
                                 },
                             )
+                            if previous_state_path is not None and previous_state_path != state_path:
+                                previous_state_path.unlink()
                             out_f = open(tmp_output_path, "wb")
                             writer = cctx.stream_writer(out_f)
 
@@ -174,7 +203,8 @@ def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: in
             out_f.close()
     if out_f:
         os.rename(tmp_output_path, output_path)
-    state_path.unlink(missing_ok=True)
+    if state_path is not None:
+        state_path.unlink(missing_ok=True)
 
 
 def merge_part(part_name: str, metadata: Metadata):

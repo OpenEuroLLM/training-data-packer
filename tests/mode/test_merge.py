@@ -41,13 +41,18 @@ class MergeRestartTests(unittest.TestCase):
         for i, file_path in enumerate(self.input_files):
             _write_input(file_path, range(i * 5, i * 5 + 5))
         self.destination_dir = tmp.joinpath("release")
-        self.state_path = self.destination_dir.joinpath(".shard.merge-state.json")
+
+    def _state_path(self, shard: int) -> Path:
+        return self.destination_dir.joinpath(f".shard_{shard:04d}.jsonl.zst.merge-state.json")
+
+    def _state_files(self) -> list[str]:
+        return sorted(p.name for p in self.destination_dir.glob(".*.merge-state.json"))
 
     def test_merge_removes_state_when_done(self):
         merge(self.input_files, self.destination_dir, 4, "shard")
 
         self.assertEqual(_read_shards(self.destination_dir), self._EXPECTED)
-        self.assertFalse(self.state_path.exists())
+        self.assertEqual(self._state_files(), [])
 
     def test_merge_restarts_after_failure(self):
         self.input_files[2].write_bytes(b"not zstd")
@@ -56,10 +61,10 @@ class MergeRestartTests(unittest.TestCase):
             merge(self.input_files, self.destination_dir, 4, "shard")
 
         self.assertEqual(_read_shards(self.destination_dir), self._EXPECTED[:2])
+        self.assertEqual(self._state_files(), [".shard_0002.jsonl.zst.merge-state.json"])
         self.assertEqual(
-            json.loads(self.state_path.read_bytes()),
+            json.loads(self._state_path(2).read_bytes()),
             {
-                "shard": 2,
                 "input_index": 1,
                 "input_file": str(self.input_files[1]),
                 "line": 3,
@@ -72,7 +77,6 @@ class MergeRestartTests(unittest.TestCase):
         merge(self.input_files, self.destination_dir, 4, "shard")
 
         self.assertEqual(_read_shards(self.destination_dir), self._EXPECTED)
-        self.assertFalse(self.state_path.exists())
         self.assertEqual(list(self.destination_dir.glob(".*")), [])
 
     def test_merge_redoes_shard_renamed_before_state_was_saved(self):
@@ -80,10 +84,9 @@ class MergeRestartTests(unittest.TestCase):
         # Simulate a crash after shard 1 was renamed but before the state of shard 2 was saved
         for name in ["shard_0002.jsonl.zst", "shard_0003.jsonl.zst"]:
             self.destination_dir.joinpath(name).unlink()
-        self.state_path.write_bytes(
+        self._state_path(1).write_bytes(
             json.dumps(
                 {
-                    "shard": 1,
                     "input_index": 0,
                     "input_file": str(self.input_files[0]),
                     "line": 4,
@@ -95,7 +98,26 @@ class MergeRestartTests(unittest.TestCase):
         merge(self.input_files, self.destination_dir, 4, "shard")
 
         self.assertEqual(_read_shards(self.destination_dir), self._EXPECTED)
-        self.assertFalse(self.state_path.exists())
+        self.assertEqual(self._state_files(), [])
+
+    def test_merge_restarts_from_latest_state(self):
+        self.input_files[2].write_bytes(b"not zstd")
+        with self.assertRaises(zstd.ZstdError):
+            merge(self.input_files, self.destination_dir, 4, "shard")
+        # Simulate a crash after the state of shard 2 was saved but before the state of shard 1 was removed
+        state_of_shard_1 = {
+            "input_index": 0,
+            "input_file": str(self.input_files[0]),
+            "line": 4,
+            "docs_per_shard": 4,
+        }
+        self._state_path(1).write_bytes(json.dumps(state_of_shard_1))
+
+        _write_input(self.input_files[2], range(10, 15))
+        merge(self.input_files, self.destination_dir, 4, "shard")
+
+        self.assertEqual(_read_shards(self.destination_dir), self._EXPECTED)
+        self.assertEqual(self._state_files(), [])
 
     def test_merge_restart_rejects_changed_shard_size(self):
         self.input_files[2].write_bytes(b"not zstd")
