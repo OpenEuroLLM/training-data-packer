@@ -1,9 +1,12 @@
 import io
+import itertools
 import os
+import re
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
+import orjson as json
 import zstandard as zstd
 from loguru import logger
 
@@ -19,34 +22,175 @@ from training_data_packer.utils.file import find_files
 from training_data_packer.utils.metrics import merge_metrics
 
 
+def _shard_name(file_prefix: str, file_idx: int) -> str:
+    """Build the file name of a merged shard.
+
+    :param file_prefix: prefix of the shard file names
+    :param file_idx: index of the shard
+    :returns: the shard file name
+    """
+    return f"{file_prefix}_{file_idx:04d}{DEFAULT_SUFFIX}"
+
+
+def _remove_unfinished_files(destination_dir: Path, file_prefix: str):
+    """Remove hidden temporary shard files left behind by an interrupted merge.
+
+    Only files belonging to ``file_prefix`` are removed, since other parts may write to the same directory.
+
+    :param destination_dir: directory the shards are written to
+    :param file_prefix: prefix of the shard file names
+    """
+    pattern = re.compile(rf"\.{re.escape(file_prefix)}_\d{{4,}}{re.escape(DEFAULT_SUFFIX)}")
+    for path in destination_dir.iterdir():
+        if path.is_file() and pattern.fullmatch(path.name):
+            logger.info(f"Remove old temporary file {path}")
+            path.unlink()
+
+
+_STATE_SUFFIX = ".merge-state.json"
+
+
+def _state_path(destination_dir: Path, file_prefix: str, file_idx: int) -> Path:
+    """Build the path of the hidden file holding the restart state of a shard.
+
+    :param destination_dir: directory the shards are written to
+    :param file_prefix: prefix of the shard file names
+    :param file_idx: index of the shard
+    :returns: path to the state file
+    """
+    return destination_dir.joinpath(f".{_shard_name(file_prefix, file_idx)}{_STATE_SUFFIX}")
+
+
+def _find_state_paths(destination_dir: Path, file_prefix: str) -> dict[int, Path]:
+    """Find the restart state files of all shards.
+
+    :param destination_dir: directory the shards are written to
+    :param file_prefix: prefix of the shard file names
+    :returns: the state files, keyed by shard index
+    """
+    pattern = re.compile(
+        rf"\.{re.escape(file_prefix)}_(\d{{4,}}){re.escape(DEFAULT_SUFFIX)}{re.escape(_STATE_SUFFIX)}",
+    )
+    state_paths = {}
+    for path in destination_dir.iterdir():
+        if path.is_file() and (match := pattern.fullmatch(path.name)):
+            state_paths[int(match.group(1))] = path
+    return state_paths
+
+
+def _write_state(state_path: Path, state: dict[str, Any]):
+    """Atomically write the restart state of a shard.
+
+    :param state_path: path to the state file
+    :param state: the state to write
+    """
+    tmp_state_path = state_path.with_name(state_path.name + ".tmp")
+    tmp_state_path.write_bytes(json.dumps(state))
+    os.replace(tmp_state_path, state_path)
+
+
+def _read_state(state_path: Path, input_files: list[Path], docs_per_shard: int) -> dict[str, Any]:
+    """Read and validate the restart state of a shard.
+
+    :param state_path: path to the state file
+    :param input_files: files that are merged, in merge order
+    :param docs_per_shard: maximum number of documents per shard
+    :returns: the state
+    :raises ValueError: if the state does not match the current input or shard size
+    """
+    state = json.loads(state_path.read_bytes())
+    if state["docs_per_shard"] != docs_per_shard:
+        raise ValueError(
+            f"Shard size changed from {state['docs_per_shard']} to {docs_per_shard} since {state_path} was written",
+        )
+    input_index = state["input_index"]
+    if input_index >= len(input_files) or str(input_files[input_index]) != state["input_file"]:
+        raise ValueError(f"Input files changed since {state_path} was written, cannot restart merge")
+    return state
+
+
 def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: int, file_prefix: str):
+    """Merge input files into shards of ``docs_per_shard`` documents.
+
+    Each shard is written to a hidden temporary file and renamed to its final name once complete.
+    When a shard starts, its position in the input is saved to a hidden state file named after the shard,
+    which is removed when the next shard has started. If a previous merge was interrupted, the merge restarts
+    from the saved position of the last started shard.
+
+    :param input_files: zstd compressed JSON Lines files to merge
+    :param destination_dir: directory to write the shards to
+    :param docs_per_shard: maximum number of documents per shard
+    :param file_prefix: prefix of the shard file names
+    :raises FileExistsError: if a shard with the same name already exists
+    """
     logger.info(f"Writing to directory {destination_dir}, using prefix {file_prefix}")
     os.makedirs(destination_dir, exist_ok=True)
+    _remove_unfinished_files(destination_dir, file_prefix)
+
+    input_files = list(input_files)
+    state_paths = _find_state_paths(destination_dir, file_prefix)
+    state_path = None
+    if not state_paths:
+        file_idx, start_input, start_line = 0, 0, 0
+    else:
+        file_idx = max(state_paths)
+        state_path = state_paths.pop(file_idx)
+        # States of earlier shards are left if the merge stopped right after the next shard started
+        for old_state_path in state_paths.values():
+            old_state_path.unlink()
+        state = _read_state(state_path, input_files, docs_per_shard)
+        start_input, start_line = state["input_index"], state["line"]
+        logger.info(f"Restart merge at shard {file_idx} from line {start_line} of {state['input_file']}")
+        # The shard may have been renamed before the state of the next shard was saved, so redo it
+        done_shard = destination_dir.joinpath(_shard_name(file_prefix, file_idx))
+        if done_shard.exists():
+            logger.info(f"Remove {done_shard} to redo it")
+            done_shard.unlink()
 
     dctx = zstd.ZstdDecompressor()
     cctx = zstd.ZstdCompressor(level=3)
 
-    file_idx = 0
     docs_written = 0
     out_f = None
     writer = None
+    output_path = None
+    tmp_output_path = None
 
     try:
-        for file_path in input_files:
+        for input_idx in range(start_input, len(input_files)):
+            file_path = input_files[input_idx]
+            first_line = start_line if input_idx == start_input else 0
             with open(file_path, "rb") as in_f:
                 with dctx.stream_reader(in_f) as reader:
                     text_stream = io.TextIOWrapper(reader, encoding="utf-8")
-                    for line in text_stream:
-                        if out_f is None or (docs_written >= docs_per_shard) or docs_written == 0:
+                    lines = itertools.islice(text_stream, first_line, None)
+                    for line_idx, line in enumerate(lines, start=first_line):
+                        if out_f is None or docs_written >= docs_per_shard:
                             if out_f:
                                 writer.close()
                                 out_f.close()
+                                os.rename(tmp_output_path, output_path)
+                                out_f = None
 
-                            output_path = destination_dir.joinpath(f"{file_prefix}_{file_idx:04d}.jsonl.zst")
+                            output_path = destination_dir.joinpath(_shard_name(file_prefix, file_idx))
+                            tmp_output_path = destination_dir.joinpath("." + output_path.name)
                             if output_path.exists():
                                 logger.warning(f"File {output_path} already exists, aborting part merge")
                                 raise FileExistsError(f"File {output_path} already exists, aborting part merge")
-                            out_f = open(output_path, "wb")
+                            previous_state_path = state_path
+                            state_path = _state_path(destination_dir, file_prefix, file_idx)
+                            _write_state(
+                                state_path,
+                                {
+                                    "input_index": input_idx,
+                                    "input_file": str(file_path),
+                                    "line": line_idx,
+                                    "docs_per_shard": docs_per_shard,
+                                },
+                            )
+                            if previous_state_path is not None and previous_state_path != state_path:
+                                previous_state_path.unlink()
+                            out_f = open(tmp_output_path, "wb")
                             writer = cctx.stream_writer(out_f)
 
                             docs_written = 0
@@ -54,10 +198,13 @@ def merge(input_files: Iterable[Path], destination_dir: Path, docs_per_shard: in
                         writer.write(line.encode("utf-8"))
                         docs_written += 1
     finally:
-        if writer:
-            writer.close()
         if out_f:
+            writer.close()
             out_f.close()
+    if out_f:
+        os.rename(tmp_output_path, output_path)
+    if state_path is not None:
+        state_path.unlink(missing_ok=True)
 
 
 def merge_part(part_name: str, metadata: Metadata):
