@@ -61,6 +61,12 @@ class TestPlanStep(unittest.TestCase):
         self.assertEqual(result.array_size, 5)
         self.assertAlmostEqual(result.minutes, 270)
 
+    def test_gib_per_minute(self):
+        # 900 GiB at 0.5 GiB per minute is 1800 minutes, 6 tasks of 300 minutes
+        result = plan_step("step", "small", [GIB] * 900, 1, 900, gib_per_minute=0.5)
+        self.assertEqual(result.array_size, 6)
+        self.assertAlmostEqual(result.minutes, 300)
+
     def test_safety_ratio_exceeds_partition(self):
         # 48 hours fits in partition standard, but not with the safety ratio
         with self.assertRaises(ValueError):
@@ -117,22 +123,31 @@ class TestProcess(unittest.TestCase):
 
         # 2000 GiB in files of 100 GiB, ideal 2400 GiB per task with 8 parallel files
         self.assertEqual(package.slurm_args(), "--partition=small --array=0-0 --time=5:00:00")
-        # Two parts of 1000 GiB each
-        self.assertEqual(merge.slurm_args(), "--partition=small --array=0-1 --time=17:00:00")
+        # Two parts of 1000 GiB each, merged at 0.5 GiB per minute
+        self.assertEqual(merge.slurm_args(), "--partition=small --array=0-1 --time=34:00:00")
         # 2000 GiB, ideal 300 GiB per task
         self.assertEqual(tokenize.slurm_args(), "--partition=standard --array=0-6 --time=5:00:00")
 
     def test_tree_default_safety_ratio(self):
         self._write_metadata("tree")
+        for file in (self.collection_dir / "source").glob("*/file_0[5-9].jsonl.zst"):
+            os.remove(file)
 
         package, merge, tokenize = process(self.collection_dir)
 
-        # 2000 GiB with ratio 3 is 6000 minutes, 3 tasks of 8 parallel files
-        self.assertEqual(package.slurm_args(), "--partition=small --array=0-2 --time=5:00:00")
-        # Two parts of 3000 minutes each
+        # 1000 GiB with ratio 3 is 3000 minutes, 2 tasks of 8 parallel files
+        self.assertEqual(package.slurm_args(), "--partition=small --array=0-1 --time=5:00:00")
+        # Two parts of 500 GiB, 3000 minutes each at 0.5 GiB per minute
         self.assertEqual(merge.slurm_args(), "--partition=small --array=0-1 --time=50:00:00")
-        # 6000 minutes, ideal 300 minutes per task
-        self.assertEqual(tokenize.slurm_args(), "--partition=standard --array=0-19 --time=5:00:00")
+        # 3000 minutes, ideal 300 minutes per task
+        self.assertEqual(tokenize.slurm_args(), "--partition=standard --array=0-9 --time=5:00:00")
+
+    def test_tree_merge_exceeds_partition(self):
+        self._write_metadata("tree")
+
+        # Two parts of 1000 GiB, 6000 minutes each at 0.5 GiB per minute with ratio 3
+        with self.assertRaises(ValueError):
+            process(self.collection_dir)
 
     def test_invalid_safety_ratio(self):
         self._write_metadata("tree")
@@ -145,14 +160,14 @@ class TestProcess(unittest.TestCase):
 
         _, merge, _ = process(self.collection_dir, safety_ratio=1.0)
 
-        self.assertEqual(merge.slurm_args(), "--partition=small --array=0-0 --time=34:00:00")
+        self.assertEqual(merge.slurm_args(), "--partition=small --array=0-0 --time=67:00:00")
 
     def test_flat_with_prefix(self):
         self._write_metadata("flat", prefix=True)
 
         _, merge, _ = process(self.collection_dir, safety_ratio=1.0)
 
-        self.assertEqual(merge.slurm_args(), "--partition=small --array=0-1 --time=17:00:00")
+        self.assertEqual(merge.slurm_args(), "--partition=small --array=0-1 --time=34:00:00")
 
     def test_no_files(self):
         self._write_metadata("tree")

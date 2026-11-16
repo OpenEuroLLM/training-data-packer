@@ -3,7 +3,7 @@
 The plan is based on the files in the directory referred by ``release.default.input`` that are included in a
 release part. The heuristics are:
 
-* 1 GiB of input is processed per minute.
+* 1 GiB of input is processed per minute, except merge which processes 0.5 GiB per minute.
 * A file, or for merge a part, can not be split between tasks.
 * The package step processes 8 files in parallel in a task. Merge and tokenize process one at a time.
 * A task should ideally run for 5 hours, but never longer than the partition allows.
@@ -33,6 +33,7 @@ from training_data_packer.utils.file import find_files
 GIB = 1024**3
 DEFAULT_SAFETY_RATIO = 3.0
 GIB_PER_MINUTE = 1.0
+MERGE_GIB_PER_MINUTE = 0.5
 IDEAL_TASK_MINUTES = 5 * 60
 PACKAGE_PARALLEL_FILES = 8
 PARTITION_MAX_MINUTES = {"small": 72 * 60, "standard": 48 * 60}
@@ -64,6 +65,7 @@ def plan_step(
     parallel: int,
     max_tasks: int,
     safety_ratio: float = 1.0,
+    gib_per_minute: float = GIB_PER_MINUTE,
 ) -> StepPlan:
     """Calculate the array size and the time needed per task for a step.
 
@@ -78,11 +80,12 @@ def plan_step(
         :param parallel: number of units a task processes in parallel
         :param max_tasks: maximum number of tasks the step can use
         :param safety_ratio: multiplier of the estimated time, e.g. 1.5 reserves 50% more time
+        :param gib_per_minute: GiB of input a task processes per minute and unit
         :returns: the plan for the step
         :raises ValueError: if a task needs more time than the partition allows
     """
-    total_minutes = sum(unit_sizes) / GIB / GIB_PER_MINUTE * safety_ratio
-    largest_minutes = max(unit_sizes, default=0) / GIB / GIB_PER_MINUTE * safety_ratio
+    total_minutes = sum(unit_sizes) / GIB / gib_per_minute * safety_ratio
+    largest_minutes = max(unit_sizes, default=0) / GIB / gib_per_minute * safety_ratio
     max_tasks = max(1, min(max_tasks, len(unit_sizes), PARTITION_MAX_TASKS[partition]))
 
     array_size = min(max(1, math.ceil(total_minutes / (parallel * IDEAL_TASK_MINUTES))), max_tasks)
@@ -133,10 +136,10 @@ def plan_pipeline(metadata: Metadata, safety_ratio: float = DEFAULT_SAFETY_RATIO
     package = plan_step("package", "small", file_sizes, PACKAGE_PARALLEL_FILES, len(file_sizes), safety_ratio)
 
     if is_single_task_merge(metadata, sorted(part_sizes)):
-        merge = plan_step("merge", "small", [sum(file_sizes)], 1, 1, safety_ratio)
+        merge = plan_step("merge", "small", [sum(file_sizes)], 1, 1, safety_ratio, MERGE_GIB_PER_MINUTE)
     else:
         merge_sizes = [sum(sizes) for sizes in part_sizes.values()]
-        merge = plan_step("merge", "small", merge_sizes, 1, len(merge_sizes), safety_ratio)
+        merge = plan_step("merge", "small", merge_sizes, 1, len(merge_sizes), safety_ratio, MERGE_GIB_PER_MINUTE)
 
     # The merged files do not exist yet, use the source files as estimate of the files to tokenize.
     tokenizer_count = max(1, len(get_megatron_lm_tokenizers(metadata)))

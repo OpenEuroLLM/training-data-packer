@@ -93,7 +93,7 @@ tokenize --partition=standard --array=0-6 --time=5:00:00
 The plan is based on the files in the directory of `release.default.input` that are included in a release part,
 their count, total size and largest size. The heuristics are:
 
-* 1 GiB is processed per minute.
+* 1 GiB is processed per minute, except for merge which processes 0.5 GiB per minute.
 * A file can not be split between tasks. For merge, a part can not be split between tasks.
 * `package.sh` processes 8 files in parallel in a task. `merge.sh` and `tokenize.sh` process one at a time.
 * A task should ideally run for 5 hours. The time limit is rounded up to whole hours.
@@ -102,7 +102,7 @@ their count, total size and largest size. The heuristics are:
 * With `pack: flat`, merge runs in a single task, unless the parts set a `prefix`. With `pack: tree`, merge uses at most
   one task per part.
 * Tokenize is estimated from the source files, once per tokenizer, since the merged files do not exist yet.
-* The estimated time is multiplied by a safety ratio, default 2.0, before the array size and time limit are
+* The estimated time is multiplied by a safety ratio, default 3.0, before the array size and time limit are
   calculated. A ratio of 1.5 reserves 50% more time than estimated. Set it with `--safety-ratio`.
 
 If a job needs more time than its partition allows, 72 hours for `small` and 48 hours for `standard`, the plan fails
